@@ -15,7 +15,7 @@ import { auth } from "@clerk/nextjs/server";
 
 const model = new ChatOpenAI({
     apiKey: process.env.OPENAI_API_KEY,
-    model: 'gpt-4o'
+    model: 'gpt-4o-mini'
 })
 
 
@@ -100,3 +100,90 @@ export async function generateEmbeddingsInPineconeVectorStore(docId: string) {
 
     return pineconeVectorStore;
 }
+
+const fetchMessagesFromDB = async (docId) => {
+    const { userId } = await auth();
+
+    if (!userId) {
+        throw new Error("User not found");
+    }
+    
+    console.log('---Fetching chat history---');
+
+    const chats = await adminDb
+    .collection('users')
+    .doc(userId)
+    .collection('files')
+    .doc(docId)
+    .collection('chat')
+    .orderBy('createdAt', 'desc')
+    .get()
+
+    const chatHistory = chats.docs.map((doc) => 
+        doc.data().role === 'human' ?
+        new HumanMessage(doc.data().message)
+        : new AIMessage(doc.data().message)
+    )
+
+    return chatHistory;
+}
+
+const generateLangChainCompletion = async (docId: string, question: string) => {
+    let pineconeVectorStore;
+
+    pineconeVectorStore = await generateEmbeddingsInPineconeVectorStore(docId);
+
+    if (!pineconeVectorStore) {
+        throw new Error("Pinecone vector store not found")
+    }
+
+    console.log('---Creating a retriever---');
+
+    const retriever = pineconeVectorStore.asRetriever();
+    const chatHistory = await fetchMessagesFromDB(docId)  
+
+    const historyAwarePrompt = ChatPromptTemplate.fromMessages([
+        ...chatHistory,
+        ["user", "{input}"],
+        [
+            "user",
+            "Given the above conversation, generate a search query to look up in order to get information relevant to the conversation",
+        ]
+    ]);
+
+    const historyAwareRetrieverChain = await createHistoryAwareRetriever({
+        llm: model,
+        retriever,
+        rephrasePrompt: historyAwarePrompt
+    })
+
+    const historyAwareRetrievalPrompt = ChatPromptTemplate.fromMessages([
+        [
+            "system",
+            "Answer the questions based on the below context: \n\n{context}"
+        ],
+        ...chatHistory,
+        ["user", "{input}"]
+    ])
+
+    const historyAwareCombineDocsChain = await createStuffDocumentsChain({
+        llm: model,
+        prompt: historyAwareRetrievalPrompt
+    })
+
+    const conversationalRetrievalChain = await createRetrievalChain({
+        retriever: historyAwareRetrieverChain,
+        combineDocsChain: historyAwareCombineDocsChain
+    })
+
+    const reply = await conversationalRetrievalChain.invoke({
+        chat_history: chatHistory,
+        input: question
+    });
+
+    console.log("---Got reply---", reply.answer);
+
+    return reply.answer;
+}
+
+export { model, generateLangChainCompletion }
