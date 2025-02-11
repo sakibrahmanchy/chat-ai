@@ -98,8 +98,8 @@ function Chat({ id }) {
 
     
 
-    return (<div className="flex flex-col h-full overflow-scroll">
-        <div className="flex-1 w-full m-4">
+    return (<div className="flex flex-col h-full pt-16" >
+        <div className="flex-1 m-4 overflow-auto">
             {loading && <div className="flex items-center justify-center">
                 <Loader2Icon className="animate-spin w-20 h-20 text-indigo-600 mt-20"/>    
             </div>}
@@ -120,7 +120,7 @@ function Chat({ id }) {
                <div ref={bottomOfChatRef} />
             </div>}
         </div>
-        <form onSubmit={handleSubmit} className="flex sticky bottom-0 space-x-2 p-5 bg-indigo-600/75 mb-12">
+        <form onSubmit={handleSubmit} className="flex sticky bottom-0 space-x-2 p-5 bg-indigo-600/75">
             <Input
                 value={input}
                 placeholder="Whats on your mind?"

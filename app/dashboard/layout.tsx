@@ -7,7 +7,7 @@ function DashboardLayout({ children }: { children: React.ReactNode }) {
             <div className="flex-1 flex flex-col h-screen w-screen">
                 <Header />
 
-                <main className="overflow y-auto">{children}</main>
+                <main className="overflow-hidden">{children}</main>
             </div>
         </ClerkLoaded>
     )

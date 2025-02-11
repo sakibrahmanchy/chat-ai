@@ -29,14 +29,14 @@ function ChatMessage({ message }: { message: Message }) {
                                 />
                             )
                         ) : (
-                            <div className="h-10 w-10 bg-indigo-600 items-center justify-center">
-                                <BotIcon className="text-white w-7 h-7" />
+                            <div className="h-10 w-10 bg-gray-100 flex items-center justify-center">
+                                <BotIcon className="text-black w-7 h-7" />
                             </div>
                         )
                     }
                 </div>
             </div>
-            <div className={`chat-bubble prose ${isHuman && 'bg-indigo-600'}`}>
+            <div className={`chat-bubble prose ${isHuman ? 'bg-indigo-600' : 'bg-gray-100 text-black'}`}>
                 {message?.message === 'Thinking...' ? (
                     <div className="flex items-center justify-center">
                         <Loader2Icon className="animate-spin h-5 w-5 text-white" />
