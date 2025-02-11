@@ -11,6 +11,11 @@ const nextConfig: NextConfig = {
       hostname: 'img.clerk.com',
     }]
   },
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '20mb',
+    },
+  },
   // webpack: (config) => {
   //   config.resolve.alias.canvas = false;
 

@@ -98,8 +98,8 @@ function Chat({ id }) {
 
     
 
-    return (<div className="flex flex-col h-full overflow-scroll">
-        <div className="flex-1 w-full m-4">
+    return (<div className="flex flex-col h-full overflow-hidden m-4">
+        <div className="flex-1 w-full overflow-scroll">
             {loading && <div className="flex items-center justify-center">
                 <Loader2Icon className="animate-spin w-20 h-20 text-indigo-600 mt-20"/>    
             </div>}
