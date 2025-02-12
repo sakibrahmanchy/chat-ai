@@ -1,132 +1,116 @@
 'use client';
 
-import { useEffect, useState } from "react";
-import { db } from "@/firebase";
-import { collection, query, where, orderBy, onSnapshot } from "firebase/firestore";
-import { Job } from "@/app/types/job";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { getRelativeTimeString } from "@/lib/utils";
 import Link from "next/link";
+import { Eye, Upload } from "lucide-react";
 
-// Helper function for relative time
-function getRelativeTimeString(date: Date): string {
-  const formatter = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
-  const diff = date.getTime() - new Date().getTime();
-  const diffInDays = Math.round(diff / (1000 * 60 * 60 * 24));
-  const diffInHours = Math.round(diff / (1000 * 60 * 60));
-  const diffInMinutes = Math.round(diff / (1000 * 60));
-
-  if (Math.abs(diffInDays) >= 1) {
-    return formatter.format(diffInDays, 'day');
-  } else if (Math.abs(diffInHours) >= 1) {
-    return formatter.format(diffInHours, 'hour');
-  } else {
-    return formatter.format(diffInMinutes, 'minute');
-  }
+interface Job {
+  id: string;
+  title: string;
+  description: string;
+  company: string;
+  location: string;
+  type: string;
+  requiredSkills?: string[];
+  createdAt: Date;
+  status: string;
+  applicantsCount?: number;
 }
 
 interface JobListProps {
-  userId: string;
+  jobs: Job[];
 }
 
-export function JobList({ userId }: JobListProps) {
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [loading, setLoading] = useState(true);
+function stripHtml(html: string) {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  return doc.body.textContent?.replace(/\s+/g, ' ').trim() || '';
+}
 
-  useEffect(() => {
-    const jobsQuery = query(
-      collection(db, "users", userId, "jobs"),
-      orderBy("createdAt", "desc")
-    );
-
-    const unsubscribe = onSnapshot(jobsQuery, (snapshot) => {
-      const jobsData = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate(),
-      })) as Job[];
-      
-      setJobs(jobsData);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [userId]);
-
-  if (loading) {
-    return (
-      <div className="grid gap-4">
-        {[...Array(3)].map((_, i) => (
-          <Card key={i} className="animate-pulse">
-            <CardContent className="h-32" />
-          </Card>
-        ))}
-      </div>
-    );
-  }
-
-  if (!jobs.length) {
-    return (
-      <Card>
-        <CardContent className="text-center py-10">
-          <p className="text-muted-foreground">No jobs posted yet</p>
-          <Link href="/dashboard/jobs/new" className="mt-4 inline-block">
-            <Button>Post Your First Job</Button>
-          </Link>
-        </CardContent>
-      </Card>
-    );
-  }
-
+export function JobList({ jobs }: JobListProps) {
   return (
-    <div className="grid gap-4">
+    <div className="space-y-4">
       {jobs.map((job) => (
-        <Card key={job.id}>
+        <Card key={job.id} className="hover:shadow-md transition-shadow">
           <CardHeader>
-            <div className="flex justify-between items-start">
-              <div>
-                <CardTitle>{job.title}</CardTitle>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Posted {getRelativeTimeString(job.createdAt)}
-                </p>
-              </div>
-              <div className="flex gap-2">
-                {job.additionalParameters?.location && (
-                  <Badge variant="secondary">
-                    {job.additionalParameters.location}
+            <div className="flex flex-col sm:flex-row justify-between gap-4">
+              <div className="space-y-2">
+                <div className="flex items-start justify-between gap-4">
+                  <CardTitle className="line-clamp-2">{job.title}</CardTitle>
+                  <Badge variant="secondary" className="hidden sm:inline-flex">
+                    {job.status}
                   </Badge>
-                )}
-                {job.additionalParameters?.yearsOfExperience && (
-                  <Badge variant="secondary">
-                    {job.additionalParameters.yearsOfExperience}+ years
-                  </Badge>
-                )}
+                </div>
+                <CardDescription>
+                  <div className="flex flex-wrap gap-2 text-sm">
+                    <span>{job.company}</span>
+                    <span>•</span>
+                    <span>{job.location}</span>
+                    <span>•</span>
+                    <span>{job.type}</span>
+                    {job.applicantsCount !== undefined && (
+                      <>
+                        <span>•</span>
+                        <span>{job.applicantsCount} applicants</span>
+                      </>
+                    )}
+                  </div>
+                </CardDescription>
               </div>
+              <Badge variant="secondary" className="self-start sm:hidden">
+                {job.status}
+              </Badge>
             </div>
           </CardHeader>
           <CardContent>
-            <p className="text-sm line-clamp-2">{job.description}</p>
-            {job.requiredSkills?.length > 0 && (
-              <div className="flex gap-2 mt-4 flex-wrap">
-                {job.requiredSkills.map((skill) => (
-                  <Badge key={skill} variant="outline">
-                    {skill}
-                  </Badge>
-                ))}
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground line-clamp-2">
+                {stripHtml(job.description)}
+              </p>
+
+              {job.requiredSkills && job.requiredSkills.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {job.requiredSkills.map((skill) => (
+                    <Badge key={skill} variant="outline" className="text-xs">
+                      {skill}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex flex-col sm:flex-row justify-between gap-4 pt-4 border-t">
+                <p className="text-xs text-muted-foreground">
+                  Posted {getRelativeTimeString(job.createdAt)}
+                </p>
+                <div className="flex gap-2">
+                  <Link href={`/dashboard/jobs/${job.id}`}>
+                    <Button variant="outline" size="sm">
+                      <Eye className="h-4 w-4 mr-2" />
+                      View Details
+                    </Button>
+                  </Link>
+                  <Link href={`/dashboard/jobs/${job.id}/upload`}>
+                    <Button size="sm">
+                      <Upload className="h-4 w-4 mr-2" />
+                      Upload Resume
+                    </Button>
+                  </Link>
+                </div>
               </div>
-            )}
+            </div>
           </CardContent>
-          <CardFooter className="flex justify-end gap-2">
-            <Link href={`/dashboard/jobs/${job.id}`}>
-              <Button variant="outline">View Details</Button>
-            </Link>
-            <Link href={`/dashboard/jobs/${job.id}/upload`}>
-              <Button>Upload Resumes</Button>
-            </Link>
-          </CardFooter>
         </Card>
       ))}
+
+      {jobs.length === 0 && (
+        <Card>
+          <CardContent className="p-6 text-center text-muted-foreground">
+            No jobs found.
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 } 

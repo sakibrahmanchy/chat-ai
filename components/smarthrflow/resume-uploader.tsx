@@ -1,66 +1,83 @@
 'use client';
-import React, { useCallback } from 'react';
-import { useDropzone } from 'react-dropzone';
-import { Card, CardContent } from "../ui/card";
-import { cn } from "@/lib/utils";
-
+import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader2Icon, UploadIcon } from 'lucide-react';
 
 interface ResumeUploaderProps {
   jobId: string;
 }
 
 export function ResumeUploader({ jobId }: ResumeUploaderProps) {
-  const onDrop = useCallback(async (acceptedFiles: File[]) => {
-    console.log('Uploading files to job:', jobId);
+  const [isUploading, setIsUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files?.length) return;
+
+    setIsUploading(true);
+    setError(null);
+
     const formData = new FormData();
-    acceptedFiles.forEach(file => {
-      formData.append('resumes', file);
-    });
+    formData.append('resumes', files[0]);
 
     try {
-      const url = `/api/jobs/${jobId}/resumes`;
-      console.log('Making request to:', url);
-      
-      const response = await fetch(url, {
+      const response = await fetch(`/api/jobs/${jobId}/resumes`, {
         method: 'POST',
         body: formData,
       });
-      
-      console.log('Response status:', response.status);
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Error response:', errorText);
-        throw new Error(`Upload failed: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      console.log('Upload successful:', data);
-    } catch (error) {
-      console.error('Error uploading resumes:', error);
-    }
-  }, [jobId]);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+
+      // Redirect to the job detail page after successful upload
+      router.push(`/dashboard/jobs/${jobId}`);
+      router.refresh();
+    } catch (err) {
+      setError('Failed to upload resume. Please try again.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   return (
-    <Card>
+    <Card className="max-w-2xl mx-auto mt-8">
+      <CardHeader>
+        <CardTitle>Upload Resume</CardTitle>
+      </CardHeader>
       <CardContent>
-        <div
-          {...getRootProps()}
-          className={cn(
-            "border-2 border-dashed rounded-lg p-6 text-center cursor-pointer",
-            "hover:border-primary/50 transition-colors",
-            isDragActive && "border-primary bg-primary/5"
-          )}
-        >
-          <input {...getInputProps()} />
-          <p className="text-sm text-muted-foreground text">
-            {isDragActive
-              ? 'Drop the resumes here...'
-              : 'Drag and drop resumes here, or click to select files'}
-          </p>
-        </div>
+        {isUploading ? (
+          <div className="flex flex-col items-center justify-center p-8 space-y-4">
+            <Loader2Icon className="h-8 w-8 animate-spin text-indigo-600" />
+            <p className="text-sm text-muted-foreground">Processing resume...</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="flex justify-center">
+              <label htmlFor="resume-upload" className="cursor-pointer">
+                <div className="flex flex-col items-center space-y-2 p-8 border-2 border-dashed rounded-lg hover:border-indigo-600 transition-colors">
+                  <UploadIcon className="h-8 w-8 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">Click to upload resume (PDF)</p>
+                </div>
+                <input
+                  id="resume-upload"
+                  type="file"
+                  accept=".pdf"
+                  className="hidden"
+                  onChange={handleFileChange}
+                  disabled={isUploading}
+                />
+              </label>
+            </div>
+            {error && (
+              <p className="text-sm text-red-600 text-center">{error}</p>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

@@ -1,5 +1,6 @@
 import type { Config } from "tailwindcss";
 import daisyui from 'daisyui';
+import typography from '@tailwindcss/typography';
 
 export default {
     darkMode: ["class"],
@@ -56,8 +57,15 @@ export default {
   			lg: 'var(--radius)',
   			md: 'calc(var(--radius) - 2px)',
   			sm: 'calc(var(--radius) - 4px)'
-  		}
+  		},
+  		fontFamily: {
+  			sans: ['var(--font-lato)'],
+  		},
   	}
   },
-  plugins: [require("tailwindcss-animate"), daisyui],
+  plugins: [
+    require("tailwindcss-animate"),
+    daisyui,
+    typography,
+  ],
 } satisfies Config;

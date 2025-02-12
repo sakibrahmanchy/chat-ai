@@ -6,7 +6,7 @@ const crypto = require('crypto');
 
 const openai = new OpenAI();
 
-interface ParsedResume {
+export interface ParsedResume {
   first_name: string;
   middle_name: string;
   last_name: string;

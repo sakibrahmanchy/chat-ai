@@ -5,31 +5,13 @@ import { db } from "@/firebase";
 import { doc, getDoc, collection, query, orderBy, onSnapshot } from "firebase/firestore";
 import { Job } from "@/app/types/job";
 import { Resume } from "@/app/types/resume";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import { Progress } from "@/components/ui/progress";
+import { Loader2Icon } from 'lucide-react';
+import { JobDescription } from "./job-description";
+import { ResumeList } from "./resume-list";
 
 interface JobDetailProps {
   jobId: string;
   userId: string;
-}
-
-function getRelativeTimeString(date: Date): string {
-  const formatter = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
-  const diff = date.getTime() - new Date().getTime();
-  const diffInDays = Math.round(diff / (1000 * 60 * 60 * 24));
-  const diffInHours = Math.round(diff / (1000 * 60 * 60));
-  const diffInMinutes = Math.round(diff / (1000 * 60));
-
-  if (Math.abs(diffInDays) >= 1) {
-    return formatter.format(diffInDays, 'day');
-  } else if (Math.abs(diffInHours) >= 1) {
-    return formatter.format(diffInHours, 'hour');
-  } else {
-    return formatter.format(diffInMinutes, 'minute');
-  }
 }
 
 export function JobDetail({ jobId, userId }: JobDetailProps) {
@@ -71,85 +53,30 @@ export function JobDetail({ jobId, userId }: JobDetailProps) {
     return () => unsubscribe();
   }, [jobId, userId]);
 
-  if (loading || !job) {
-    return <div>Loading...</div>;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2Icon className="h-8 w-8 animate-spin text-indigo-600" />
+      </div>
+    );
+  }
+
+  if (!job) {
+    return <div>Job not found</div>;
   }
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between items-start">
-            <div>
-              <CardTitle>{job.title}</CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">
-                Posted {getRelativeTimeString(job.createdAt)}
-              </p>
-            </div>
-            <Link href={`/dashboard/jobs/${job.id}/upload`}>
-              <Button>Upload More Resumes</Button>
-            </Link>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <p className="whitespace-pre-wrap">{job.description}</p>
-          {job.requiredSkills?.length > 0 && (
-            <div className="flex gap-2 mt-4 flex-wrap">
-              {job.requiredSkills.map((skill) => (
-                <Badge key={skill} variant="outline">
-                  {skill}
-                </Badge>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+    <div className="flex flex-col lg:flex-row h-screen bg-gradient-to-br from-background to-white">
+      <div className="lg:w-1/2 min-h-[50vh] lg:min-h-screen lg:max-h-screen overflow-y-auto">
+        <div className="p-4 pb-20">
+          <JobDescription job={job} />
+        </div>
+      </div>
 
-      <div className="space-y-4">
-        <h2 className="text-xl font-semibold">Candidates ({resumes.length})</h2>
-        {resumes.map((resume) => (
-          <Card key={resume.id}>
-            <CardContent className="py-4">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="font-medium">{resume.candidateName || resume.fileName}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Uploaded {getRelativeTimeString(resume.createdAt)}
-                  </p>
-                </div>
-                <Badge variant={resume.status === 'processed' ? 'success' : 'secondary'}>
-                  {resume.status}
-                </Badge>
-              </div>
-
-              {resume.parsedContent && (
-                <div className="mt-4 space-y-2">
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-sm">
-                      <span>Skills Match</span>
-                      <span>{resume.parsedContent.skillMatch}%</span>
-                    </div>
-                    <Progress value={resume.parsedContent.skillMatch} />
-                  </div>
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-sm">
-                      <span>Experience Match</span>
-                      <span>{resume.parsedContent.experienceMatch}%</span>
-                    </div>
-                    <Progress value={resume.parsedContent.experienceMatch} />
-                  </div>
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-sm">
-                      <span>Overall Fit</span>
-                      <span>{resume.parsedContent.overallFit}%</span>
-                    </div>
-                    <Progress value={resume.parsedContent.overallFit} />
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
+      <div className="lg:w-1/2 min-h-[50vh] lg:min-h-screen lg:max-h-screen overflow-y-auto border-t lg:border-t-0 lg:border-l bg-white/50">
+        <div className="p-4 pb-20">
+          <ResumeList resumes={resumes} jobId={jobId} />
+        </div>
       </div>
     </div>
   );

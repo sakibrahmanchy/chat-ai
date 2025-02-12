@@ -1,15 +1,14 @@
 import Header from "@/components/header"
-import { ClerkLoaded } from "@clerk/nextjs"
 
-function DashboardLayout({ children }: { children: React.ReactNode }) {
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     return (
-        <ClerkLoaded>
-            <div className="flex-1 flex flex-col h-screen w-screen">
-                <Header />
-
-                <main className="overflow y-auto">{children}</main>
-            </div>
-        </ClerkLoaded>
+        <>
+            <Header />
+            <main className="flex-1 overflow-auto">
+                <div className="w-full mx-auto p-8">
+                    {children}
+                </div>
+            </main>
+        </>
     )
 }
-export default DashboardLayout
