@@ -1,0 +1,8 @@
+model Job {
+  id          String   @id @default(cuid())
+  title       String
+  description String   @db.Text
+  requirements String  @db.Text
+  benefits    String?  @db.Text
+  // ... other fields
+} 
