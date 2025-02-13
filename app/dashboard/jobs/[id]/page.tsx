@@ -10,7 +10,8 @@ import {
   query, 
   orderBy,
   Timestamp,
-  limit
+  limit,
+  where
 } from "firebase/firestore";
 import { auth } from "@clerk/nextjs/server";
 
@@ -39,24 +40,28 @@ export default async function JobPage({
   if (!userId) return null;
 
   try {
-    // Get job details
-    const jobRef = doc(db, 'users', userId, 'jobs', jobId);
+    // Get job details from the jobs collection
+    const jobRef = doc(db, 'jobs', jobId);
     const jobSnap = await getDoc(jobRef);
     
-    if (!jobSnap.exists()) return null;
+    if (!jobSnap.exists() || jobSnap.data().userId !== userId) {
+      return null; // Job not found or doesn't belong to user
+    }
 
     const job = {
       id: jobSnap.id,
       ...serializeData(jobSnap.data()),
-      requiredSkills: jobSnap.data()?.requiredSkills || [],
+      // Ensure all required fields exist
+      requiredSkills: jobSnap.data()?.requiredSkills || jobSnap.data()?.skills || [],
       requirements: jobSnap.data()?.requirements || '',
-      skills: jobSnap.data()?.skills || [],
+      description: jobSnap.data()?.description || '',
     } as Job;
 
     // Get initial resumes (first page)
-    const resumesRef = collection(db, 'users', userId, 'jobs', jobId, 'resumes');
+    const resumesRef = collection(db, 'resumes');
     const resumesQuery = query(
-      resumesRef, 
+      resumesRef,
+      where('jobId', '==', jobId),
       orderBy('createdAt', 'desc'),
       limit(CANDIDATES_PER_PAGE)
     );
@@ -67,6 +72,9 @@ export default async function JobPage({
       id: doc.id,
       ...serializeData(doc.data()),
     })) as Resume[];
+
+
+    console.log(resumes)
 
     return (
       <CandidateListView 

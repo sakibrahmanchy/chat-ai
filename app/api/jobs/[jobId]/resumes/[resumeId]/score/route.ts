@@ -1,52 +1,63 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs';
 import { adminDb } from '@/firebase-admin';
-import { auth } from "@clerk/nextjs/server";
 import { scoreResume } from '@/lib/ai/resume-scorer';
+import { updateResumeInIndex } from '@/lib/algolia';
 
 export async function POST(
-  req: Request,
+  req: NextRequest,
   { params }: { params: { jobId: string; resumeId: string } }
 ) {
   try {
     const { userId } = await auth();
     if (!userId) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    const { jobId, resumeId } = params;
+    // Get resume and job documents
+    const [resumeDoc, jobDoc] = await Promise.all([
+      adminDb.collection('resumes').doc(params.resumeId).get(),
+      adminDb.collection('jobs').doc(params.jobId).get()
+    ]);
 
-    // Get job and resume data
-    const jobDoc = await adminDb
-      .collection('users')
-      .doc(userId)
-      .collection('jobs')
-      .doc(jobId)
-      .get();
-
-    const resumeDoc = await jobDoc.ref
-      .collection('resumes')
-      .doc(resumeId)
-      .get();
-
-    if (!jobDoc.exists || !resumeDoc.exists) {
-      return new NextResponse("Not found", { status: 404 });
+    if (!resumeDoc.exists || !jobDoc.exists) {
+      return new NextResponse('Resume or job not found', { status: 404 });
     }
 
-    const job = { id: jobDoc.id, ...jobDoc.data() };
-    const resume = { id: resumeDoc.id, ...resumeDoc.data() };
+    const resumeData = resumeDoc.data();
+    const jobData = jobDoc.data();
 
-    // Score the resume
-    const scoreResult = await scoreResume(resume, job);
+    // Score resume
+    const scores = await scoreResume(resumeData, jobData);
 
-    // Update the resume document with scores
+    // Update resume document
     await resumeDoc.ref.update({
-      scores: scoreResult,
-      lastScored: new Date(),
+      scores,
+      matchScore: scores.averageScore,
+      updatedAt: new Date().toISOString(),
+      lastScoredAt: new Date().toISOString()
     });
 
-    return NextResponse.json(scoreResult);
+    // Update Algolia index
+    await updateResumeInIndex(params.resumeId, {
+      scores,
+      matchScore: scores.averageScore,
+      updatedAt: new Date().toISOString(),
+      lastScoredAt: new Date().toISOString()
+    });
+
+    // Track scoring history
+    await adminDb.collection('resumeScores').add({
+      resumeId: params.resumeId,
+      jobId: params.jobId,
+      userId,
+      scores,
+      timestamp: new Date().toISOString()
+    });
+
+    return NextResponse.json({ success: true, scores });
   } catch (error) {
     console.error('Error scoring resume:', error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    return new NextResponse('Error scoring resume', { status: 500 });
   }
 } 

@@ -13,10 +13,11 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from "@clerk/nextjs";
 
 interface JobFormData {
+  // Core job details
   title: string;
   company: string;
   location: string;
-  type: string; // Full-time, Part-time, Contract, etc.
+  type: string;
   experience: string;
   salary: string;
   skills: string[];
@@ -25,6 +26,25 @@ interface JobFormData {
   benefits: string;
   applicationDeadline: string;
   createdAt: Date;
+  
+  // Location
+  city: string;
+  state: string;
+  country: string;
+  
+  // Employment details
+  employmentType: string;
+  experienceRequired: number;
+  salaryMin: number;
+  salaryMax: number;
+  salaryCurrency: string;
+  
+  // Skills and requirements
+  responsibilities: string;
+  qualifications: string;
+  
+  // Additional info
+  department?: string;
 }
 
 export const JobPostingForm: React.FC = () => {
@@ -47,6 +67,17 @@ export const JobPostingForm: React.FC = () => {
     benefits: '',
     applicationDeadline: '',
     createdAt: new Date(),
+    city: '',
+    state: '',
+    country: '',
+    employmentType: '',
+    experienceRequired: 0,
+    salaryMin: 0,
+    salaryMax: 0,
+    salaryCurrency: 'USD',
+    responsibilities: '',
+    qualifications: '',
+    department: '',
   });
 
   const handleSkillAdd = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -75,13 +106,57 @@ export const JobPostingForm: React.FC = () => {
         throw new Error('Not authenticated');
       }
 
-      // Add document to Firestore under the user's jobs collection
-      const docRef = await addDoc(collection(db, 'users', userId, 'jobs'), {
-        ...job,
+      // Structure job data for new schema while keeping old format
+      const jobData = {
+        // Keep existing fields
+        title: job.title,
+        company: job.company,
+        location: job.location, // Keep for backward compatibility
+        type: job.type,
+        experience: job.experience,
+        salary: job.salary,
+        description: job.description,
+        requirements: job.requirements,
+        benefits: job.benefits,
+        applicationDeadline: job.applicationDeadline,
+        
+        // Add new structured fields
+        userId,
         createdAt: new Date(),
+        updatedAt: new Date(),
         status: 'active',
-        requiredSkills: job.skills,
-      });
+
+        // Structured location
+        location: {
+          city: job.city || job.location.split(',')[0]?.trim(),
+          state: job.state,
+          country: job.country
+        },
+
+        // Structured employment details
+        employmentType: job.employmentType || job.type,
+        experienceRequired: job.experienceRequired || parseInt(job.experience) || 0,
+        salaryRange: {
+          min: job.salaryMin || 0,
+          max: job.salaryMax || 0,
+          currency: job.salaryCurrency || 'USD'
+        },
+
+        // Skills and requirements
+        requiredSkills: job.skills.map(s => s.toLowerCase()),
+        responsibilities: job.responsibilities || job.requirements, // Use requirements if responsibilities not set
+        qualifications: job.qualifications || job.requirements,
+
+        // Additional fields
+        department: job.department,
+        
+        // Metrics
+        totalApplications: 0,
+        totalViews: 0
+      };
+
+      // Add document to Firestore under the user's jobs collection
+      const docRef = await addDoc(collection(db, 'jobs'), jobData);
 
       toast({
         title: "Success",
@@ -102,7 +177,7 @@ export const JobPostingForm: React.FC = () => {
   };
 
   return (
-    <Card className=" mx-auto">
+    <Card className="mx-auto">
       <CardHeader>
         <CardTitle>Post a New Job</CardTitle>
       </CardHeader>
@@ -132,49 +207,96 @@ export const JobPostingForm: React.FC = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
-              <label htmlFor="location" className="text-sm font-medium">Location</label>
+              <label htmlFor="city" className="text-sm font-medium">City</label>
               <Input
-                id="location"
-                value={job.location}
-                onChange={(e) => setJob({ ...job, location: e.target.value })}
-                placeholder="e.g. New York, NY (Remote)"
-                required
+                id="city"
+                value={job.city}
+                onChange={(e) => setJob({ ...job, city: e.target.value })}
+                placeholder="City"
               />
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="type" className="text-sm font-medium">Job Type</label>
+              <label htmlFor="state" className="text-sm font-medium">State</label>
               <Input
-                id="type"
-                value={job.type}
-                onChange={(e) => setJob({ ...job, type: e.target.value })}
-                placeholder="e.g. Full-time, Part-time"
-                required
+                id="state"
+                value={job.state}
+                onChange={(e) => setJob({ ...job, state: e.target.value })}
+                placeholder="State"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="country" className="text-sm font-medium">Country</label>
+              <Input
+                id="country"
+                value={job.country}
+                onChange={(e) => setJob({ ...job, country: e.target.value })}
+                placeholder="Country"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label htmlFor="experience" className="text-sm font-medium">Experience Level</label>
+              <label htmlFor="employmentType" className="text-sm font-medium">Employment Type</label>
               <Input
-                id="experience"
-                value={job.experience}
-                onChange={(e) => setJob({ ...job, experience: e.target.value })}
-                placeholder="e.g. 3-5 years"
+                id="employmentType"
+                value={job.employmentType}
+                onChange={(e) => setJob({ ...job, employmentType: e.target.value })}
+                placeholder="e.g. Full-time, Part-time"
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="salary" className="text-sm font-medium">Salary Range</label>
+              <label htmlFor="experienceRequired" className="text-sm font-medium">Years of Experience</label>
               <Input
-                id="salary"
-                value={job.salary}
-                onChange={(e) => setJob({ ...job, salary: e.target.value })}
-                placeholder="e.g. $80,000 - $120,000"
+                id="experienceRequired"
+                type="number"
+                value={job.experienceRequired}
+                onChange={(e) => setJob({ ...job, experienceRequired: Number(e.target.value) })}
+                min="0"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <label htmlFor="salaryMin" className="text-sm font-medium">Minimum Salary</label>
+              <Input
+                id="salaryMin"
+                type="number"
+                value={job.salaryMin}
+                onChange={(e) => setJob({ ...job, salaryMin: Number(e.target.value) })}
+                min="0"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="salaryMax" className="text-sm font-medium">Maximum Salary</label>
+              <Input
+                id="salaryMax"
+                type="number"
+                value={job.salaryMax}
+                onChange={(e) => setJob({ ...job, salaryMax: Number(e.target.value) })}
+                min="0"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="salaryCurrency" className="text-sm font-medium">Currency</label>
+              <Input
+                id="salaryCurrency"
+                value={job.salaryCurrency}
+                onChange={(e) => setJob({ ...job, salaryCurrency: e.target.value })}
+                placeholder="USD"
+                required
               />
             </div>
           </div>
@@ -216,6 +338,24 @@ export const JobPostingForm: React.FC = () => {
               content={job.requirements}
               onChange={(value) => setJob({ ...job, requirements: value })}
               placeholder="Enter job requirements..."
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="responsibilities" className="text-sm font-medium">Responsibilities</label>
+            <JobEditor
+              content={job.responsibilities}
+              onChange={(value) => setJob({ ...job, responsibilities: value })}
+              placeholder="Enter job responsibilities..."
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="qualifications" className="text-sm font-medium">Qualifications</label>
+            <JobEditor
+              content={job.qualifications}
+              onChange={(value) => setJob({ ...job, qualifications: value })}
+              placeholder="Enter job qualifications..."
             />
           </div>
 

@@ -8,15 +8,70 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { Suspense } from "react";
 
-async function getJobs(userId: string) {
-  const jobsRef = adminDb.collection("users").doc(userId).collection("jobs");
-  const snapshot = await jobsRef.orderBy("createdAt", "desc").get();
+interface Job {
+  id: string;
+  // Core job details
+  title: string;
+  company: string;
+  description: string;
+  location: string; // Keep old format
+  type: string; // Keep old format
   
-  return snapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data(),
-    createdAt: doc.data().createdAt?.toDate(),
-  }));
+  // New structured data
+  location_structured: {
+    city: string;
+    state: string;
+    country: string;
+  };
+  employmentType: string;
+  experienceRequired: number;
+  salaryRange: {
+    min: number;
+    max: number;
+    currency: string;
+  };
+  
+  // Skills and requirements
+  requiredSkills: string[];
+  skills: string[]; // Keep old format
+  
+  // Metadata
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  totalApplications: number;
+  totalViews: number;
+}
+
+async function getJobs(userId: string) {
+  const jobsRef = adminDb
+    .collection("jobs");
+    
+  const snapshot = await jobsRef
+    .orderBy("createdAt", "desc")
+    .get();
+  
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+      id: doc.id,
+      ...data,
+      // Convert Firestore timestamps to ISO strings
+      createdAt: data.createdAt?.toDate().toISOString(),
+      updatedAt: data.updatedAt?.toDate().toISOString(),
+      // Ensure required fields exist
+      requiredSkills: data.requiredSkills || data.skills || [],
+      location_structured: data.location_structured || {
+        city: data.location?.city,
+        state: data.location?.state,
+        country: data.location?.country
+      },
+      employmentType: data.employmentType || data.type,
+      totalApplications: data.totalApplications || 0,
+      totalViews: data.totalViews || 0,
+      status: data.status || 'active'
+    } as Job;
+  });
 }
 
 export default async function JobsPage() {

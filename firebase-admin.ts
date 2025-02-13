@@ -3,7 +3,7 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
 
 const serviceKey = require('@/service_key.json');
-console.log(process.env.FIREBASE_STORAGE_BUCKET)
+
 let app: App;
 
 if (!getApps().length) {

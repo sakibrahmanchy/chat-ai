@@ -10,6 +10,7 @@
     "op": "next dev --experimental-https"
   },
   "dependencies": {
+    "@algolia/client-search": "^5.20.2",
     "@ckeditor/ckeditor5-build-classic": "^44.1.0",
     "@ckeditor/ckeditor5-react": "^9.4.0",
     "@clerk/nextjs": "^6.10.2",
@@ -38,6 +39,7 @@
     "@tiptap/pm": "^2.11.5",
     "@tiptap/react": "^2.11.5",
     "@tiptap/starter-kit": "^2.11.5",
+    "algoliasearch": "^5.20.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",

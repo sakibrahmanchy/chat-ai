@@ -18,6 +18,26 @@ interface Job {
   createdAt: Date;
   status: string;
   applicantsCount?: number;
+  location_structured?: {
+    city: string;
+    state: string;
+    country: string;
+  };
+  employmentType?: string;
+  experienceRequired?: number;
+  salaryRange?: {
+    min: number;
+    max: number;
+    currency: string;
+  };
+  requirements?: string;
+  responsibilities?: string;
+  qualifications?: string;
+  benefits?: string;
+  department?: string;
+  totalApplications?: number;
+  totalViews?: number;
+  updatedAt?: Date;
 }
 
 interface JobListProps {
@@ -47,13 +67,17 @@ export function JobList({ jobs }: JobListProps) {
                   <div className="flex flex-wrap gap-2 text-sm">
                     <span>{job.company}</span>
                     <span>•</span>
-                    <span>{job.location}</span>
+                    <span>
+                      {job.location_structured ? 
+                        `${job.location_structured.city}${job.location_structured.state ? `, ${job.location_structured.state}` : ''}${job.location_structured.country ? `, ${job.location_structured.country}` : ''}` 
+                        : job.location}
+                    </span>
                     <span>•</span>
-                    <span>{job.type}</span>
-                    {job.applicantsCount !== undefined && (
+                    <span>{job.employmentType || job.type}</span>
+                    {job.totalApplications !== undefined && (
                       <>
                         <span>•</span>
-                        <span>{job.applicantsCount} applicants</span>
+                        <span>{job.totalApplications} applicants</span>
                       </>
                     )}
                   </div>
@@ -70,6 +94,12 @@ export function JobList({ jobs }: JobListProps) {
                 {stripHtml(job.description)}
               </p>
 
+              {job.salaryRange && (
+                <p className="text-sm">
+                  💰 {job.salaryRange.currency} {job.salaryRange.min.toLocaleString()} - {job.salaryRange.max.toLocaleString()}
+                </p>
+              )}
+
               {job.requiredSkills && job.requiredSkills.length > 0 && (
                 <div className="flex flex-wrap gap-2">
                   {job.requiredSkills.map((skill) => (
@@ -83,6 +113,7 @@ export function JobList({ jobs }: JobListProps) {
               <div className="flex flex-col sm:flex-row justify-between gap-4 pt-4 border-t">
                 <p className="text-xs text-muted-foreground">
                   Posted {getRelativeTimeString(job.createdAt)}
+                  {job.experienceRequired && ` • ${job.experienceRequired}+ years experience`}
                 </p>
                 <div className="flex gap-2">
                   <Link href={`/dashboard/jobs/${job.id}`}>

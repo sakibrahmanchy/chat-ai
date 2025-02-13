@@ -293,7 +293,7 @@ export function ResumeList({ resumes: initialResumes, jobId, jobTitle }: ResumeL
                       </div>
                     </TableCell>
                     <TableCell>
-                      {resume.parsedContent?.experience || "Not specified"}
+                      EXPericen {resume.parsedContent?.total_experience_in_months || "Not specified"}
                     </TableCell>
                     <TableCell>
                       {getRelativeTimeString(resume.createdAt)}
