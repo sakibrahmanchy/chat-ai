@@ -5,21 +5,52 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function getRelativeTimeString(dateStr: string | Date): string {
-  const date = typeof dateStr === 'string' ? new Date(dateStr) : dateStr;
-  const formatter = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
-  const diff = date.getTime() - new Date().getTime();
-  const diffInDays = Math.round(diff / (1000 * 60 * 60 * 24));
-  const diffInHours = Math.round(diff / (1000 * 60 * 60));
-  const diffInMinutes = Math.round(diff / (1000 * 60));
+export function getRelativeTimeString(date: string | undefined): string {
+  if (!date) return '';
+  
+  // Only run this in client side
+  if (typeof window === 'undefined') return '';
 
-  if (Math.abs(diffInDays) >= 1) {
-    return formatter.format(diffInDays, 'day');
-  } else if (Math.abs(diffInHours) >= 1) {
-    return formatter.format(diffInHours, 'hour');
-  } else if (Math.abs(diffInMinutes) >= 1) {
-    return formatter.format(diffInMinutes, 'minute');
-  } else {
+  const now = new Date();
+  const past = new Date(date);
+  const diffInSeconds = Math.floor((now.getTime() - past.getTime()) / 1000);
+
+  // Less than a minute
+  if (diffInSeconds < 60) {
     return 'just now';
   }
+
+  // Less than an hour
+  if (diffInSeconds < 3600) {
+    const minutes = Math.floor(diffInSeconds / 60);
+    return `${minutes}m ago`;
+  }
+
+  // Less than a day
+  if (diffInSeconds < 86400) {
+    const hours = Math.floor(diffInSeconds / 3600);
+    return `${hours}h ago`;
+  }
+
+  // Less than a week
+  if (diffInSeconds < 604800) {
+    const days = Math.floor(diffInSeconds / 86400);
+    return `${days}d ago`;
+  }
+
+  // Less than a month
+  if (diffInSeconds < 2592000) {
+    const weeks = Math.floor(diffInSeconds / 604800);
+    return `${weeks}w ago`;
+  }
+
+  // Less than a year
+  if (diffInSeconds < 31536000) {
+    const months = Math.floor(diffInSeconds / 2592000);
+    return `${months}mo ago`;
+  }
+
+  // More than a year
+  const years = Math.floor(diffInSeconds / 31536000);
+  return `${years}y ago`;
 }

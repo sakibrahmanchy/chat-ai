@@ -1,12 +1,10 @@
 'use client';
 
 import * as React from 'react';
-import { Command, CommandGroup, CommandItem } from '@/components/ui/command';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { Check, ChevronsUpDown, X } from 'lucide-react';
-import { Button } from './button';
+import { Badge } from "@/components/ui/badge";
 
 export interface Option {
   label: string;
@@ -22,94 +20,103 @@ interface MultiSelectProps {
 }
 
 export function MultiSelect({
-  options,
+  options = [],
   selected,
   onChange,
   placeholder = "Select options...",
   className,
 }: MultiSelectProps) {
-  const [open, setOpen] = React.useState(false);
+  const [isOpen, setIsOpen] = React.useState(false);
+  const containerRef = React.useRef<HTMLDivElement>(null);
 
-  const handleUnselect = (item: string) => {
-    onChange(selected.filter((i) => i !== item));
+  // Close dropdown when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSelect = (value: string) => {
+    const newSelected = selected.includes(value)
+      ? selected.filter(item => item !== value)
+      : [...selected, value];
+    onChange(newSelected);
+  };
+
+  const handleRemove = (value: string) => {
+    onChange(selected.filter(item => item !== value));
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          className={cn("w-full justify-between", className)}
-        >
-          <div className="flex gap-1 flex-wrap">
-            {selected.length === 0 && placeholder}
-            {selected.map((item) => (
-              <Badge
-                variant="secondary"
-                key={item}
-                className="mr-1 mb-1"
-                onClick={(e) => {
+    <div className="relative" ref={containerRef}>
+      <Button
+        variant="outline"
+        role="combobox"
+        aria-expanded={isOpen}
+        className={cn(
+          "w-full justify-between min-h-[2.5rem] h-auto",
+          className
+        )}
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <div className="flex flex-wrap gap-1 pr-4">
+          {selected.length === 0 && (
+            <span className="text-muted-foreground">{placeholder}</span>
+          )}
+          {selected.map((value) => (
+            <Badge
+              key={value}
+              variant="secondary"
+              className="flex items-center gap-1 px-2 py-0.5"
+            >
+              <span className="truncate">
+                {options.find(opt => opt.value === value)?.label}
+              </span>
+              <button
+                className="rounded-full hover:bg-muted/50 p-0.5"
+                onMouseDown={(e) => {
+                  e.preventDefault();
                   e.stopPropagation();
-                  handleUnselect(item);
+                  handleRemove(value);
                 }}
               >
-                {item}
-                <button
-                  className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      handleUnselect(item);
-                    }
-                  }}
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                  }}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleUnselect(item);
-                  }}
-                >
-                  <X className="h-3 w-3 hover:text-muted-foreground" />
-                </button>
-              </Badge>
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          ))}
+        </div>
+        <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50 absolute right-3" />
+      </Button>
+      {isOpen && (
+        <div className="absolute z-50 w-full mt-1 rounded-md border bg-popover text-popover-foreground shadow-md overflow-hidden">
+          <div className="max-h-[200px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+            {options.map((option) => (
+              <div
+                key={option.value}
+                className={cn(
+                  "relative flex cursor-pointer select-none items-center px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground",
+                  selected.includes(option.value) && "bg-accent/50"
+                )}
+                onClick={() => handleSelect(option.value)}
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="flex-shrink-0 h-4 w-4 border rounded flex items-center justify-center">
+                    {selected.includes(option.value) && (
+                      <Check className="h-3 w-3" />
+                    )}
+                  </div>
+                  <span className="truncate">{option.label}</span>
+                </div>
+              </div>
             ))}
           </div>
-          <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-full p-0">
-        <Command>
-          <CommandGroup className="max-h-64 overflow-auto">
-            {options.map((option) => (
-              <CommandItem
-                key={option.value}
-                onSelect={() => {
-                  onChange(
-                    selected.includes(option.value)
-                      ? selected.filter((item) => item !== option.value)
-                      : [...selected, option.value]
-                  );
-                  setOpen(true);
-                }}
-              >
-                <Check
-                  className={cn(
-                    "mr-2 h-4 w-4",
-                    selected.includes(option.value) 
-                      ? "opacity-100" 
-                      : "opacity-0"
-                  )}
-                />
-                {option.label}
-              </CommandItem>
-            ))}
-          </CommandGroup>
-        </Command>
-      </PopoverContent>
-    </Popover>
+        </div>
+      )}
+    </div>
   );
 } 

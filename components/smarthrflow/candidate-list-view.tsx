@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Resume } from "@/app/types/resume";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -93,98 +93,127 @@ export function CandidateListView({
   const [showCheckMatch, setShowCheckMatch] = useState(false);
   const [isCalculating, setIsCalculating] = useState<string | null>(null);
   const [showJobDescription, setShowJobDescription] = useState(false);
+  const [formattedDates, setFormattedDates] = useState<{[key: string]: string}>({});
+  const datesNeedUpdate = useRef(true);
 
-  
   const calculateTotalYears = (resume: Resume) => {
     return Math.floor((resume.parsedContent?.total_experience_in_months || 0) / 12);
   };
 
-  // Improve filter logic
-  const filteredResumes = resumes.filter(resume => {
-    try {
-      // Search filter
-      if (filters.search) {
-        const searchLower = filters.search.toLowerCase();
-        const fullName = resume.parsedContent?.full_name?.toLowerCase() || '';
-        const occupation = resume.parsedContent?.occupation?.toLowerCase() || '';
-        const role = resume.parsedContent?.role?.toLowerCase() || '';
-        const skills = resume.parsedContent?.skills?.join(' ').toLowerCase() || '';
-        
-        if (!fullName.includes(searchLower) && 
-            !occupation.includes(searchLower) && 
-            !role.includes(searchLower) && 
-            !skills.includes(searchLower)) {
-          return false;
+  // Move filtered resumes to useMemo
+  const filteredResumes = useMemo(() => {
+    return resumes.filter(resume => {
+      try {
+        // Search filter
+        if (filters.search) {
+          const searchLower = filters.search.toLowerCase();
+          const fullName = resume.parsedContent?.full_name?.toLowerCase() || '';
+          const occupation = resume.parsedContent?.occupation?.toLowerCase() || '';
+          const role = resume.parsedContent?.role?.toLowerCase() || '';
+          const skills = resume.parsedContent?.skills?.join(' ').toLowerCase() || '';
+          
+          if (!fullName.includes(searchLower) && 
+              !occupation.includes(searchLower) && 
+              !role.includes(searchLower) && 
+              !skills.includes(searchLower)) {
+            return false;
+          }
         }
-      }
 
-      // Match score filter
-      if (filters.matchScore) {
-        const score = resume.scores?.averageScore || 0;
-        if (score < filters.matchScore[0] || score > filters.matchScore[1]) {
-          return false;
+        // Match score filter
+        if (filters.matchScore) {
+          const score = resume.scores?.averageScore || 0;
+          if (score < filters.matchScore[0] || score > filters.matchScore[1]) {
+            return false;
+          }
         }
-      }
 
-      // Skills filter
-      if (filters.skills.length > 0) {
-        const candidateSkills = resume.parsedContent?.skills?.map(s => s.toLowerCase()) || [];
-        const requiredSkills = filters.skills.map(s => s.toLowerCase());
-        
-        // Check if candidate has all selected required skills
-        if (!requiredSkills.every(skill => 
-          candidateSkills.some(candidateSkill => 
-            candidateSkill.includes(skill) || skill.includes(candidateSkill)
-          )
-        )) {
-          return false;
+        // Skills filter
+        if (filters.skills.length > 0) {
+          // Safely get all possible skills from the resume
+          const candidateSkills = [
+            ...(resume.parsedContent?.skills || []),
+            ...(resume.parsedContent?.experiences?.flatMap(exp => exp?.technologies || []) || []),
+            ...(resume.parsedContent?.skills_with_yoe?.map(s => s.skill) || [])
+          ].map(s => s.toLowerCase());
+
+          // If no skills found at all, return false
+          if (candidateSkills.length === 0) return false;
+
+          const requiredSkills = filters.skills.map(s => s.toLowerCase());
+          
+          // Check if candidate has all selected required skills
+          if (!requiredSkills.every(skill => 
+            candidateSkills.some(candidateSkill => 
+              candidateSkill.includes(skill) || skill.includes(candidateSkill)
+            )
+          )) {
+            return false;
+          }
         }
-      }
 
-      // experiences filter
-      if (filters.experiences !== 'any') {
-        const totalYears = calculateTotalYears(resume);
-        
-        switch (filters.experiences) {
-          case 'entry':
-            if (totalYears > 2) return false;
-            break;
-          case 'mid':
-            if (totalYears < 2 || totalYears > 5) return false;
-            break;
-          case 'senior':
-            if (totalYears < 5 || totalYears > 8) return false;
-            break;
-          case 'lead':
-            if (totalYears < 8) return false;
-            break;
+        // experiences filter
+        if (filters.experiences !== 'any') {
+          const totalYears = calculateTotalYears(resume);
+          
+          switch (filters.experiences) {
+            case 'entry':
+              if (totalYears > 2) return false;
+              break;
+            case 'mid':
+              if (totalYears < 2 || totalYears > 5) return false;
+              break;
+            case 'senior':
+              if (totalYears < 5 || totalYears > 8) return false;
+              break;
+            case 'lead':
+              if (totalYears < 8) return false;
+              break;
+          }
         }
-      }
 
-      // Location filter
-      if (filters.location !== 'any') {
-        const location = resume.parsedContent?.experiences?.[0]?.location?.toLowerCase() || '';
-        const workType = resume.parsedContent?.work_type?.toLowerCase() || '';
-        
-        switch (filters.location) {
-          case 'remote':
-            if (!location.includes('remote') && !workType.includes('remote')) return false;
-            break;
-          case 'onsite':
-            if (location.includes('remote') || workType.includes('remote')) return false;
-            break;
-          case 'hybrid':
-            if (!location.includes('hybrid') && !workType.includes('hybrid')) return false;
-            break;
+        // Location filter
+        if (filters.location !== 'any') {
+          const location = resume.parsedContent?.experiences?.[0]?.location?.toLowerCase() || '';
+          const workType = resume.parsedContent?.work_type?.toLowerCase() || '';
+          
+          switch (filters.location) {
+            case 'remote':
+              if (!location.includes('remote') && !workType.includes('remote')) return false;
+              break;
+            case 'onsite':
+              if (location.includes('remote') || workType.includes('remote')) return false;
+              break;
+            case 'hybrid':
+              if (!location.includes('hybrid') && !workType.includes('hybrid')) return false;
+              break;
+          }
         }
-      }
 
-      return true;
-    } catch (error) {
-      console.error('Error filtering resume:', error);
-      return true; // Include resume if filter fails
-    }
-  });
+        return true;
+      } catch (error) {
+        console.error('Error filtering resume:', error);
+        return true;
+      }
+    });
+  }, [resumes, filters]); // Only recompute when resumes or filters change
+
+  // Update the dates effect
+  useEffect(() => {
+    if (!datesNeedUpdate.current) return;
+    
+    const dates: {[key: string]: string} = {};
+    filteredResumes.forEach(resume => {
+      dates[resume.id] = getRelativeTimeString(resume.createdAt);
+    });
+    setFormattedDates(dates);
+    datesNeedUpdate.current = false;
+  }, [filteredResumes]);
+
+  // Reset the dates flag when resumes change
+  useEffect(() => {
+    datesNeedUpdate.current = true;
+  }, [resumes]);
 
   // Infinite scroll setup
   const { ref, inView } = useInView({
@@ -462,8 +491,8 @@ export function CandidateListView({
                             {getLocation(resume)}
                           </div>
                           <div className="text-xs text-muted-foreground">
-                            <Calendar className="h-3 w-3 inline mr-1" />
-                            {getRelativeTimeString(resume.createdAt)}
+                            <Calendar className="h-3 w-3" />
+                            <span>{formattedDates[resume.id] || ''}</span>
                           </div>
                           {resume.scores && (
                             <div className="col-span-2 space-y-1">
@@ -488,7 +517,7 @@ export function CandidateListView({
                             )}
                             <div className="flex items-center gap-1">
                               <Calendar className="h-3 w-3" />
-                              <span>{getRelativeTimeString(resume.createdAt)}</span>
+                              <span>{formattedDates[resume.id] || ''}</span>
                             </div>
                           </div>
 
