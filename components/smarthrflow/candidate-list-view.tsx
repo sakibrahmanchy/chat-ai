@@ -66,6 +66,15 @@ const getEducation = (resume: Resume) => {
   return Array.isArray(education) ? education : [education];
 };
 
+// Add this helper function near the top of the file
+const formatYearsOfExperience = (months: number) => {
+  const years = Math.floor(months / 12);
+  const remainingMonths = months % 12;
+  if (years === 0) return `${remainingMonths} months`;
+  if (remainingMonths === 0) return `${years} years`;
+  return `${years} years ${remainingMonths} months`;
+};
+
 export function CandidateListView({ 
   initialResumes, 
   jobId, 
@@ -89,7 +98,6 @@ export function CandidateListView({
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [lastDoc, setLastDoc] = useState<any>(null);
-  const [showDescription, setShowDescription] = useState(false);
   const [showCheckMatch, setShowCheckMatch] = useState(false);
   const [isCalculating, setIsCalculating] = useState<string | null>(null);
   const [showJobDescription, setShowJobDescription] = useState(false);
@@ -104,7 +112,6 @@ export function CandidateListView({
   const filteredResumes = useMemo(() => {
     return resumes.filter(resume => {
       try {
-        // Search filter
         if (filters.search) {
           const searchLower = filters.search.toLowerCase();
           const fullName = resume.parsedContent?.full_name?.toLowerCase() || '';
@@ -196,9 +203,8 @@ export function CandidateListView({
         return true;
       }
     });
-  }, [resumes, filters]); // Only recompute when resumes or filters change
+  }, [resumes, filters]);
 
-  // Update the dates effect
   useEffect(() => {
     if (!datesNeedUpdate.current) return;
     
@@ -210,12 +216,10 @@ export function CandidateListView({
     datesNeedUpdate.current = false;
   }, [filteredResumes]);
 
-  // Reset the dates flag when resumes change
   useEffect(() => {
     datesNeedUpdate.current = true;
   }, [resumes]);
 
-  // Infinite scroll setup
   const { ref, inView } = useInView({
     threshold: 0,
   });
@@ -280,12 +284,11 @@ export function CandidateListView({
   }, [inView, hasMore, isLoading, jobId, userId, lastDoc]);
 
   const getSkills = (resume: Resume) => {
-    const skills = resume.parsedContent?.skills;
+    const skills = resume.parsedContent?.skills_with_yoe;
     if (!skills) return [];
-    // Handle different possible formats
+
     if (Array.isArray(skills)) return skills;
-    if (typeof skills === 'string') return skills.split(',').map(s => s.trim());
-    return [];
+    else return Object.values(skills).slice(0, 3).map((s: any) => s.name);
   };
 
   const handleFilterChange = (newFilters: any) => {
@@ -299,8 +302,7 @@ export function CandidateListView({
   const handleCheckMatch = async (resume: Resume) => {
     try {
       setIsCalculating(resume.id);
-      
-      // Create proper job object structure matching what's expected by scoreResume
+  
       const job: Job = {
         id: jobId,
         title: jobTitle,
@@ -389,9 +391,7 @@ export function CandidateListView({
         </div>
       )}
 
-      {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Header */}
         <div className="bg-white border-b p-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-4">
             <Link href={`/dashboard/jobs/${jobId}`} className={cn(jobId === 'demo' && 'pointer-events-none')}>
@@ -542,7 +542,6 @@ export function CandidateListView({
                               {(() => {
                                 const skillsList = getSkills(resume);
                                 const displaySkills = skillsList.slice(0, 3);
-                                
                                 return (
                                   <>
                                     {displaySkills.map(skill => (
@@ -645,6 +644,22 @@ export function CandidateListView({
                                     Technologies: {resume.parsedContent.experiences[0].technologies.join(', ')}
                                   </div>
                                 )}
+                              </div>
+                            )}
+
+                            {/* Skills with Experience */}
+                            {Object.values(resume.parsedContent?.skills_with_yoe)?.length > 0 && (
+                              <div className="text-sm">
+                                <div className="flex flex-wrap gap-2">
+                                  {Object.values(resume.parsedContent?.skills_with_yoe).map((skill: any, index: number) => (
+                                    <div 
+                                      key={index} 
+                                      className="flex items-center justify-between rounded-sm bg-slate-50"
+                                    >
+                                      <span className="text-sm"><Badge>{skill.name} | {skill.yoe} </Badge></span>
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
                             )}
                           </div>
