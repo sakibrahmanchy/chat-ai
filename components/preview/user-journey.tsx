@@ -28,7 +28,7 @@ export function UserJourney() {
     },
     {
       icon: <Users className="h-6 w-6" />,
-      title: "Review Matches",
+      title: "Review Best Matches",
       description: "Get detailed insights about each candidate's skills and experience",
       bgColor: "bg-blue-50",
       textColor: "text-blue-600"
@@ -144,7 +144,7 @@ export function UserJourney() {
           </div>
 
           {/* Additional Info */}
-          <motion.div
+          {/* <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -154,7 +154,7 @@ export function UserJourney() {
               <Sparkles className="h-4 w-4" />
               Find matching candidates in minutes
             </div>
-          </motion.div>
+          </motion.div> */}
         </div>
       </div>
     </section>

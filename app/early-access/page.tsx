@@ -5,6 +5,7 @@ import { ValueProposition } from "@/components/preview/value-prop";
 import { AccessForm } from "@/components/preview/access-form";
 import { TargetBenefits } from "@/components/preview/target-benefits";
 import { UserJourney } from "@/components/preview/user-journey";
+import { SecuritySection } from "@/components/preview/security-section";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -18,10 +19,11 @@ export default function EarlyAccessPage() {
       <div className="max-w-[1400px] mx-auto">
         <PreviewHero />
         <UserJourney />
-        <ProductShowcase />
+        {/* <ProductShowcase /> */}
         <TargetBenefits />
         <ProductFeatures />
         <ValueProposition />
+        <SecuritySection />
         <AccessForm />
       </div>
     </main>

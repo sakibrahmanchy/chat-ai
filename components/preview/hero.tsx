@@ -5,8 +5,11 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { DashboardPreview } from "./dashboard-preview";
+import { useEarlyAccess } from "@/hooks/use-early-access";
 
 export function PreviewHero() {
+  const { hasSubmitted } = useEarlyAccess();
+
   return (
     <section className="relative min-h-[90vh] flex items-center py-12 sm:py-20 overflow-hidden">
       {/* Enhanced Background Elements */}
@@ -65,9 +68,9 @@ export function PreviewHero() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3, duration: 0.5 }}
             >
-              Welcome to{' '}
+              AI Powered Talent Matching with {' '}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600">
-                SmartHRFlow
+                Smart HR Flow
               </span>
             </motion.h1>
 
@@ -77,34 +80,36 @@ export function PreviewHero() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4, duration: 0.5 }}
             >
-              Experience the next generation of intelligent talent matching with SmartHRFlow.
+              Experience the next generation of intelligent talent matching with us.
               <br className="hidden sm:block" />
               Built for modern businesses and hiring teams.
             </motion.p>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5, duration: 0.5 }}
-              className="flex flex-col sm:flex-row gap-4 justify-center"
-            >
-              <Link href="/early-access/apply" className="w-full sm:w-auto">
+            {!hasSubmitted && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5, duration: 0.5 }}
+                className="flex flex-col sm:flex-row gap-4 justify-center"
+              >
+                <Link href="#early-access" className="w-full sm:w-auto">
+                  <Button 
+                    size="lg" 
+                    className="w-full sm:w-auto h-12 sm:h-14 sm:px-8 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 shadow-lg shadow-indigo-200 group"
+                  >
+                    Join Early Access Program
+                    <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                  </Button>
+                </Link>
                 <Button 
                   size="lg" 
-                  className="w-full sm:w-auto h-12 sm:h-14 sm:px-8 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 shadow-lg shadow-indigo-200 group"
+                  variant="outline" 
+                  className="w-full sm:w-auto h-12 sm:h-14 sm:px-8 border-slate-300 hover:bg-slate-50"
                 >
-                  Join Early Access Program
-                  <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                  Schedule a Demo
                 </Button>
-              </Link>
-              <Button 
-                size="lg" 
-                variant="outline" 
-                className="w-full sm:w-auto h-12 sm:h-14 sm:px-8 border-slate-300 hover:bg-slate-50"
-              >
-                Schedule a Demo
-              </Button>
-            </motion.div>
+              </motion.div>
+            )}
           </motion.div>
 
           {/* Product Preview with Enhanced Shadow */}

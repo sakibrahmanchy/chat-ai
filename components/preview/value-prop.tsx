@@ -54,7 +54,7 @@ export function ValueProposition() {
     <section className="py-20">
       <div className="container mx-auto px-4">
         {/* Stats Section */}
-        <motion.div 
+        {/* <motion.div 
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -78,10 +78,10 @@ export function ValueProposition() {
               </CardContent>
             </Card>
           ))}
-        </motion.div>
+        </motion.div> */}
 
         {/* ROI Demo */}
-        <div className="grid md:grid-cols-2 gap-10 items-center mb-20">
+        <div className="grid md:grid-cols-2 gap-10 items-center mb-4">
           <motion.div 
             initial={{ opacity: 0, x: -20 }}
             whileInView={{ opacity: 1, x: 0 }}
@@ -126,7 +126,7 @@ export function ValueProposition() {
           >
             {benefits.map((benefit, index) => (
               <div key={index} className="flex gap-4">
-                <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600">
+                <div className="p-8 bg-indigo-50 rounded-lg text-indigo-600">
                   {benefit.icon}
                 </div>
                 <div>
@@ -139,7 +139,7 @@ export function ValueProposition() {
         </div>
 
         {/* Features Grid */}
-        <motion.div 
+        {/* <motion.div 
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -153,13 +153,13 @@ export function ValueProposition() {
           ].map((item, index) => (
             <div 
               key={index}
-              className="flex items-center gap-3 p-4 rounded-lg border bg-white"
+              className="flex items-center gap-3 p-8 rounded-lg border bg-white"
             >
               <div className="text-indigo-600">{item.icon}</div>
               <div className="font-medium">{item.label}</div>
             </div>
           ))}
-        </motion.div>
+        </motion.div> */}
       </div>
     </section>
   );

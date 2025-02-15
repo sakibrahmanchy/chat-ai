@@ -4,10 +4,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { 
-  BarChart, 
-  Users, 
-  Clock, 
+import {
+  BarChart,
+  Users,
+  Clock,
   ChevronUp,
   Star,
   FileText,
@@ -64,17 +64,17 @@ export function DashboardPreview() {
             </Badge>
           </div>
           <div className="flex gap-2 self-end sm:self-auto">
-            <button 
+            <button
               className="inline-flex items-center text-xs sm:text-sm text-slate-600 hover:text-slate-900 transition-colors"
             >
               <Search className="h-3 w-3 sm:h-4 sm:w-4 mr-1.5" />
-              <span className="hidden sm:inline">Similar Jobs</span> 
+              <span className="hidden sm:inline">Similar Jobs</span>
             </button>
-            <button 
+            <button
               className="inline-flex items-center text-xs sm:text-sm text-indigo-600 hover:text-indigo-700 transition-colors"
             >
               <Mail className="h-3 w-3 sm:h-4 sm:w-4 mr-1.5" />
-              <span className="hidden sm:inline">Contact Candidates</span> 
+              <span className="hidden sm:inline">Contact Candidates</span>
             </button>
           </div>
         </div>
@@ -82,11 +82,11 @@ export function DashboardPreview() {
 
       <div className="grid lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-slate-200">
         {/* Main Content */}
-        <div className="lg:col-span-8 p-4 sm:p-6">C
+        <div className="lg:col-span-8 p-4 sm:p-6">
           {/* Stats Grid - Enhanced Mobile Layout */}
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-6 sm:mb-8">
             {[
-              { 
+              {
                 label: "Total Candidates",
                 value: "124",
                 icon: <Users className="h-4 w-4" />,
@@ -134,7 +134,7 @@ export function DashboardPreview() {
                 View All
               </Button>
             </div>
-            
+
             <div className="rounded-lg border bg-white">
               <div className="p-4 border-b bg-slate-50/50">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -247,7 +247,7 @@ export function DashboardPreview() {
 
                     <div className="grid grid-cols-2 gap-2">
                       <button className="text-xs sm:text-sm text-indigo-600 hover:text-indigo-700 transition-colors inline-flex items-center justify-center py-2">
-                        Schedule Interview
+                        Shortlist For Interview
                       </button>
                       <button className="text-xs sm:text-sm text-slate-600 hover:text-slate-900 transition-colors inline-flex items-center justify-center py-2">
                         Download CV
@@ -299,7 +299,7 @@ export function DashboardPreview() {
                           <span>{item.value}%</span>
                         </div>
                         <div className="h-2 rounded-full bg-slate-200">
-                          <div 
+                          <div
                             className={`h-full rounded-full ${item.color}`}
                             style={{ width: `${item.value}%` }}
                           />
