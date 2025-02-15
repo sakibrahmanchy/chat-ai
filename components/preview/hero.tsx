@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { DashboardPreview } from "./dashboard-preview";
+import { Logo } from "./logo";
 
 export function PreviewHero() {
   return (
@@ -52,7 +53,7 @@ export function PreviewHero() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.2, duration: 0.5 }}
-            >
+            > 
               <span className="inline-flex items-center px-4 py-1.5 rounded-full bg-gradient-to-r from-indigo-50 to-violet-50 text-indigo-600 text-sm font-medium shadow-sm border border-indigo-100">
                 <span className="w-2 h-2 rounded-full bg-indigo-600 animate-pulse mr-2" />
                 SmartHRFlow Early Access Program Now Open
@@ -65,9 +66,9 @@ export function PreviewHero() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3, duration: 0.5 }}
             >
-              Welcome to{' '}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600">
-                SmartHRFlow
+              <div className="flex justify-center items-center"> <Logo size={100} animated={false}/></div> 
+              Supercharge your recruitment with{' '}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600"> SmartHRFlow
               </span>
             </motion.h1>
 
@@ -77,7 +78,7 @@ export function PreviewHero() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4, duration: 0.5 }}
             >
-              Experience the next generation of intelligent talent matching with SmartHRFlow.
+              Experience the next generation of intelligent talent matching with Smart HR Flow.
               <br className="hidden sm:block" />
               Built for modern businesses and hiring teams.
             </motion.p>
