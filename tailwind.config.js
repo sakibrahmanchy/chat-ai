@@ -17,5 +17,9 @@ module.exports = {
       // ... rest of your theme config
     },
   },
+  plugins: [
+    require('@tailwindcss/typography'),
+    // ... other plugins
+  ],
   // ... rest of your config
 } 

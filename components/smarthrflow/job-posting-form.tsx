@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "../ui/button";
 import { JobEditor } from "@/components/job-editor";
 import { Input } from "../ui/input";
@@ -7,10 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, X } from "lucide-react";
 import { Badge } from "../ui/badge";
-import { addDoc, collection } from 'firebase/firestore';
-import { db } from '@/firebase';
 import { useRouter } from 'next/navigation';
-import { useAuth } from "@clerk/nextjs";
+import { useUser } from '@clerk/nextjs';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
 interface JobFormData {
   // Core job details
@@ -47,12 +46,36 @@ interface JobFormData {
   department?: string;
 }
 
-export const JobPostingForm: React.FC = () => {
+export default function JobPostingForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentSkill, setCurrentSkill] = useState('');
+  const [companyId, setCompanyId] = useState<string | null>(null);
   const { toast } = useToast();
   const router = useRouter();
-  const { userId } = useAuth();
+  const { user } = useUser();
+  const supabase = createClientComponentClient();
+
+  // Fetch company ID when component mounts
+  useEffect(() => {
+    async function fetchCompanyId() {
+      if (!user?.id) return;
+
+      const { data, error } = await supabase
+        .from('users')
+        .select('company_id')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching company ID:', error);
+        return;
+      }
+
+      setCompanyId(data.company_id);
+    }
+
+    fetchCompanyId();
+  }, [user?.id]);
 
   const [job, setJob] = useState<JobFormData>({
     title: '',
@@ -102,68 +125,52 @@ export const JobPostingForm: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      if (!userId) {
-        throw new Error('Not authenticated');
+      if (!companyId) {
+        throw new Error('No company ID found');
       }
-
-      // Structure job data for new schema while keeping old format
+      
+      // Structure job data for Supabase
       const jobData = {
-        // Keep existing fields
         title: job.title,
-        company: job.company,
-        location: job.location, // Keep for backward compatibility
-        type: job.type,
-        experience: job.experience,
-        salary: job.salary,
-        description: job.description,
-        requirements: job.requirements,
-        benefits: job.benefits,
-        applicationDeadline: job.applicationDeadline,
-        
-        // Add new structured fields
-        userId,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        status: 'active',
-
-        // Structured location
+        company_id: companyId,
         location: {
           city: job.city || job.location.split(',')[0]?.trim(),
           state: job.state,
           country: job.country
         },
-
-        // Structured employment details
-        employmentType: job.employmentType || job.type,
-        experienceRequired: job.experienceRequired || parseInt(job.experience) || 0,
-        salaryRange: {
-          min: job.salaryMin || 0,
-          max: job.salaryMax || 0,
-          currency: job.salaryCurrency || 'USD'
-        },
-
-        // Skills and requirements
-        requiredSkills: job.skills.map(s => s.toLowerCase()),
-        responsibilities: job.responsibilities || job.requirements, // Use requirements if responsibilities not set
-        qualifications: job.qualifications || job.requirements,
-
-        // Additional fields
-        department: job.department,
-        
-        // Metrics
-        totalApplications: 0,
-        totalViews: 0
+        type: 'full-time',
+        experience: job.experienceRequired || parseInt(job.experience) || 0,
+        salary_min: job.salaryMin || 0,
+        salary_max: job.salaryMax || 0,
+        salary_currency: job.salaryCurrency || 'USD',
+        required_skills: job.skills,
+        description: job.description,
+        requirements: job.requirements,
+        responsibilities: job.requirements,
+        // qualifications: job.qualifications || job.requirements,
+        // benefits: job.benefits,
+        // department: job.department,
+        application_deadline: job.applicationDeadline,
+        status: 'active',
+        total_applications: 0,
+        total_views: 0
       };
+      console.log(jobData)
+      // Add job to Supabase
+      const { data: newJob, error } = await supabase
+        .from('jobs')
+        .insert(jobData)
+        .select()
+        .single();
 
-      // Add document to Firestore under the user's jobs collection
-      const docRef = await addDoc(collection(db, 'jobs'), jobData);
+      if (error) throw error;
 
       toast({
         title: "Success",
         description: "Job posting created successfully",
       });
 
-      router.push(`/dashboard/jobs/${docRef.id}`);
+      router.push(`/dashboard/jobs/${newJob.id}`);
     } catch (error) {
       console.error('Error posting job:', error);
       toast({
@@ -195,7 +202,7 @@ export const JobPostingForm: React.FC = () => {
               />
             </div>
 
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <label htmlFor="company" className="text-sm font-medium">Company</label>
               <Input
                 id="company"
@@ -204,7 +211,7 @@ export const JobPostingForm: React.FC = () => {
                 placeholder="Company name"
                 required
               />
-            </div>
+            </div> */}
           </div>
 
           <div className="grid grid-cols-3 gap-4">
@@ -386,4 +393,4 @@ export const JobPostingForm: React.FC = () => {
       </CardContent>
     </Card>
   );
-}; 
+} 

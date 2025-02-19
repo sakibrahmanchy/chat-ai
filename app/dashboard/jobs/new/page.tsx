@@ -1,6 +1,7 @@
+'use server'
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { JobPostingForm } from "@/components/smarthrflow/job-posting-form";
+import JobPostingForm from "@/components/smarthrflow/job-posting-form";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";

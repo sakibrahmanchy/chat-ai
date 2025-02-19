@@ -2,9 +2,16 @@
 import { OpenAI } from 'openai';
 import { adminDb } from '@/firebase-admin';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
+import { createClient } from '@supabase/supabase-js';
 const crypto = require('crypto');
 
 const openai = new OpenAI();
+
+// Create a server-side Supabase client
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 // Add RESPONSE_FORMAT constant
 const RESPONSE_FORMAT = {
@@ -242,7 +249,7 @@ const calculateInitialScore = (parsedContent: any, job: any) => {
   };
 };
 
-export async function processResume(fileBuffer: Buffer, jobId: string, userId: string): Promise<ParsedResume> {
+export async function processResume(fileBuffer: Buffer, jobId: string, userId: string): Promise<{ parsedData: ParsedResume, hash: string }> {
   try {
     // Import and parse PDF
     const { default: pdfParse } = await import('pdf-parse/lib/pdf-parse.js');
@@ -262,28 +269,15 @@ export async function processResume(fileBuffer: Buffer, jobId: string, userId: s
       .digest('hex');
     
     // Check cache in resumes collection
-    const cachedDoc = await adminDb
-      .collection('resumes')
-      .doc(hash)
-      .get();
+    const { data: cachedResume } = await supabase
+      .from('resumes')
+      .select('*')
+      .eq('hash', hash)
+      .single();
 
-    if (cachedDoc.exists) {
+    if (cachedResume) {
       console.log('Found cached resume data');
-      const cachedData = cachedDoc.data();
-      
-      if (!cachedData) {
-        throw new Error('Cached document exists but data is null');
-      }
-
-      // Track resume usage in separate collection
-      await adminDb.collection('resumeUsage').add({
-        resumeId: hash,
-        userId,
-        jobId,
-        timestamp: Timestamp.now()
-      });
-
-      return cachedData.parsedContent as ParsedResume;
+      return cachedResume.parsed_content as ParsedResume;
     }
 
     // Keep existing OpenAI parsing code
@@ -319,44 +313,43 @@ export async function processResume(fileBuffer: Buffer, jobId: string, userId: s
 
     // Structure data for storage
     const resumeDoc = {
-      // Document metadata
-      id: hash,
-      userId,
-      jobId,
-      status: 'processed',
-      createdAt: Timestamp.now(),
-      updatedAt: Timestamp.now(),
-
-      // Searchable fields (top level for efficient querying)
-      searchableSkills: parsedData.skills.map(s => s.toLowerCase()),
-      experienceMonths: parsedData.total_experience_in_months,
+      hash,
+      user_id: userId,
+      job_id: jobId,
+      // status: 'processed',
+      searchable_skills: parsedData.skills.map(s => s.toLowerCase()),
+      experience_months: Number(parsedData.total_experience_in_months),
       location: {
         city: parsedData.city,
         state: parsedData.state,
         country: parsedData.country
       },
-      currentRole: parsedData.occupation,
-
-      // File metadata
+      current_position: parsedData.occupation,
       metadata: {
-        fileName: 'resume.pdf', // TODO: Get actual filename
-        fileSize: fileBuffer.length,
-        fileHash: hash,
-        mimeType: 'application/pdf'
+        file_name: 'resume.pdf', // TODO: Get actual filename
+        file_size: fileBuffer.length,
+        file_hash: hash,
+        mime_type: 'application/pdf'
       },
-
-      // Full parsed content
-      parsedContent: parsedData
+      parsed_content: parsedData,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     };
 
-    // Save to Firestore
-    await adminDb
-      .collection('resumes')
-      .doc(hash)
-      .set(resumeDoc);
+    // Save to Supabase
+    const { error } = await supabase
+      .from('resumes')
+      .insert(resumeDoc);
 
-    // Remove the scoring calculation from here since it will be done in resume-scorer.ts
-    return parsedData;
+    if (error) {
+      console.error('Error saving to Supabase:', error);
+      throw error;
+    }
+
+    return {
+      parsedData,
+      hash
+    };
   } catch (error) {
     console.error('Error in processResume:', error);
     throw error;

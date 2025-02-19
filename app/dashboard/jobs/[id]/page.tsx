@@ -1,34 +1,13 @@
-import { CandidateListView } from "@/components/smarthrflow/candidate-list-view";
-import { db } from "@/firebase";
-import { Resume } from "@/app/types/resume";
-import { Job } from "@/app/types/job";
-import { 
-  collection, 
-  doc, 
-  getDoc, 
-  getDocs, 
-  query, 
-  orderBy,
-  Timestamp,
-  limit,
-  where
-} from "firebase/firestore";
+import { JobDetailsPreview } from "@/components/jobs/details-preview";
+import { notFound } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
+import { createClient } from '@supabase/supabase-js';
 
-// Helper function to serialize Firestore data
-function serializeData(data: any) {
-  const newData = { ...data };
-  Object.keys(newData).forEach(key => {
-    if (newData[key] instanceof Timestamp) {
-      newData[key] = newData[key].toDate().toISOString();
-    } else if (typeof newData[key] === 'object' && newData[key] !== null) {
-      newData[key] = serializeData(newData[key]);
-    }
-  });
-  return newData;
-}
-
-const CANDIDATES_PER_PAGE = 20;
+// Create a server-side Supabase client
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export default async function JobPage({
   params: { id: jobId },
@@ -40,55 +19,106 @@ export default async function JobPage({
   if (!userId) return null;
 
   try {
-    // Get job details from the jobs collection
-    const jobRef = doc(db, 'jobs', jobId);
-    const jobSnap = await getDoc(jobRef);
+    // Get job details
+    const { data: job, error: jobError } = await supabase
+      .from('jobs')
+      .select('*')
+      .eq('id', jobId)
+      .single();
     
-    if (!jobSnap.exists() || jobSnap.data().userId !== userId) {
-      return null; // Job not found or doesn't belong to user
+    if (jobError || !job) {
+      notFound();
+    }
+    console.log(jobId)
+    // Get top candidates sorted by match score
+    const { data: topCandidates = [], error: candidatesError } = await supabase
+      .from('resumes')
+      .select(`
+        id,
+        hash,
+        parsed_content,
+        searchable_skills,
+        experience_months,
+        current_position,
+        location
+      `)
+      .eq('job_id', jobId)
+      // .order('scores->overall_score', { ascending: false })
+      .limit(3);
+
+      console.log(topCandidates)
+
+    if (candidatesError) {
+      console.error('Error fetching candidates:', candidatesError);
     }
 
-    const job = {
-      id: jobSnap.id,
-      ...serializeData(jobSnap.data()),
-      // Ensure all required fields exist
-      requiredSkills: jobSnap.data()?.requiredSkills || jobSnap.data()?.skills || [],
-      requirements: jobSnap.data()?.requirements || '',
-      description: jobSnap.data()?.description || '',
-    } as Job;
+    // Get total number of candidates
+    const { count: totalCandidates } = await supabase
+      .from('resumes')
+      .select('*', { count: 'exact', head: true })
+      .eq('job_id', jobId)
+      .eq('status', 'processed');
 
-    // Get initial resumes (first page)
-    const resumesRef = collection(db, 'resumes');
-    const resumesQuery = query(
-      resumesRef,
-      where('jobId', '==', jobId),
-      orderBy('createdAt', 'desc'),
-      limit(CANDIDATES_PER_PAGE)
-    );
-    
-    const resumesSnap = await getDocs(resumesQuery);
-    
-    const resumes = resumesSnap.docs.map(doc => ({
-      id: doc.id,
-      ...serializeData(doc.data()),
-    })) as Resume[];
+    const metrics = {
+      totalCandidates: totalCandidates || 0,
+      timeToHire: 12,
+      matchRate: Math.round(
+        topCandidates.reduce((acc, curr) => acc + (curr.scores?.overall_score || 0), 0) / 
+        (topCandidates.length || 1)
+      ),
+    };
 
+    // Get skills analysis from job requirements
+    const skillsAnalysis = job.required_skills?.map(skill => ({
+      skill,
+      score: Math.round(
+        topCandidates.reduce((acc, curr) => {
+          const hasSkill = curr.scores?.analysis?.matched_skills?.includes(skill) || false;
+          return acc + (hasSkill ? 100 : 0);
+        }, 0) / (topCandidates.length || 1)
+      )
+    })) || [];
 
-    console.log(resumes)
+    // Prepare data for the preview component
+    const previewData = {
+      job: {
+        // ...job,
+        status: job.status || 'active'
+      },
+      metrics,
+      candidates: topCandidates.map(candidate => ({
+        id: candidate.id,
+        name: candidate.parsed_content?.full_name || '',
+        role: candidate.current_position || '',
+        email: candidate.parsed_content?.email || '',
+        phone: candidate.parsed_content?.phone || '',
+        location: candidate.location ? 
+          `${candidate.location.city}, ${candidate.location.state}, ${candidate.location.country}` : '',
+        experience: `${Math.floor((candidate.experience_months || 0) / 12)} years`,
+        company: candidate.parsed_content?.experiences?.[0]?.company || '',
+        education: candidate.parsed_content?.education?.[0]?.degree_name || '',
+        availability: '1 month notice',
+        score: candidate.scores?.overall_score || 0,
+        skills: candidate.searchable_skills || [],
+        scores: {
+          skillsScore: candidate.scores?.skills_score || 0,
+          experienceScore: candidate.scores?.experience_score || 0,
+          educationScore: candidate.scores?.education_score || 0,
+          analysis: {
+            strengths: candidate.scores?.analysis?.strengths || []
+          }
+        }
+      })),
+      skillsAnalysis
+    };
 
     return (
-      <CandidateListView 
-        initialResumes={resumes} 
-        jobId={jobId} 
-        jobTitle={job.title}
-        userId={userId}
-        jobDescription={job.description}
-        requiredSkills={job.requiredSkills}
-        requirements={job.requirements}
-      />
+      <div className="min-h-screen bg-white">
+        <JobDetailsPreview {...previewData} />
+      </div>
     );
   } catch (error) {
-    console.error('Error fetching job and resumes:', error);
+    console.error('Error fetching job details:', error);
     return null;
   }
 } 

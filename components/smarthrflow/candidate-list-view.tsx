@@ -36,6 +36,8 @@ import { toast } from "@/hooks/use-toast";
 import { Job } from "@/app/types/job";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
+import { resumeSearch } from '@/lib/services/resume-search.service';
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 const CANDIDATES_PER_PAGE = 20;
 
@@ -121,78 +123,66 @@ export function CandidateListView({
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortBy, setSortBy] = useState('score');
 
-  // Add filters state back
-  const [filters, setFilters] = useState<Filters>({
-    search: initialFilters?.search || '',
-    matchScore: initialFilters?.matchScore || [0, 100],
+  // Update the filters state with more sensible defaults
+  const [availableLocations, setAvailableLocations] = useState<string[]>([]);
+
+  // Load available locations when component mounts
+  useEffect(() => {
+    const loadLocations = async () => {
+      try {
+        const locations = await resumeSearch.getUniqueLocations(userId, jobId);
+        setAvailableLocations(locations);
+      } catch (error) {
+        console.error('Error loading locations:', error);
+      }
+    };
+
+    loadLocations();
+  }, [userId, jobId]);
+
+  const [filters, setFilters] = useState({
+    showFilters: showFiltersDefault,
     skills: initialFilters?.skills || [],
-    experiences: 'any',
-    location: 'any',
-    showFilters: showFiltersDefault
+    scoreRange: initialFilters?.matchScore || [0, 10],
+    status: [],
+    experienceMonths: [0, 999] as [number, number],
+    matchType: initialFilters?.matchType || 'OR' as 'AND' | 'OR',
+    sortBy: 'score' as 'score' | 'date',
+    location: "all"
   });
 
   const { ref, inView } = useInView({
     threshold: 0,
   });
 
-  // Function to build Firestore query
-  const buildQuery = (startAfterDoc?: any) => {
-    const resumesRef = collection(db, 'resumes');
-    let queryConstraints = [
-      where('jobId', '==', jobId)
-    ];
-
-    if (statusFilter !== 'all') {
-      queryConstraints.push(where('status', '==', statusFilter));
-    }
-
-    if (scoreFilter !== 'all') {
-      let minScore = 0, maxScore = 100;
-      switch (scoreFilter) {
-        case 'high':
-          minScore = 80;
-          break;
-        case 'medium':
-          minScore = 60;
-          maxScore = 79;
-          break;
-        case 'low':
-          maxScore = 59;
-          break;
-      }
-      queryConstraints.push(where('scores.overallScore', '>=', minScore));
-      queryConstraints.push(where('scores.overallScore', '<=', maxScore));
-    }
-
-    // Add sorting
-    queryConstraints.push(orderBy(sortBy === 'score' ? 'scores.overallScore' : 'createdAt', 'desc'));
-
-    // Add pagination
-    queryConstraints.push(limit(CANDIDATES_PER_PAGE));
-    if (startAfterDoc) {
-      queryConstraints.push(startAfter(startAfterDoc));
-    }
-
-    return firestoreQuery(resumesRef, ...queryConstraints);
-  };
-
-  // Function to load more resumes
+  // Update loadMore function
   const loadMore = async () => {
     if (!hasMore || loading) return;
     setLoading(true);
 
     try {
-      const q = buildQuery(lastVisible);
-      const snapshot = await getDocs(q);
-      
-      const newResumes = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Resume[];
+      const searchFilters = {
+        ...filters,
+        searchTerm: searchTerm,
+        skills: filters.skills.length > 0 ? filters.skills : undefined,
+        status: filters.status.length > 0 ? filters.status : undefined,
+        location: filters.location === "all" ? undefined : filters.location,
+        experienceMonths: filters.experienceMonths[0] === 0 && filters.experienceMonths[1] === 999 
+          ? undefined 
+          : filters.experienceMonths,
+        scoreRange: filters.scoreRange[0] === 0 && filters.scoreRange[1] === 10 ? undefined : filters.scoreRange
+      };
 
-      setResumes(prev => [...prev, ...newResumes]);
-      setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
-      setHasMore(snapshot.docs.length === CANDIDATES_PER_PAGE);
+      const result = await resumeSearch.search(
+        userId,
+        jobId,
+        searchFilters,
+        lastVisible
+      );
+
+      setResumes(prev => [...prev, ...result.resumes]);
+      setLastVisible(result.lastDoc);
+      setHasMore(result.hasMore);
     } catch (error) {
       console.error('Error loading more resumes:', error);
       toast({
@@ -205,22 +195,32 @@ export function CandidateListView({
     }
   };
 
-  // Load initial data when filters change
+  // Update initial data loading
   useEffect(() => {
     const loadInitialData = async () => {
       setLoading(true);
       try {
-        const q = buildQuery();
-        const snapshot = await getDocs(q);
-        
-        const newResumes = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as Resume[];
+        const searchFilters = {
+          ...filters,
+          searchTerm: searchTerm,
+          skills: filters.skills.length > 0 ? filters.skills : undefined,
+          status: filters.status.length > 0 ? filters.status : undefined,
+          location: filters.location === "all" ? undefined : filters.location,
+          experienceMonths: filters.experienceMonths[0] === 0 && filters.experienceMonths[1] === 999 
+            ? undefined 
+            : filters.experienceMonths,
+          scoreRange: filters.scoreRange[0] === 0 && filters.scoreRange[1] === 10 ? undefined : filters.scoreRange
+        };
 
-        setResumes(newResumes);
-        setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
-        setHasMore(snapshot.docs.length === CANDIDATES_PER_PAGE);
+        const result = await resumeSearch.search(
+          userId,
+          jobId,
+          searchFilters
+        );
+
+        setResumes(result.resumes);
+        setLastVisible(result.lastDoc);
+        setHasMore(result.hasMore);
       } catch (error) {
         console.error('Error loading resumes:', error);
         toast({
@@ -234,7 +234,7 @@ export function CandidateListView({
     };
 
     loadInitialData();
-  }, [scoreFilter, statusFilter, sortBy]);
+  }, [filters, searchTerm]); // Update dependencies
 
   // Handle infinite scroll
   useEffect(() => {
@@ -351,6 +351,19 @@ export function CandidateListView({
     }).format(new Date(date.year, date.month - 1));
   };
 
+  // Add a filter toggle component
+  const SkillFilterToggle = () => (
+    <div className="flex items-center gap-2 p-4 border-b">
+      <span className="text-sm">Match Type:</span>
+      <ToggleGroup type="single" value={filters.matchType} onValueChange={(value) => 
+        setFilters(prev => ({ ...prev, matchType: value as 'AND' | 'OR' }))
+      }>
+        <ToggleGroupItem value="AND">Match All Skills</ToggleGroupItem>
+        <ToggleGroupItem value="OR">Match Any Skill</ToggleGroupItem>
+      </ToggleGroup>
+    </div>
+  );
+
   return (
     <div className="h-[calc(100vh-4rem)] flex flex-col lg:flex-row">
       {/* Filters */}
@@ -366,9 +379,11 @@ export function CandidateListView({
               <X className="h-4 w-4" />
             </Button>
           </div>
+          <SkillFilterToggle />
           <CandidateFilters 
             filters={filters}
             onFilterChange={setFilters}
+            availableLocations={availableLocations}
           />
         </div>
       )}

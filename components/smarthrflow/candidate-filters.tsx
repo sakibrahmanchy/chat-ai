@@ -5,17 +5,21 @@ import { Slider } from "@/components/ui/slider";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 
 interface CandidateFiltersProps {
   filters: {
-    search: string;
-    matchScore: [number, number];
-    skills: string[];
-    experiences: 'any' | 'entry' | 'mid' | 'senior' | 'lead';
-    location: 'any' | 'remote' | 'onsite' | 'hybrid';
     showFilters: boolean;
+    skills: string[];
+    scoreRange: [number, number];
+    status: string[];
+    experienceMonths: [number, number];
+    matchType: 'AND' | 'OR';
+    sortBy: 'score' | 'date';
+    location: string;
   };
   onFilterChange: (filters: any) => void;
+  availableLocations: string[];
 }
 
 const SKILL_OPTIONS = [
@@ -24,7 +28,34 @@ const SKILL_OPTIONS = [
   "Vue.js", "Angular", "DevOps", "CI/CD", "Git"
 ].map(skill => ({ label: skill, value: skill }));
 
-export function CandidateFilters({ filters, onFilterChange }: CandidateFiltersProps) {
+const EXPERIENCE_RANGES = {
+  any: [0, 999],
+  entry: [0, 24], // 0-2 years
+  mid: [24, 60],  // 2-5 years
+  senior: [60, 96], // 5-8 years
+  lead: [96, 999]  // 8+ years
+} as const;
+
+export function CandidateFilters({ 
+  filters, 
+  onFilterChange,
+  availableLocations 
+}: CandidateFiltersProps) {
+  const formatExperience = (months: number) => {
+    const years = Math.floor(months / 12);
+    const remainingMonths = months % 12;
+    if (years === 0) return `${remainingMonths} months`;
+    if (remainingMonths === 0) return `${years} years`;
+    return `${years} years ${remainingMonths} months`;
+  };
+
+  const getCurrentExperienceRange = (months: [number, number]) => {
+    for (const [key, [min, max]] of Object.entries(EXPERIENCE_RANGES)) {
+      if (months[0] === min && months[1] === max) return key;
+    }
+    return 'custom';
+  };
+
   return (
     <div className="flex-1 overflow-auto">
       <div className="p-4 space-y-6">
@@ -33,15 +64,15 @@ export function CandidateFilters({ filters, onFilterChange }: CandidateFiltersPr
           <div className="flex items-center justify-between">
             <Label className="font-medium text-sm">Match Score</Label>
             <span className="text-sm text-muted-foreground">
-              {filters.matchScore[0]}-{filters.matchScore[1]}/10
+              {filters.scoreRange[0]}-{filters.scoreRange[1]}%
             </span>
           </div>
           <Slider 
             min={0} 
             max={10} 
             step={1}
-            value={filters.matchScore}
-            onValueChange={(value) => onFilterChange({ ...filters, matchScore: value })}
+            value={filters.scoreRange}
+            onValueChange={(value) => onFilterChange({ ...filters, scoreRange: value })}
           />
         </div>
 
@@ -49,8 +80,11 @@ export function CandidateFilters({ filters, onFilterChange }: CandidateFiltersPr
         <div className="space-y-3">
           <Label className="font-medium text-sm">Experience Level</Label>
           <RadioGroup 
-            value={filters.experiences}
-            onValueChange={(value: any) => onFilterChange({ ...filters, experiences: value })}
+            value={getCurrentExperienceRange(filters.experienceMonths)}
+            onValueChange={(value) => {
+              const range = EXPERIENCE_RANGES[value as keyof typeof EXPERIENCE_RANGES];
+              onFilterChange({ ...filters, experienceMonths: range });
+            }}
             className="space-y-2"
           >
             <div className="flex items-center space-x-2">
@@ -59,48 +93,52 @@ export function CandidateFilters({ filters, onFilterChange }: CandidateFiltersPr
             </div>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="entry" id="entry-exp" />
-              <Label htmlFor="entry-exp" className="text-sm font-normal">Entry Level (0-2 years)</Label>
+              <Label htmlFor="entry-exp" className="text-sm font-normal">
+                Entry Level ({formatExperience(0)} - {formatExperience(24)})
+              </Label>
             </div>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="mid" id="mid-exp" />
-              <Label htmlFor="mid-exp" className="text-sm font-normal">Mid Level (2-5 years)</Label>
+              <Label htmlFor="mid-exp" className="text-sm font-normal">
+                Mid Level ({formatExperience(24)} - {formatExperience(60)})
+              </Label>
             </div>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="senior" id="senior-exp" />
-              <Label htmlFor="senior-exp" className="text-sm font-normal">Senior Level (5-8 years)</Label>
+              <Label htmlFor="senior-exp" className="text-sm font-normal">
+                Senior Level ({formatExperience(60)} - {formatExperience(96)})
+              </Label>
             </div>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="lead" id="lead-exp" />
-              <Label htmlFor="lead-exp" className="text-sm font-normal">Lead Level (8+ years)</Label>
+              <Label htmlFor="lead-exp" className="text-sm font-normal">
+                Lead Level ({formatExperience(96)}+)
+              </Label>
             </div>
           </RadioGroup>
         </div>
 
         {/* Location */}
-        <div className="space-y-3">
-          <Label className="font-medium text-sm">Location</Label>
-          <RadioGroup 
-            value={filters.location}
-            onValueChange={(value: any) => onFilterChange({ ...filters, location: value })}
-            className="space-y-2"
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">Location</Label>
+          <Select
+            value={filters.location || "all"}
+            onValueChange={(value) => 
+              onFilterChange({ ...filters, location: value === "all" ? "" : value })
+            }
           >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="any" id="any-loc" />
-              <Label htmlFor="any-loc" className="text-sm font-normal">Any Location</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="remote" id="remote-loc" />
-              <Label htmlFor="remote-loc" className="text-sm font-normal">Remote</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="onsite" id="onsite-loc" />
-              <Label htmlFor="onsite-loc" className="text-sm font-normal">On-site</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="hybrid" id="hybrid-loc" />
-              <Label htmlFor="hybrid-loc" className="text-sm font-normal">Hybrid</Label>
-            </div>
-          </RadioGroup>
+            <SelectTrigger>
+              <SelectValue placeholder="Select location" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Locations</SelectItem>
+              {availableLocations.map(location => (
+                <SelectItem key={location} value={location}>
+                  {location}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Required Skills */}

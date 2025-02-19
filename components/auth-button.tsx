@@ -97,7 +97,7 @@ export function AuthButton({
   // Not signed in - show sign in button with hover animation
   return (
     <SignInButton mode="modal" 
-      signUpForceRedirectUrl={'/dashboard'}
+      signUpForceRedirectUrl={'/onboarding'}
       fallbackRedirectUrl={'/dashboard'}
     >
       <Button 

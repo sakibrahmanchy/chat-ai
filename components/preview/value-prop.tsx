@@ -10,156 +10,137 @@ import {
   TrendingUp,
   CheckCircle2,
   DollarSign,
-  Users
+  Users,
+  Brain,
+  Zap,
+  LineChart
 } from "lucide-react";
 
 export function ValueProposition() {
-  const stats = [
+  const benefits = [
     {
-      value: "75%",
-      label: "Time Saved",
-      description: "Reduction in screening time"
+      icon: <Brain className="h-6 w-6" />,
+      title: "AI-Powered Screening",
+      description: "Reduce screening time by 75% with intelligent candidate evaluation",
+      color: "indigo"
     },
     {
-      value: "3x",
-      label: "Better Matches",
-      description: "More qualified candidates"
+      icon: <Target className="h-6 w-6" />,
+      title: "Precision Matching",
+      description: "Find candidates that perfectly align with your requirements",
+      color: "violet"
     },
     {
-      value: "60%",
-      label: "Cost Reduction",
-      description: "Lower recruitment costs"
+      icon: <LineChart className="h-6 w-6" />,
+      title: "Data-Driven Insights",
+      description: "Make confident decisions with comprehensive analytics",
+      color: "blue"
     }
   ];
 
-  const benefits = [
-    {
-      icon: <Clock className="h-5 w-5" />,
-      title: "Faster Hiring",
-      description: "Reduce time-to-hire from weeks to days with AI-powered screening"
+  const metrics = [
+    { 
+      label: "Time to Hire", 
+      value: 85,
+      improvement: "75% faster screening",
+      icon: <Clock className="h-5 w-5" />
     },
-    {
-      icon: <Target className="h-5 w-5" />,
-      title: "Better Quality",
-      description: "Find candidates that truly match your requirements"
+    { 
+      label: "Match Quality", 
+      value: 92,
+      improvement: "92% accuracy rate",
+      icon: <CheckCircle2 className="h-5 w-5" />
     },
-    {
-      icon: <TrendingUp className="h-5 w-5" />,
-      title: "Data-Driven Decisions",
-      description: "Make informed decisions with detailed analytics"
+    { 
+      label: "Cost Efficiency", 
+      value: 70,
+      improvement: "60% cost reduction",
+      icon: <DollarSign className="h-5 w-5" />
     }
   ];
 
   return (
-    <section className="py-20">
+    <section className="py-20 bg-gradient-to-b from-slate-50 to-white">
       <div className="container mx-auto px-4">
-        {/* Stats Section */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="grid md:grid-cols-3 gap-8 mb-20"
-        >
-          {stats.map((stat, index) => (
-            <Card key={index} className="text-center">
-              <CardContent className="pt-6">
-                <motion.div
-                  initial={{ scale: 0.5, opacity: 0 }}
-                  whileInView={{ scale: 1, opacity: 1 }}
-                  transition={{ delay: index * 0.2 }}
-                  viewport={{ once: true }}
-                >
-                  <div className="text-4xl font-bold text-indigo-600 mb-2">
-                    {stat.value}
-                  </div>
-                  <div className="font-medium mb-1">{stat.label}</div>
-                  <div className="text-sm text-slate-600">{stat.description}</div>
-                </motion.div>
-              </CardContent>
-            </Card>
-          ))}
-        </motion.div>
-
-        {/* ROI Demo */}
-        <div className="grid md:grid-cols-2 gap-10 items-center mb-20">
-          <motion.div 
-            initial={{ opacity: 0, x: -20 }}
-            whileInView={{ opacity: 1, x: 0 }}
+        <div className="max-w-6xl mx-auto space-y-16">
+          {/* Header */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="space-y-6"
+            className="text-center space-y-4"
           >
-            <h2 className="text-3xl font-bold">
-              Clear ROI from Day One
+            <Badge className="px-4 py-1 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors">
+              Why SmartHRFlow
+            </Badge>
+            <h2 className="text-3xl sm:text-4xl font-bold">
+              Transform Your Hiring Process
             </h2>
-            <p className="text-lg text-slate-600">
-              See immediate impact on your recruitment metrics and bottom line.
+            <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+              Experience the power of AI-driven recruitment that delivers real results
             </p>
-
-            <Card>
-              <CardContent className="pt-6">
-                <div className="space-y-4">
-                  {[
-                    { label: "Time Savings", value: 85 },
-                    { label: "Quality of Hire", value: 92 },
-                    { label: "Cost per Hire", value: 65 }
-                  ].map((metric, index) => (
-                    <div key={index} className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>{metric.label}</span>
-                        <span className="font-medium">
-                          {metric.value}% improvement
-                        </span>
-                      </div>
-                      <Progress value={metric.value} className="h-2" />
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
           </motion.div>
 
-          <motion.div 
-            initial={{ opacity: 0, x: 20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            className="space-y-6"
-          >
+          {/* Benefits Grid */}
+          <div className="grid md:grid-cols-3 gap-8">
             {benefits.map((benefit, index) => (
-              <div key={index} className="flex gap-4">
-                <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600">
-                  {benefit.icon}
-                </div>
-                <div>
-                  <h4 className="font-medium">{benefit.title}</h4>
-                  <p className="text-slate-600">{benefit.description}</p>
-                </div>
-              </div>
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.2 }}
+                viewport={{ once: true }}
+              >
+                <Card className="h-full hover:shadow-lg transition-shadow">
+                  <CardContent className="p-6 space-y-4">
+                    <div className={`p-3 bg-${benefit.color}-50 rounded-lg w-fit`}>
+                      <div className={`text-${benefit.color}-600`}>
+                        {benefit.icon}
+                      </div>
+                    </div>
+                    <h3 className="text-xl font-semibold">{benefit.title}</h3>
+                    <p className="text-slate-600">{benefit.description}</p>
+                  </CardContent>
+                </Card>
+              </motion.div>
             ))}
+          </div>
+
+          {/* Metrics Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="rounded-2xl bg-gradient-to-br from-indigo-50 via-white to-violet-50 p-8 sm:p-10"
+          >
+            <div className="grid md:grid-cols-3 gap-8">
+              {metrics.map((metric, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  viewport={{ once: true }}
+                  className="space-y-4"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-white rounded-lg shadow-sm text-indigo-600">
+                      {metric.icon}
+                    </div>
+                    <h4 className="font-medium">{metric.label}</h4>
+                  </div>
+                  <div className="space-y-2">
+                    <Progress value={metric.value} className="h-2" />
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-600">{metric.improvement}</span>
+                      <span className="font-medium">{metric.value}%</span>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
           </motion.div>
         </div>
-
-        {/* Features Grid */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="grid md:grid-cols-2 lg:grid-cols-4 gap-6"
-        >
-          {[
-            { icon: <CheckCircle2 />, label: "AI-Powered Screening" },
-            { icon: <Users />, label: "Team Collaboration" },
-            { icon: <DollarSign />, label: "Cost Effective" },
-            { icon: <TrendingUp />, label: "Scalable Solution" }
-          ].map((item, index) => (
-            <div 
-              key={index}
-              className="flex items-center gap-3 p-4 rounded-lg border bg-white"
-            >
-              <div className="text-indigo-600">{item.icon}</div>
-              <div className="font-medium">{item.label}</div>
-            </div>
-          ))}
-        </motion.div>
       </div>
     </section>
   );

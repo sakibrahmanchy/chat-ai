@@ -2,11 +2,17 @@
 import { OpenAI } from 'openai';
 import { Resume } from '@/app/types/resume';
 import { Job } from '@/app/types/job';
-import { adminDb } from '@/firebase-admin';
+import { createClient } from '@supabase/supabase-js';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
+
+// Create Supabase client with service role for admin access
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 interface ScoreResult {
   skillsScore: number;
@@ -79,7 +85,7 @@ const RESPONSE_FORMAT = {
   }
 } as const;
 
-export async function scoreResume(resume: Resume, job: Job) {
+export async function scoreResume(resume: Resume, job: Job): Promise<ScoreResult> {
   try {
     // Get AI analysis
     const aiAnalysis = await analyzeResume(resume, job);
@@ -158,18 +164,42 @@ export async function scoreResume(resume: Resume, job: Job) {
       }
     };
     console.log('finalScores', finalScores);
-    // Store the scores in Firestore
-    await adminDb
-      .collection('resumes')
-      .doc(resume.id)
+
+    // Store scores in Supabase
+    const { error } = await supabase
+      .from('resumes')
       .update({
-        scores: finalScores,
-        updatedAt: new Date()
-      });
+        scores: {
+          overall_score: finalScores.overallScore,
+          skills_score: finalScores.skillsScore,
+          experience_score: finalScores.experienceScore,
+          education_score: finalScores.educationScore || 0,
+          analysis: {
+            matched_skills: finalScores.analysis.matchedSkills,
+            missing_skills: finalScores.analysis.missingSkills,
+            strengths: finalScores.analysis.strengthAreas,
+            weaknesses: finalScores.analysis.improvementAreas,
+            experience_analysis: finalScores.analysis.experienceAnalysis,
+            education_analysis: finalScores.analysis.educationAnalysis || ''
+          },
+          metadata: {
+            processing_time: Date.now() - startTime,
+            confidence_score: aiAnalysis.confidence || 0.8,
+            processed_at: new Date().toISOString()
+          }
+        },
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', resume.id);
+
+    if (error) {
+      console.error('Error updating scores in Supabase:', error);
+      throw error;
+    }
 
     return finalScores;
   } catch (error) {
-    console.error('Error scoring resume:', error);
+    console.error('Error in scoreResume:', error);
     throw error;
   }
 }
@@ -317,4 +347,17 @@ async function analyzeResume(resume: Resume, job: Job) {
       averageScore: 0
     };
   }
+}
+
+// Helper function to get top candidates
+export async function getTopCandidates(jobId: string, limit = 10) {
+  const { data: candidates, error } = await supabase
+    .from('resumes')
+    .select('*')
+    .eq('job_id', jobId)
+    .order('scores->overall_score', { ascending: false })
+    .limit(limit);
+
+  if (error) throw error;
+  return candidates;
 } 

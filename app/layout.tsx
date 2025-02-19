@@ -2,6 +2,7 @@ import { ClerkProvider } from '@clerk/nextjs'
 import './globals.css'
 import InstallPrompt from '@/components/install-prompt'
 import { Roboto } from "next/font/google";
+import { Toaster } from "@/components/ui/toaster"
 
 const roboto = Roboto({
   weight: ['300', '400', '500', '700'],
@@ -21,6 +22,7 @@ export default function RootLayout({
           <div className="relative flex min-h-screen flex-col">
             {children}
             <InstallPrompt />
+            <Toaster />
           </div>
         </body>
       </html>

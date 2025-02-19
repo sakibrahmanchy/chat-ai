@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { Suspense } from "react";
+import { supabase } from "@/lib/supabase/client";
 
 interface Job {
   id: string;
@@ -44,17 +45,42 @@ interface Job {
 }
 
 async function getJobs(userId: string) {
-  const jobsRef = adminDb
-    .collection("jobs");
-    
-  const snapshot = await jobsRef
-    .orderBy("createdAt", "desc")
-    .get();
   
-  return snapshot.docs.map(doc => {
-    const data = doc.data();
-    return {
-      id: doc.id,
+  const { data: user } = await supabase
+
+    .from('users')
+
+    .select('company_id')
+
+    .eq('id', userId)
+
+    .single();
+
+
+
+  if (!user?.company_id) {
+
+    return <div>No company associated with this user</div>;
+
+  }
+
+
+
+  // Get jobs for the user's company
+
+  const { data: jobs = [], error } = await supabase
+
+    .from('jobs')
+
+    .select('*')
+
+    .eq('company_id', user.company_id)
+
+    .order('created_at', { ascending: false });
+
+  console.log({ jobs })
+
+  return jobs.map(data => ({
       ...data,
       // Convert Firestore timestamps to ISO strings
       createdAt: data.createdAt?.toDate().toISOString(),
@@ -70,8 +96,7 @@ async function getJobs(userId: string) {
       totalApplications: data.totalApplications || 0,
       totalViews: data.totalViews || 0,
       status: data.status || 'active'
-    } as Job;
-  });
+    } as Job));
 }
 
 export default async function JobsPage() {

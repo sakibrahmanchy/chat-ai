@@ -33,11 +33,11 @@ const navigationItems = [
     href: '/dashboard/jobs',
     icon: Briefcase
   },
-  {
-    name: 'Candidates',
-    href: '/dashboard/candidates',
-    icon: Users
-  }
+  // {
+  //   name: 'Candidates',
+  //   href: '/dashboard/candidates',
+  //   icon: Users
+  // }
 ];
 
 const actionItems = [
@@ -45,14 +45,14 @@ const actionItems = [
     name: 'Post Job',
     href: '/dashboard/jobs/new',
     icon: Briefcase,
-    variant: 'outline' as const
-  },
-  {
-    name: 'Upload Resume',
-    href: '/dashboard/upload',
-    icon: FileText,
     variant: 'default' as const
-  }
+  },
+  // {
+  //   name: 'Upload Resume',
+  //   href: '/dashboard/upload',
+  //   icon: FileText,
+  //   variant: 'default' as const
+  // }
 ];
 
 function Header() {
