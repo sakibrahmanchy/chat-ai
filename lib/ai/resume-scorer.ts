@@ -11,7 +11,7 @@ const openai = new OpenAI({
 // Create Supabase client with service role for admin access
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
 interface ScoreResult {
@@ -88,10 +88,11 @@ const RESPONSE_FORMAT = {
 export async function scoreResume(resume: Resume, job: Job): Promise<ScoreResult> {
   try {
     // Get AI analysis
+    const startTime = Date.now();
     const aiAnalysis = await analyzeResume(resume, job);
 
     // Get initial score calculation
-    const initialScore = calculateInitialScore(resume.parsedContent, job);
+    const initialScore = calculateInitialScore(resume.parsed_content, job);
 
     // Combine scores with weights (70% AI, 30% calculated)
     const combinedScores = {
@@ -254,7 +255,7 @@ function calculateInitialScore(parsedContent: any, job: any) {
 // Helper function to analyze resume using AI
 async function analyzeResume(resume: Resume, job: Job) {
   try {
-    const { parsedContent } = resume;
+    const { parsed_content: parsedContent } = resume;
 
     const prompt = `
       Analyze this resume against the job requirements and provide a detailed scoring.
@@ -301,7 +302,7 @@ async function analyzeResume(resume: Resume, job: Job) {
     }
 
     const result = JSON.parse(response.choices[0].message.content);
-
+    console.log({ result })
     // Provide default values if any scores are missing
     return {
       skillsScore: result.skillsScore || 0,

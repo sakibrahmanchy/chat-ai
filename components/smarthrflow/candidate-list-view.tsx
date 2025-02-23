@@ -6,11 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { CandidateFilters } from "./candidate-filters";
-import { 
-  Star, 
-  Eye, 
-  Download, 
-  Filter, 
+import {
+  Star,
+  Eye,
+  Download,
+  Filter,
   X,
   ArrowLeft,
   MapPin,
@@ -68,11 +68,111 @@ interface Filters {
   showFilters: boolean;
 }
 
-// Helper function to ensure education is an array
+// First, let's define proper types for our Supabase data structure
+interface ParsedContent {
+  full_name: string;
+  occupation: string;
+  education: Array<{
+    degree_name: string;
+    school: string;
+    starts_at?: string;
+    ends_at?: string;
+  }>;
+  experiences: Array<{
+    title: string;
+    company: string;
+    starts_at: string;
+    ends_at?: string;
+  }>;
+  skills: string[];
+  total_experience_in_months: number;
+  city?: string;
+  state?: string;
+  country?: string;
+  personal_emails?: string[];
+  personal_numbers?: string[];
+  skills_with_yoe?: Record<string, { name: string; years: number }>;
+}
+
+interface ResumeScores {
+  overall_score: number;
+  skills_score: number;
+  experience_score: number;
+  education_score: number;
+  role_match_score?: number;
+  analysis: {
+    matched_skills: string[];
+    missing_skills: string[];
+    strengths: string[];
+    improvements: string[];
+    experience_analysis: string;
+    education_analysis: string;
+    overall_feedback: string;
+  };
+  metadata: {
+    processing_time: number;
+    confidence_score: number;
+    processed_at: string;
+  };
+}
+
+interface Resume {
+  id: string;
+  hash: string;
+  parsed_content: ParsedContent;
+  scores: ResumeScores;
+  searchable_skills: string[];
+  experience_months: number;
+  current_position: string;
+  location: {
+    city: string;
+    state: string;
+    country: string;
+  };
+  created_at: string;
+  updated_at: string;
+}
+
+// Update the helper functions to use the new types
 const getEducation = (resume: Resume) => {
-  const education = resume.parsedContent?.education;
+  const education = resume.parsed_content?.education;
   if (!education) return [];
   return Array.isArray(education) ? education : [education];
+};
+
+const getMatchScore = (resume: Resume) => {
+  return resume.scores?.overall_score || 0;
+};
+
+// Update the search function to use the new data structure
+const searchResumes = (resumes: Resume[], searchTerm: string) => {
+  const searchLower = searchTerm.toLowerCase();
+  return resumes.filter(resume => {
+    const name = resume.parsed_content?.full_name?.toLowerCase() || '';
+    const skills = resume.searchable_skills?.map(s => s.toLowerCase()) || [];
+    const content = resume.parsed_content?.experiences?.map(e =>
+      `${e.title} ${e.company}`.toLowerCase()
+    ).join(' ') || '';
+
+    return name.includes(searchLower) ||
+      skills.some(skill => skill.includes(searchLower)) ||
+      content.includes(searchLower);
+  });
+};
+
+// Update other helper functions similarly
+const calculateTotalYears = (resume: Resume) => {
+  return Math.floor(resume.experience_months / 12);
+};
+
+const getSkills = (resume: Resume) => {
+  return resume.searchable_skills || [];
+};
+
+const getLocation = (resume: Resume) => {
+  const { city, state, country } = resume.location || {};
+  const parts = [city, state, country].filter(Boolean);
+  return parts.join(', ') || 'No location';
 };
 
 // Add this helper function near the top of the file
@@ -84,25 +184,14 @@ const formatYearsOfExperience = (months: number) => {
   return `${years} years ${remainingMonths} months`;
 };
 
-// Add this helper function at the top of the file
-const getMatchScore = (resume: Resume) => {
-  if (resume.scores?.overallScore) {
-    return resume.scores.overallScore;
-  }
-  if (resume.scores?.averageScore) {
-    return resume.scores.averageScore;
-  }
-  return 0;
-};
-
 // Add this helper function to format percentages
 const formatPercentage = (value: number) => {
   return `${Math.round(value)}%`;
 };
 
-export function CandidateListView({ 
-  initialResumes, 
-  jobId, 
+export function CandidateListView({
+  initialResumes,
+  jobId,
   jobTitle,
   userId,
   jobDescription,
@@ -115,13 +204,12 @@ export function CandidateListView({
   const [lastVisible, setLastVisible] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const { toast } = useToast();
 
   // Filter states
   const [searchTerm, setSearchTerm] = useState('');
-  const [scoreFilter, setScoreFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [sortBy, setSortBy] = useState('score');
 
   // Update the filters state with more sensible defaults
   const [availableLocations, setAvailableLocations] = useState<string[]>([]);
@@ -130,7 +218,7 @@ export function CandidateListView({
   useEffect(() => {
     const loadLocations = async () => {
       try {
-        const locations = await resumeSearch.getUniqueLocations(userId, jobId);
+        const locations = await resumeSearch.getUniqueLocations(jobId);
         setAvailableLocations(locations);
       } catch (error) {
         console.error('Error loading locations:', error);
@@ -161,23 +249,23 @@ export function CandidateListView({
     setLoading(true);
 
     try {
+      setIsLoadingMore(true);
       const searchFilters = {
         ...filters,
         searchTerm: searchTerm,
         skills: filters.skills.length > 0 ? filters.skills : undefined,
         status: filters.status.length > 0 ? filters.status : undefined,
         location: filters.location === "all" ? undefined : filters.location,
-        experienceMonths: filters.experienceMonths[0] === 0 && filters.experienceMonths[1] === 999 
-          ? undefined 
+        experienceMonths: filters.experienceMonths[0] === 0 && filters.experienceMonths[1] === 999
+          ? undefined
           : filters.experienceMonths,
         scoreRange: filters.scoreRange[0] === 0 && filters.scoreRange[1] === 10 ? undefined : filters.scoreRange
       };
 
-      const result = await resumeSearch.search(
-        userId,
+      const result = await resumeSearch.searchResumes(
         jobId,
         searchFilters,
-        lastVisible
+        Math.ceil(resumes.length / 20) + 1
       );
 
       setResumes(prev => [...prev, ...result.resumes]);
@@ -192,6 +280,7 @@ export function CandidateListView({
       });
     } finally {
       setLoading(false);
+      setIsLoadingMore(false);
     }
   };
 
@@ -200,20 +289,20 @@ export function CandidateListView({
     const loadInitialData = async () => {
       setLoading(true);
       try {
+        setIsLoading(true);
         const searchFilters = {
           ...filters,
           searchTerm: searchTerm,
           skills: filters.skills.length > 0 ? filters.skills : undefined,
           status: filters.status.length > 0 ? filters.status : undefined,
           location: filters.location === "all" ? undefined : filters.location,
-          experienceMonths: filters.experienceMonths[0] === 0 && filters.experienceMonths[1] === 999 
-            ? undefined 
+          experienceMonths: filters.experienceMonths[0] === 0 && filters.experienceMonths[1] === 999
+            ? undefined
             : filters.experienceMonths,
           scoreRange: filters.scoreRange[0] === 0 && filters.scoreRange[1] === 10 ? undefined : filters.scoreRange
         };
 
-        const result = await resumeSearch.search(
-          userId,
+        const result = await resumeSearch.searchResumes(
           jobId,
           searchFilters
         );
@@ -230,9 +319,10 @@ export function CandidateListView({
         });
       } finally {
         setLoading(false);
+        setIsLoading(false);
       }
     };
-
+    console.log({ filters, searchTerm })
     loadInitialData();
   }, [filters, searchTerm]); // Update dependencies
 
@@ -249,9 +339,11 @@ export function CandidateListView({
 
     const searchLower = searchTerm.toLowerCase();
     return resumes.filter(resume => {
-      const name = resume.parsedContent?.full_name?.toLowerCase() || '';
-      const skills = resume.parsedContent?.skills?.map(s => s.toLowerCase()) || [];
-      const content = resume.parsedContent?.raw_text?.toLowerCase() || '';
+      const name = resume.parsed_content?.full_name?.toLowerCase() || '';
+      const skills = resume.searchable_skills?.map(s => s?.toLowerCase() || null).filter(Boolean) || [];
+      const content = resume.parsed_content?.experiences?.map(e =>
+        `${e.title} ${e.company}`.toLowerCase()
+      ).join(' ') || '';
 
       return name.includes(searchLower) ||
         skills.some(skill => skill.includes(searchLower)) ||
@@ -265,18 +357,6 @@ export function CandidateListView({
   const [showJobDescription, setShowJobDescription] = useState(false);
   const [showCheckMatch, setShowCheckMatch] = useState(false);
 
-  const calculateTotalYears = (resume: Resume) => {
-    return Math.floor((resume.parsedContent?.total_experience_in_months || 0) / 12);
-  };
-
-  const getSkills = (resume: Resume) => {
-    const skills = resume.parsedContent?.skills_with_yoe;
-    if (!skills) return [];
-
-    if (Array.isArray(skills)) return skills;
-    else return Object.values(skills).slice(0, 3).map((s: any) => s.name);
-  };
-
   const handleDownload = (downloadUrl: string) => {
     window.open(downloadUrl, '_blank');
   };
@@ -284,7 +364,7 @@ export function CandidateListView({
   const handleCheckMatch = async (resume: Resume) => {
     try {
       setIsCalculating(resume.id);
-  
+
       const job: Job = {
         id: jobId,
         title: jobTitle,
@@ -316,8 +396,8 @@ export function CandidateListView({
       });
 
       // Update local state
-      setResumes(prev => prev.map(r => 
-        r.id === resume.id 
+      setResumes(prev => prev.map(r =>
+        r.id === resume.id
           ? { ...r, scores: newScores, updatedAt: new Date().toISOString() }
           : r
       ));
@@ -338,15 +418,9 @@ export function CandidateListView({
     }
   };
 
-  const getLocation = (resume: Resume) => {
-    const { city, state, country } = resume.parsedContent || {};
-    const parts = [city, state, country].filter(Boolean);
-    return parts.join(', ') || 'No location';
-  };
-
   const formatDate = (date: { month: number; year: number }) => {
-    return new Intl.DateTimeFormat('en-US', { 
-      year: 'numeric', 
+    return new Intl.DateTimeFormat('en-US', {
+      year: 'numeric',
       month: 'short'
     }).format(new Date(date.year, date.month - 1));
   };
@@ -355,7 +429,7 @@ export function CandidateListView({
   const SkillFilterToggle = () => (
     <div className="flex items-center gap-2 p-4 border-b">
       <span className="text-sm">Match Type:</span>
-      <ToggleGroup type="single" value={filters.matchType} onValueChange={(value) => 
+      <ToggleGroup type="single" value={filters.matchType} onValueChange={(value) =>
         setFilters(prev => ({ ...prev, matchType: value as 'AND' | 'OR' }))
       }>
         <ToggleGroupItem value="AND">Match All Skills</ToggleGroupItem>
@@ -371,8 +445,8 @@ export function CandidateListView({
         <div className="w-full lg:w-[240px] border-b lg:border-b-0 lg:border-r bg-white">
           <div className="flex items-center justify-between p-4 border-b">
             <h3 className="font-medium text-sm">Filters</h3>
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               size="sm"
               onClick={() => setFilters(prev => ({ ...prev, showFilters: false }))}
             >
@@ -380,7 +454,7 @@ export function CandidateListView({
             </Button>
           </div>
           <SkillFilterToggle />
-          <CandidateFilters 
+          <CandidateFilters
             filters={filters}
             onFilterChange={setFilters}
             availableLocations={availableLocations}
@@ -399,9 +473,9 @@ export function CandidateListView({
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <h2 className="font-semibold truncate text-wrap">{jobTitle}</h2>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
+                <Button
+                  variant="ghost"
+                  size="icon"
                   className="h-6 w-6"
                   onClick={() => setShowJobDescription(true)}
                 >
@@ -413,8 +487,8 @@ export function CandidateListView({
               </p>
             </div>
             <div className="flex items-center gap-2 w-full sm:w-auto">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="flex-1 sm:flex-none gap-2"
                 onClick={() => setFilters(prev => ({ ...prev, showFilters: !prev.showFilters }))}
               >
@@ -442,379 +516,400 @@ export function CandidateListView({
         {/* Candidates List - Only scroll this section */}
         <div className="flex-1 overflow-auto">
           <div className="p-2 space-y-1">
-            {filteredResumes
-              .sort((a, b) => getMatchScore(b) - getMatchScore(a))
-              .map((resume) => (
-                <div key={resume.objectID}>
-                  {/* Collapsed/Expanded View Combined */}
-                  <div 
-                    className={cn(
-                      "bg-white rounded border transition-all duration-200 w-full",
-                      expandedId === resume.id && "border-indigo-500 bg-slate-50",
-                      resumes.indexOf(resume) < 3 && "border-l-4",
-                      resumes.indexOf(resume) === 0 && "border-l-indigo-500",
-                      resumes.indexOf(resume) === 1 && "border-l-emerald-500",
-                      resumes.indexOf(resume) === 2 && "border-l-amber-500"
-                    )}
-                  >
-                    {/* Main Row - Always Visible */}
-                    <div 
-                      className="p-3 cursor-pointer w-full"
-                      onClick={() => setExpandedId(expandedId === resume.id ? null : resume.id)}
-                    >
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full">
-                        {/* Basic Info */}
-                        <div className="flex items-center gap-2 w-full sm:w-[200px] sm:min-w-[200px]">
-                          {resumes.indexOf(resume) < 3 && (
-                            <Star className="h-3 w-3 text-yellow-400 flex-shrink-0" />
-                          )}
-                          <div className="min-w-0 flex-1">
-                            <h3 className="font-medium truncate text-sm">
-                              {resume.parsedContent?.full_name || 'Unnamed Candidate'}
-                            </h3>
-                            <p className="text-xs text-muted-foreground truncate">
-                              {resume.parsedContent?.occupation || 'No title specified'}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Mobile Info */}
-                        <div className="grid grid-cols-2 gap-2 w-full sm:hidden mt-2">
-                          <div className="text-xs text-muted-foreground">
-                            <MapPin className="h-3 w-3 inline mr-1" />
-                            {getLocation(resume)}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            <Calendar className="h-3 w-3" />
-                            <span>{resume.parsedContent?.total_experience_in_months / 12 || "Not specified"}</span>
-                          </div>
-                          <div className="col-span-2 space-y-1">
-                            <div className="flex justify-between text-xs">
-                              <span>Match Score</span>
-                              <span>{getMatchScore(resume).toFixed(1)}/10</span>
-                            </div>
-                            <Progress value={getMatchScore(resume) * 10} className="h-1" />
-                          </div>
-                        </div>
-
-                        {/* Desktop Layout */}
-                        <div className="hidden sm:flex items-center gap-3 flex-1 w-full">
-                          {/* Middle: Location & Date */}
-                          <div className="flex gap-3 text-xs text-muted-foreground w-[180px] min-w-[180px]">
-                            {resume.parsedContent?.country && (
-                              <div className="flex items-center gap-1">
-                                <MapPin className="h-3 w-3" />
-                                <span className="truncate">{resume.parsedContent.country}</span>
-                              </div>
-                            )}
-                            <div className="flex items-center gap-1">
-                              <Calendar className="h-3 w-3" />
-                              <span>{Math.floor(resume.parsedContent?.total_experience_in_months / 12) + 'y' || "0"}</span>
-                            </div>
-                          </div>
-
-                          {/* Scores */}
-                          <div className="w-[120px] min-w-[120px]">
-                            <div className="space-y-0.5">
-                              <div className="flex justify-between text-xs">
-                                <span>Match Score</span>
-                                <span className={cn(
-                                  resumes.indexOf(resume) < 3 && "text-indigo-600"
-                                )}>{getMatchScore(resume).toFixed(1)}/10</span>
-                              </div>
-                              <Progress value={getMatchScore(resume) * 10} className="h-1" />
-                            </div>
-                          </div>
-
-                          {/* Skills */}
-                          <div className="flex min-w-[200px]">
-                            <div className="flex flex-wrap gap-1">
-                              {(() => {
-                                const skillsList = getSkills(resume);
-                                const displaySkills = skillsList.slice(0, 3);
-                                return (
-                                  <>
-                                    {displaySkills.map((skill) => (
-                                      <Badge 
-                                        key={`${resume.id}-${skill.name || skill}`}
-                                        variant="secondary" 
-                                        className="text-xs px-1.5 py-0"
-                                      >
-                                        {skill.name || skill}
-                                      </Badge>
-                                    ))}
-                                    {skillsList.length > 3 && (
-                                      <Badge variant="outline" className="text-xs px-1.5 py-0">
-                                        +{skillsList.length - 3}
-                                      </Badge>
-                                    )}
-                                  </>
-                                );
-                              })()}
-                            </div>
-                          </div>
-
-                          {/* Actions */}
-                          <div className="flex items-center gap-1">
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-7 w-7"
-                              onClick={(e) => {
-                                e.stopPropagation(); // Prevent row expansion
-                                handleCheckMatch(resume);
-                              }}
-                              disabled={isCalculating === resume.id}
-                            >
-                              {isCalculating === resume.id ? (
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                              ) : (
-                                <Sparkles className="h-3 w-3" />
+            {isLoading ? (
+              <div className="flex items-center justify-center h-64">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : resumes.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
+                <p>No candidates found</p>
+              </div>
+            ) : (
+              <div className="divide-y">
+                {filteredResumes
+                  .sort((a, b) => getMatchScore(b) - getMatchScore(a))
+                  .map((resume) => (
+                    <div key={resume.id}>
+                      {/* Collapsed/Expanded View Combined */}
+                      <div
+                        className={cn(
+                          "bg-white rounded border transition-all duration-200 w-full",
+                          expandedId === resume.id && "border-indigo-500 bg-slate-50",
+                          resumes.indexOf(resume) < 3 && "border-l-4",
+                          resumes.indexOf(resume) === 0 && "border-l-indigo-500",
+                          resumes.indexOf(resume) === 1 && "border-l-emerald-500",
+                          resumes.indexOf(resume) === 2 && "border-l-amber-500"
+                        )}
+                      >
+                        {/* Main Row - Always Visible */}
+                        <div
+                          className="p-3 cursor-pointer w-full"
+                          onClick={() => setExpandedId(expandedId === resume.id ? null : resume.id)}
+                        >
+                          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full">
+                            {/* Basic Info */}
+                            <div className="flex items-center gap-2 w-full sm:w-[200px] sm:min-w-[200px]">
+                              {resumes.indexOf(resume) < 3 && (
+                                <Star className="h-3 w-3 text-yellow-400 flex-shrink-0" />
                               )}
-                            </Button>
-                            <Link href={`/dashboard/candidates/${resume.id}`}>
-                              <Button variant="ghost" size="icon" className="h-7 w-7">
-                                <Eye className="h-3 w-3" />
-                              </Button>
-                            </Link>
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={() => handleDownload(resume.downloadUrl)}
-                            >
-                              <Download className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                              <div className="flex-1">
+                                <h3 className="font-medium truncate text-sm">
+                                  {resume.parsed_content?.full_name || 'Unnamed Candidate'}
+                                </h3>
+                                <p className="text-xs text-muted-foreground truncate">
+                                  {resume.parsed_content?.occupation || 'No title specified'}
+                                </p>
+                              </div>
 
-                    {/* Expanded Content */}
-                    {expandedId === resume.id && (
-                      <div className="p-4 border-t bg-slate-50">
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                          {/* Left Column - Experience & Skills */}
-                          <div className="space-y-4">
-                            {/* Current Experience */}
-                            {resume.parsedContent?.experiences?.[0] && (
-                              <div>
-                                <div className="text-sm font-medium mb-2">Current Position</div>
-                                <div className="space-y-1">
-                                  <div className="text-sm">{resume.parsedContent.experiences[0].title}</div>
-                                  <div className="text-sm text-muted-foreground">{resume.parsedContent.experiences[0].company}</div>
-                                  <div className="text-xs text-muted-foreground">
-                                    {formatDate(resume.parsedContent.experiences[0].starts_at)} - 
-                                    {resume.parsedContent.experiences[0].ends_at ? formatDate(resume.parsedContent.experiences[0].ends_at) : 'Present'}
+                               {/* Middle: Location & Date */}
+                               <div className="flex gap-3 text-xs text-muted-foreground w-[180px] min-w-[180px]">
+                                {resume.location?.country && (
+                                  <div className="flex items-center gap-1">
+                                    <MapPin className="h-3 w-3" />
+                                    <span className="truncate">{resume.location.country}</span>
                                   </div>
+                                )}
+                                <div className="flex items-center gap-1">
+                                  <Calendar className="h-3 w-3" />
+                                  <span>{Math.floor(resume.experience_months / 12) + 'y' || "0"}</span>
                                 </div>
                               </div>
-                            )}
+                            </div>
 
-                            {/* Skills with Experience */}
-                            <div>
-                              <div className="text-sm font-medium mb-2">Skills & Experience</div>
-                              <div className="grid grid-cols-2 gap-2">
-                                {Object.values(resume.parsedContent?.skills_with_yoe || {}).map((skill: any) => (
-                                  <div 
-                                    key={skill.name} 
-                                    className="flex items-center justify-between text-sm p-2 bg-white rounded border"
-                                  >
-                                    <span>{skill.name}</span>
-                                    <span className="text-xs text-muted-foreground">{skill.yoe}y</span>
-                                  </div>
-                                ))}
+                            {/* Mobile Info */}
+                            <div className="grid grid-cols-2 gap-2 w-full sm:hidden mt-2">
+                              <div className="text-xs text-muted-foreground">
+                                <MapPin className="h-3 w-3 inline mr-1" />
+                                {getLocation(resume)}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                <Calendar className="h-3 w-3" />
+                                <span>{resume.experience_months / 12 || "Not specified"}</span>
+                              </div>
+                              <div className="col-span-2 space-y-1">
+                                <div className="flex justify-between text-xs">
+                                  <span>Match Score</span>
+                                  <span>{getMatchScore(resume).toFixed(1)}/10</span>
+                                </div>
+                                <Progress value={getMatchScore(resume) * 10} className="h-1" />
                               </div>
                             </div>
 
-                            {/* Education */}
-                            {resume.parsedContent?.education?.length > 0 && (
-                              <div>
-                                <div className="text-sm font-medium mb-2">Education</div>
-                                <div className="space-y-2">
-                                  {resume.parsedContent.education.map((edu: any, index: number) => (
-                                    <div key={index} className="text-sm">
-                                      <div>{edu.degree_name}</div>
-                                      <div className="text-muted-foreground">{edu.school}</div>
+                            {/* Desktop Layout */}
+                            <div className="hidden sm:flex items-center gap-3 flex-1 w-full justify-end">
+                              {/* Scores */}
+                              <div className="w-[120px] min-w-[120px]">
+                                <div className="space-y-0.5">
+                                  <div className="flex justify-between text-xs">
+                                    <span>Match Score</span>
+                                    <span className={cn(
+                                      resumes.indexOf(resume) < 3 && "text-indigo-600"
+                                    )}>{getMatchScore(resume).toFixed(1)}/10</span>
+                                  </div>
+                                  <Progress value={getMatchScore(resume) * 10} className="h-1" />
+                                </div>
+                              </div>
+
+                              {/* Skills */}
+                              <div className="flex min-w-[200px]">
+                                <div className="flex flex-wrap gap-1">
+                                  {(() => {
+                                    const skillsList = getSkills(resume);
+                                    const displaySkills = skillsList.slice(0, 3);
+                                    return (
+                                      <>
+                                        {displaySkills.map((skill, index) => (
+                                          <Badge
+                                            key={`${resume.id}-${index}`}
+                                            variant="secondary"
+                                            className="text-xs px-1.5 py-0"
+                                          >
+                                            {skill?.name || skill}
+                                          </Badge>
+                                        ))}
+                                        {skillsList.length > 3 && (
+                                          <Badge variant="outline" className="text-xs px-1.5 py-0">
+                                            +{skillsList.length - 3}
+                                          </Badge>
+                                        )}
+                                      </>
+                                    );
+                                  })()}
+                                </div>
+                              </div>
+
+                              {/* Actions */}
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={(e) => {
+                                    e.stopPropagation(); // Prevent row expansion
+                                    handleCheckMatch(resume);
+                                  }}
+                                  disabled={isCalculating === resume.id}
+                                >
+                                  {isCalculating === resume.id ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                  ) : (
+                                    <Sparkles className="h-3 w-3" />
+                                  )}
+                                </Button>
+                                <Link href={`/dashboard/candidates/${resume.id}`}>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7">
+                                    <Eye className="h-3 w-3" />
+                                  </Button>
+                                </Link>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() => handleDownload(resume.scores.metadata.processed_at)}
+                                >
+                                  <Download className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Expanded Content */}
+                        {expandedId === resume.id && (
+                          <div className="p-4 border-t bg-slate-50">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                              {/* Left Column - Experience & Skills */}
+                              <div className="space-y-4">
+                                {/* Current Experience */}
+                                {resume.parsed_content?.experiences?.[0] && (
+                                  <div>
+                                    <div className="text-sm font-medium mb-2">Current Position</div>
+                                    <div className="space-y-1">
+                                      <div className="text-sm">{resume.parsed_content.experiences[0].title}</div>
+                                      <div className="text-sm text-muted-foreground">{resume.parsed_content.experiences[0].company}</div>
                                       <div className="text-xs text-muted-foreground">
-                                        {formatDate(edu.starts_at)} - {formatDate(edu.ends_at)}
+                                        {formatDate(resume.parsed_content.experiences[0].starts_at)} -
+                                        {resume.parsed_content.experiences[0].ends_at ? formatDate(resume.parsed_content.experiences[0].ends_at) : 'Present'}
                                       </div>
                                     </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
+                                  </div>
+                                )}
 
-                            {/* Contact Information */}
-                            <div>
-                              <div className="text-sm font-medium mb-2">Contact Information</div>
-                              <div className="space-y-1">
-                                {resume.parsedContent?.personal_emails?.map((email: string, index: number) => (
-                                  <div key={index} className="text-sm flex items-center gap-2">
-                                    <Mail className="h-4 w-4" />
-                                    <span>{email}</span>
-                                  </div>
-                                ))}
-                                {resume.parsedContent?.personal_numbers?.map((phone: string, index: number) => (
-                                  <div key={index} className="text-sm flex items-center gap-2">
-                                    <Phone className="h-4 w-4" />
-                                    <span>{phone}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Right Column - Scores & Analysis */}
-                          <div className="space-y-4">
-                            {/* Detailed Score Breakdown */}
-                            <div>
-                              <div className="text-sm font-medium mb-2">Match Score Breakdown</div>
-                              <div className="space-y-3">
-                                {/* Overall Score */}
-                                <div className="space-y-1">
-                                  <div className="flex justify-between text-sm">
-                                    <span>Overall Match</span>
-                                    <span className="font-medium">{getMatchScore(resume).toFixed(1)}/10</span>
-                                  </div>
-                                  <Progress value={getMatchScore(resume) * 10} className="h-2" />
-                                </div>
-
-                                {/* Skills Score */}
-                                <div className="space-y-1">
-                                  <div className="flex justify-between text-sm">
-                                    <span>Skills Match</span>
-                                    <span className="font-medium">{resume.scores?.skillsScore?.toFixed(1)}/10</span>
-                                  </div>
-                                  <Progress value={resume.scores?.skillsScore * 10} className="h-2" />
-                                  <div className="text-xs text-muted-foreground mt-1">
-                                    {resume.scores?.analysis?.skillsAnalysis}
+                                {/* Skills with Experience */}
+                                <div>
+                                  <div className="text-sm font-medium mb-2">Skills & Experience</div>
+                                  <div className="grid grid-cols-2 gap-2">
+                                    {Object.values(resume.parsed_content?.skills_with_yoe || {}).map((skill: any) => (
+                                      <div
+                                        key={skill.name}
+                                        className="flex items-center justify-between text-sm p-2 bg-white rounded border"
+                                      >
+                                        <span>{skill.name}</span>
+                                        <span className="text-xs text-muted-foreground">{skill.years}y</span>
+                                      </div>
+                                    ))}
                                   </div>
                                 </div>
 
-                                {/* Experience Score */}
-                                <div className="space-y-1">
-                                  <div className="flex justify-between text-sm">
-                                    <span>Experience Match</span>
-                                    <span className="font-medium">{resume.scores?.experienceScore?.toFixed(1)}/10</span>
-                                  </div>
-                                  <Progress value={resume.scores?.experienceScore * 10} className="h-2" />
-                                  <div className="text-xs text-muted-foreground mt-1">
-                                    {resume.scores?.analysis?.experienceAnalysis}
-                                  </div>
-                                </div>
-
-                                {/* Education Score */}
-                                <div className="space-y-1">
-                                  <div className="flex justify-between text-sm">
-                                    <span>Education Match</span>
-                                    <span className="font-medium">{resume.scores?.educationScore?.toFixed(1)}/10</span>
-                                  </div>
-                                  <Progress value={resume.scores?.educationScore * 10} className="h-2" />
-                                  <div className="text-xs text-muted-foreground mt-1">
-                                    {resume.scores?.analysis?.educationAnalysis}
-                                  </div>
-                                </div>
-
-                                {/* Role Match Score */}
-                                {resume.scores?.roleMatchScore && (
-                                  <div className="space-y-1">
-                                    <div className="flex justify-between text-sm">
-                                      <span>Role Fit</span>
-                                      <span className="font-medium">{resume.scores.roleMatchScore.toFixed(1)}/10</span>
+                                {/* Education */}
+                                {resume.parsed_content?.education?.length > 0 && (
+                                  <div>
+                                    <div className="text-sm font-medium mb-2">Education</div>
+                                    <div className="space-y-2">
+                                      {resume.parsed_content.education.map((edu: any, index: number) => (
+                                        <div key={index} className="text-sm">
+                                          <div>{edu.degree_name}</div>
+                                          <div className="text-muted-foreground">{edu.school}</div>
+                                          <div className="text-xs text-muted-foreground">
+                                            {formatDate(edu.starts_at)} - {formatDate(edu.ends_at)}
+                                          </div>
+                                        </div>
+                                      ))}
                                     </div>
-                                    <Progress value={resume.scores.roleMatchScore * 10} className="h-2" />
+                                  </div>
+                                )}
+
+                                {/* Contact Information */}
+                                <div>
+                                  <div className="text-sm font-medium mb-2">Contact Information</div>
+                                  <div className="space-y-1">
+                                    {resume.parsed_content?.personal_emails?.map((email: string, index: number) => (
+                                      <div key={index} className="text-sm flex items-center gap-2">
+                                        <Mail className="h-4 w-4" />
+                                        <span>{email}</span>
+                                      </div>
+                                    ))}
+                                    {resume.parsed_content?.personal_numbers?.map((phone: string, index: number) => (
+                                      <div key={index} className="text-sm flex items-center gap-2">
+                                        <Phone className="h-4 w-4" />
+                                        <span>{phone}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Right Column - Scores & Analysis */}
+                              <div className="space-y-4">
+                                {/* Detailed Score Breakdown */}
+                                <div>
+                                  <div className="text-sm font-medium mb-2">Match Score Breakdown</div>
+                                  <div className="space-y-3">
+                                    {/* Overall Score */}
+                                    <div className="space-y-1">
+                                      <div className="flex justify-between text-sm">
+                                        <span>Overall Match</span>
+                                        <span className="font-medium">{getMatchScore(resume).toFixed(1)}/10</span>
+                                      </div>
+                                      <Progress value={getMatchScore(resume) * 10} className="h-2" />
+                                    </div>
+
+                                    {/* Skills Score */}
+                                    <div className="space-y-1">
+                                      <div className="flex justify-between text-sm">
+                                        <span>Skills Match</span>
+                                        <span className="font-medium">{resume.scores?.skills_score?.toFixed(1)}/10</span>
+                                      </div>
+                                      <Progress value={resume.scores?.skills_score * 10} className="h-2" />
+                                      <div className="text-xs text-muted-foreground mt-1">
+                                        {resume.scores?.analysis?.matched_skills?.join(', ')}
+                                      </div>
+                                    </div>
+
+                                    {/* Experience Score */}
+                                    <div className="space-y-1">
+                                      <div className="flex justify-between text-sm">
+                                        <span>Experience Match</span>
+                                        <span className="font-medium">{resume.scores?.experience_score?.toFixed(1)}/10</span>
+                                      </div>
+                                      <Progress value={resume.scores?.experience_score * 10} className="h-2" />
+                                      <div className="text-xs text-muted-foreground mt-1">
+                                        {resume.scores?.analysis?.experience_analysis}
+                                      </div>
+                                    </div>
+
+                                    {/* Education Score */}
+                                    <div className="space-y-1">
+                                      <div className="flex justify-between text-sm">
+                                        <span>Education Match</span>
+                                        <span className="font-medium">{resume.scores?.education_score?.toFixed(1)}/10</span>
+                                      </div>
+                                      <Progress value={resume.scores?.education_score * 10} className="h-2" />
+                                      <div className="text-xs text-muted-foreground mt-1">
+                                        {resume.scores?.analysis?.education_analysis}
+                                      </div>
+                                    </div>
+
+                                    {/* Role Match Score */}
+                                    {resume.scores?.role_match_score && (
+                                      <div className="space-y-1">
+                                        <div className="flex justify-between text-sm">
+                                          <span>Role Fit</span>
+                                          <span className="font-medium">{resume.scores.role_match_score.toFixed(1)}/10</span>
+                                        </div>
+                                        <Progress value={resume.scores.role_match_score * 10} className="h-2" />
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Detailed Analysis */}
+                                <div className="space-y-4">
+                                  {/* Overall Feedback */}
+                                  {resume.scores?.analysis?.overall_feedback && (
+                                    <div>
+                                      <div className="text-sm font-medium mb-1">Overall Analysis</div>
+                                      <p className="text-sm text-muted-foreground">
+                                        {resume.scores.analysis.overall_feedback}
+                                      </p>
+                                    </div>
+                                  )}
+
+                                  {/* Skill Analysis */}
+                                  <div className="grid grid-cols-2 gap-4">
+                                    {/* Matched Skills */}
+                                    <div>
+                                      <div className="text-sm font-medium text-green-600 mb-1">Matched Skills</div>
+                                      <div className="flex flex-wrap gap-1">
+                                        {resume.scores?.analysis?.matched_skills?.map((skill, index) => (
+                                          <Badge key={index} variant="secondary" className="text-xs">
+                                            {skill}
+                                          </Badge>
+                                        ))}
+                                      </div>
+                                    </div>
+
+                                    {/* Missing Skills */}
+                                    <div>
+                                      <div className="text-sm font-medium text-amber-600 mb-1">Missing Skills</div>
+                                      <div className="flex flex-wrap gap-1">
+                                        {resume.scores?.analysis?.missing_skills?.map((skill, index) => (
+                                          <Badge key={index} variant="outline" className="text-xs">
+                                            {skill}
+                                          </Badge>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Strengths and Improvements */}
+                                  <div className="grid grid-cols-2 gap-4">
+                                    {/* Strengths */}
+                                    <div>
+                                      <div className="text-sm font-medium text-green-600 mb-1">Key Strengths</div>
+                                      <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
+                                        {resume.scores?.analysis?.strengths?.map((strength, index) => (
+                                          <li key={index}>{strength}</li>
+                                        ))}
+                                      </ul>
+                                    </div>
+
+                                    {/* Areas for Improvement */}
+                                    <div>
+                                      <div className="text-sm font-medium text-amber-600 mb-1">Areas for Improvement</div>
+                                      <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
+                                        {resume.scores?.analysis?.improvements?.map((area, index) => (
+                                          <li key={index}>{area}</li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Last Updated */}
+                                {resume.scores?.metadata?.processed_at && (
+                                  <div className="text-xs text-muted-foreground mt-2">
+                                    Last analyzed: {new Date(resume.scores.metadata.processed_at).toLocaleDateString()}
                                   </div>
                                 )}
                               </div>
                             </div>
-
-                            {/* Detailed Analysis */}
-                            <div className="space-y-4">
-                              {/* Overall Feedback */}
-                              {resume.scores?.analysis?.overallFeedback && (
-                                <div>
-                                  <div className="text-sm font-medium mb-1">Overall Analysis</div>
-                                  <p className="text-sm text-muted-foreground">
-                                    {resume.scores.analysis.overallFeedback}
-                                  </p>
-                                </div>
-                              )}
-
-                              {/* Skill Analysis */}
-                              <div className="grid grid-cols-2 gap-4">
-                                {/* Matched Skills */}
-                                <div>
-                                  <div className="text-sm font-medium text-green-600 mb-1">Matched Skills</div>
-                                  <div className="flex flex-wrap gap-1">
-                                    {resume.scores?.analysis?.matchedSkills?.map((skill, index) => (
-                                      <Badge key={index} variant="secondary" className="text-xs">
-                                        {skill}
-                                      </Badge>
-                                    ))}
-                                  </div>
-                                </div>
-
-                                {/* Missing Skills */}
-                                <div>
-                                  <div className="text-sm font-medium text-amber-600 mb-1">Missing Skills</div>
-                                  <div className="flex flex-wrap gap-1">
-                                    {resume.scores?.analysis?.missingSkills?.map((skill, index) => (
-                                      <Badge key={index} variant="outline" className="text-xs">
-                                        {skill}
-                                      </Badge>
-                                    ))}
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* Strengths and Improvements */}
-                              <div className="grid grid-cols-2 gap-4">
-                                {/* Strengths */}
-                                <div>
-                                  <div className="text-sm font-medium text-green-600 mb-1">Key Strengths</div>
-                                  <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
-                                    {resume.scores?.analysis?.strengthAreas?.map((strength, index) => (
-                                      <li key={index}>{strength}</li>
-                                    ))}
-                                  </ul>
-                                </div>
-
-                                {/* Areas for Improvement */}
-                                <div>
-                                  <div className="text-sm font-medium text-amber-600 mb-1">Areas for Improvement</div>
-                                  <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
-                                    {resume.scores?.analysis?.improvementAreas?.map((area, index) => (
-                                      <li key={index}>{area}</li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Last Updated */}
-                            {resume.scores?.lastUpdated && (
-                              <div className="text-xs text-muted-foreground mt-2">
-                                Last analyzed: {new Date(resume.scores.lastUpdated).toLocaleDateString()}
-                              </div>
-                            )}
                           </div>
-                        </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                </div>
-              ))}
+                    </div>
+                  ))}
 
-            {/* Loading indicator */}
-            <div ref={ref} className="py-4 flex justify-center">
-              {loading && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Loading more candidates...
-                </div>
-              )}
-            </div>
+                {hasMore && (
+                  <div className="p-4 flex justify-center">
+                    <Button
+                      onClick={loadMore}
+                      variant="outline"
+                      disabled={isLoadingMore}
+                    >
+                      {isLoadingMore ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Loading more...
+                        </>
+                      ) : (
+                        'Load More'
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

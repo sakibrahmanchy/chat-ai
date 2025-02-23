@@ -1,32 +1,13 @@
 import { CandidateListView } from "@/components/smarthrflow/candidate-list-view";
-import { db } from "@/firebase";
-import { Resume } from "@/app/types/resume";
-import { Job } from "@/app/types/job";
-import { 
-  collection, 
-  doc, 
-  getDoc, 
-  getDocs, 
-  query, 
-  orderBy,
-  Timestamp,
-  limit,
-  where
-} from "firebase/firestore";
+import { createClient } from '@supabase/supabase-js';
 import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 
-// Helper function to serialize Firestore data
-function serializeData(data: any) {
-  const newData = { ...data };
-  Object.keys(newData).forEach(key => {
-    if (newData[key] instanceof Timestamp) {
-      newData[key] = newData[key].toDate().toISOString();
-    } else if (typeof newData[key] === 'object' && newData[key] !== null) {
-      newData[key] = serializeData(newData[key]);
-    }
-  });
-  return newData;
-}
+// Create a server-side Supabase client
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 const CANDIDATES_PER_PAGE = 20;
 
@@ -37,44 +18,69 @@ export default async function JobPage({
 }) {
   const { userId } = await auth();
   
-  if (!userId) return null;
+  if (!userId) {
+    redirect("/sign-in");
+  }
 
   try {
-    // Get job details from the jobs collection
-    const jobRef = doc(db, 'jobs', jobId);
-    const jobSnap = await getDoc(jobRef);
-    
-    if (!jobSnap.exists() || jobSnap.data().userId !== userId) {
-      return null; // Job not found or doesn't belong to user
+    // Get user's company_id
+    const { data: user } = await supabase
+      .from('users')
+      .select('company_id')
+      .eq('id', userId)
+      .single();
+
+    if (!user?.company_id) {
+      redirect("/dashboard");
     }
 
-    const job = {
-      id: jobSnap.id,
-      ...serializeData(jobSnap.data()),
-      // Ensure all required fields exist
-      requiredSkills: jobSnap.data()?.requiredSkills || jobSnap.data()?.skills || [],
-      requirements: jobSnap.data()?.requirements || '',
-      description: jobSnap.data()?.description || '',
-    } as Job;
+    // Get job details
+    const { data: job, error: jobError } = await supabase
+      .from('jobs')
+      .select(`
+        id,
+        title,
+        description,
+        requirements,
+        company_id,
+        created_at,
+        updated_at
+      `)
+      .eq('id', jobId)
+      .eq('company_id', user.company_id)
+      .single();
 
-    // Get initial resumes (first page)
-    const resumesRef = collection(db, 'resumes');
-    const resumesQuery = query(
-      resumesRef,
-      where('jobId', '==', jobId),
-      orderBy('createdAt', 'desc'),
-      limit(CANDIDATES_PER_PAGE)
-    );
-    
-    const resumesSnap = await getDocs(resumesQuery);
-    
-    const resumes = resumesSnap.docs.map(doc => ({
-      id: doc.id,
-      ...serializeData(doc.data()),
-    })) as Resume[];
+      console.log({ job, error: jobError })
 
+    if (jobError || !job) {
+      redirect("/dashboard/jobs");
+    }
 
-    console.log(resumes)
+    // Get resumes for this job
+    const { data: resumes = [], error: resumesError } = await supabase
+      .from('resumes')
+      .select(`
+        id,
+        hash,
+        parsed_content,
+        scores,
+        searchable_skills,
+        experience_months,
+        current_position,
+        overall_score,
+        location,
+        created_at,
+        updated_at
+      `)
+      .eq('job_id', jobId)
+      .order('overall_score', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(CANDIDATES_PER_PAGE);
+    console.log(resumes);
+    if (resumesError) {
+      console.error('Error fetching resumes:', resumesError);
+      return null;
+    }
 
     return (
       <CandidateListView 
@@ -83,7 +89,7 @@ export default async function JobPage({
         jobTitle={job.title}
         userId={userId}
         jobDescription={job.description}
-        requiredSkills={job.requiredSkills}
+        requiredSkills={job.skills || []}
         requirements={job.requirements}
       />
     );

@@ -76,7 +76,6 @@ export function CandidateFilters({
           />
         </div>
 
-        {/* Experience Level */}
         <div className="space-y-3">
           <Label className="font-medium text-sm">Experience Level</Label>
           <RadioGroup 
@@ -130,7 +129,7 @@ export function CandidateFilters({
             <SelectTrigger>
               <SelectValue placeholder="Select location" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-white">
               <SelectItem value="all">All Locations</SelectItem>
               {availableLocations.map(location => (
                 <SelectItem key={location} value={location}>
