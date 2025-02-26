@@ -11,7 +11,8 @@ import {
   Users,
   Menu,
   X,
-  BrainCircuit
+  BrainCircuit,
+  PlusIcon
 } from "lucide-react"
 import {
   Sheet,
@@ -44,7 +45,7 @@ const actionItems = [
   {
     name: 'Post Job',
     href: '/dashboard/jobs/new',
-    icon: Briefcase,
+    icon: PlusIcon,
     variant: 'default' as const
   },
   // {

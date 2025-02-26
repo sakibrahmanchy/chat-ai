@@ -1,67 +1,177 @@
-import { Briefcase, Users, FileText, TrendingUp, Clock } from "lucide-react";
+import { Briefcase, Users, FileText, TrendingUp, Clock, 
+  Upload, UserPlus, Star, MessageSquare, CheckCircle2,
+  Calendar, Mail, Phone, FileCheck
+} from "lucide-react";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { adminDb } from "@/firebase-admin";
-import { DashboardMetrics } from "./dashboard-metrics";
+import { createClient } from '@supabase/supabase-js';
+import { formatDistanceToNow } from 'date-fns';
+
+// Create Supabase client
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
+interface DashboardStats {
+  metrics: {
+    activeJobs: number;
+    totalCandidates: number;
+    averageMatchRate: number;
+    totalViews: number;
+    interviewsScheduled: number;
+    hiringRate: number;
+  };
+  recentJobs: {
+    id: string;
+    title: string;
+    candidateCount: number;
+    createdAt: string;
+  }[];
+  recentActivities: {
+    id: string;
+    type: string;
+    description: string;
+    createdAt: string;
+    metadata: {
+      jobTitle?: string;
+      candidateName?: string;
+      [key: string]: any;
+    };
+  }[];
+  topJobs: {
+    id: string;
+    title: string;
+    matchRate: number;
+    candidateCount: number;
+  }[];
+}
+
+// Add activity type icons mapping
+const activityIcons: Record<string, React.ComponentType<any>> = {
+  resume_uploaded: Upload,
+  candidate_added: UserPlus,
+  interview_scheduled: Calendar,
+  feedback_added: MessageSquare,
+  status_updated: CheckCircle2,
+  candidate_shortlisted: Star,
+  email_sent: Mail,
+  call_scheduled: Phone,
+  document_reviewed: FileCheck,
+  default: FileText
+};
 
 async function getJobStats(userId: string) {
-  const jobsRef = adminDb.collection("users").doc(userId).collection("jobs");
-  const jobsSnapshot = await jobsRef.get();
-  
-  const jobs = await Promise.all(jobsSnapshot.docs.map(async (doc) => {
-    const resumesSnapshot = await doc.ref.collection("resumes").count().get();
+  try {
+    // Get user's company_id first
+    const { data: user } = await supabase
+      .from('users')
+      .select('company_id')
+      .eq('id', userId)
+      .single();
+
+    if (!user?.company_id) return null;
+
+    // Get active jobs count
+    const { count: activeJobs } = await supabase
+      .from('jobs')
+      .select('*', { count: 'exact', head: true })
+      .eq('company_id', user.company_id)
+      .eq('status', 'active');
+
+    // Get total candidates count
+    const { count: totalCandidates } = await supabase
+      .from('jobs')
+      .select('resumes(*)', { count: 'exact', head: true })
+      .eq('company_id', user.company_id);
+
+    // Get recent jobs with candidate count using join
+    const { data: recentJobs } = await supabase
+      .from('jobs')
+      .select(`
+        id,
+        title,
+        created_at,
+        resumes(count)
+      `)
+      .eq('company_id', user.company_id)
+      .order('created_at', { ascending: false })
+      .limit(5);
+
+    // Get recent activities with proper ordering and limit
+    const { data: recentActivities } = await supabase
+      .from('activities')
+      .select(`
+        id,
+        type,
+        description,
+        created_at,
+        metadata
+      `)
+      .eq('company_id', user.company_id)
+      .order('created_at', { ascending: false })
+      .limit(5);
+
+    // Get top performing jobs with proper joins and scoring
+    const { data: topJobs } = await supabase
+      .from('jobs')
+      .select(`
+        id,
+        title,
+        status,
+        resumes (
+          id,
+          overall_score
+        )
+      `)
+      .eq('company_id', user.company_id)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(5);
+
     return {
-      id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate(),
-      candidateCount: resumesSnapshot.data().count
+      metrics: {
+        activeJobs: activeJobs || 0,
+        totalCandidates: totalCandidates || 0,
+        averageMatchRate: 0,
+        totalViews: 0,
+        interviewsScheduled: 0,
+        hiringRate: 0
+      },
+      recentJobs: recentJobs?.map(job => ({
+        id: job.id,
+        title: job.title,
+        candidateCount: job.resumes?.length || 0,
+        createdAt: job.created_at
+      })) || [],
+      recentActivities: recentActivities?.map(activity => ({
+        id: activity.id,
+        type: activity.type,
+        description: activity.description,
+        createdAt: activity.created_at,
+        metadata: activity.metadata || {}
+      })) || [],
+      topJobs: topJobs?.map(job => ({
+        id: job.id,
+        title: job.title,
+        matchRate: Math.round(
+          (job.resumes?.reduce((acc, r) => acc + (r.overall_score || 0), 0) || 0) / 
+          (job.resumes?.length || 1)
+        ),
+        candidateCount: job.resumes?.length || 0
+      })).filter(job => job.candidateCount > 0) || []
     };
-  }));
-
-  const activeJobs = jobs.length;
-  const totalCandidates = jobs.reduce((acc, job) => acc + job.candidateCount, 0);
-  
-  // Sort jobs by candidate count for top performing
-  const topJobs = [...jobs].sort((a, b) => b.candidateCount - a.candidateCount).slice(0, 3);
-  
-  // Get recent jobs
-  const recentJobs = [...jobs]
-    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-    .slice(0, 3);
-
-  // Get recent activities
-  const activitiesSnapshot = await adminDb
-    .collection("users")
-    .doc(userId)
-    .collection("activities")
-    .orderBy("createdAt", "desc")
-    .limit(4)
-    .get();
-
-  const activities = activitiesSnapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data(),
-    createdAt: doc.data().createdAt?.toDate()
-  }));
-
-  return {
-    metrics: {
-      activeJobs,
-      totalCandidates,
-      interviewsScheduled: 0, // You'll need to implement interview tracking
-      hiringRate: 0 // You'll need to implement hire tracking
-    },
-    recentJobs,
-    activities,
-    topJobs
-  };
+  } catch (error) {
+    console.error('Error fetching dashboard stats:', error);
+    return null;
+  }
 }
 
 export default async function Dashboard() {
-  const {  userId } = await auth();
+  const { userId } = await auth();
   
   if (!userId) {
     redirect("/sign-in");
@@ -69,6 +179,10 @@ export default async function Dashboard() {
 
   const stats = await getJobStats(userId);
   
+  if (!stats) {
+    redirect("/onboarding");
+  }
+
   return (
     <div className="mx-auto space-y-8">
       {/* Quick Actions */}
@@ -84,10 +198,10 @@ export default async function Dashboard() {
               Post New Job
             </Button>
           </Link>
-          <Link href="/dashboard/upload">
+          <Link href="/dashboard/jobs">
             <Button variant="outline">
               <FileText className="mr-2 h-4 w-4" />
-              Upload Resume
+              View Jobs
             </Button>
           </Link>
         </div>
@@ -168,44 +282,90 @@ export default async function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Recent Activity */}
-        <Card className="col-span-full lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
+        {/* Recent Activity Card */}
+        <Card className="col-span-full lg:col-span-2 h-[400px] flex flex-col">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>Recent Activity</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">Latest updates from your recruitment process</p>
+            </div>
+            <Button variant="outline" size="sm" className="shrink-0">
+              View All
+            </Button>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {stats.activities.map((activity) => (
-                <div key={activity.id} className="flex items-center gap-4 p-2">
-                  <div className="h-2 w-2 rounded-full bg-primary" />
-                  <div className="flex-1">
-                    <p className="text-sm">{activity.description}</p>
-                    <p className="text-xs text-muted-foreground">{formatDate(activity.createdAt)}</p>
-                  </div>
+          <CardContent className="flex-1 overflow-auto">
+            <div className="space-y-2">
+              {stats.recentActivities.length > 0 ? (
+                stats.recentActivities.map((activity) => {
+                  const IconComponent = activityIcons[activity.type] || activityIcons.default;
+                  return (
+                    <div 
+                      key={activity.id} 
+                      className="flex items-start gap-3 p-3 hover:bg-slate-50 rounded-lg transition-colors border border-transparent hover:border-slate-200"
+                    >
+                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                        <IconComponent className="h-4 w-4 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-slate-600 line-clamp-2">{activity.description}</p>
+                        <div className="flex items-center gap-3 mt-1">
+                          {activity.metadata?.jobTitle && (
+                            <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">
+                              {activity.metadata.jobTitle}
+                            </span>
+                          )}
+                          <p className="text-xs text-muted-foreground">
+                            {formatDistanceToNow(new Date(activity.createdAt), { addSuffix: true })}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="flex flex-col items-center justify-center h-[300px] text-muted-foreground">
+                  <FileText className="h-8 w-8 mb-2 text-slate-300" />
+                  <p>No recent activity</p>
+                  <p className="text-xs text-slate-400 mt-1">Activities will appear here as you use the system</p>
                 </div>
-              ))}
+              )}
             </div>
           </CardContent>
         </Card>
 
-        {/* Top Performing Jobs */}
-        <Card className="col-span-full lg:col-span-1">
+        {/* Top Performing Jobs Card */}
+        <Card className="col-span-full lg:col-span-1 h-[400px] flex flex-col">
           <CardHeader>
             <CardTitle>Top Performing Jobs</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {stats.topJobs.map((job) => (
-                <div key={job.id} className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium">{job.title}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {job.matchRate ? `${job.matchRate}% match rate` : 'No matches yet'}
-                    </p>
-                  </div>
-                  <div className="text-sm text-primary">{job.candidateCount} candidates</div>
+          <CardContent className="flex-1 overflow-auto">
+            <div className="space-y-2">
+              {stats.topJobs.length > 0 ? (
+                stats.topJobs.map((job) => (
+                  <Link 
+                    key={job.id} 
+                    href={`/dashboard/jobs/${job.id}`}
+                    className="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg transition-colors"
+                  >
+                    <div>
+                      <p className="text-sm font-medium text-slate-900">{job.title}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Match rate: {job.matchRate}%
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-slate-600">
+                        {job.candidateCount} {job.candidateCount === 1 ? 'candidate' : 'candidates'}
+                      </span>
+                      <TrendingUp className="h-4 w-4 text-emerald-500" />
+                    </div>
+                  </Link>
+                ))
+              ) : (
+                <div className="text-center py-6 text-muted-foreground">
+                  <p>No active jobs with candidates</p>
                 </div>
-              ))}
+              )}
             </div>
           </CardContent>
         </Card>
@@ -214,9 +374,10 @@ export default async function Dashboard() {
   );
 }
 
-function formatDate(date: Date): string {
+function formatDate(date: string) {
   const now = new Date();
-  const diff = now.getTime() - date.getTime();
+  const d = new Date(date);
+  const diff = now.getTime() - d.getTime();
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
   
   if (days === 0) {
@@ -231,5 +392,5 @@ function formatDate(date: Date): string {
   if (days === 1) return 'yesterday';
   if (days < 7) return `${days} days ago`;
   
-  return date.toLocaleDateString();
+  return d.toLocaleDateString();
 }

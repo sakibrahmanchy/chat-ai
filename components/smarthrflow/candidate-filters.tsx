@@ -64,7 +64,7 @@ export function CandidateFilters({
           <div className="flex items-center justify-between">
             <Label className="font-medium text-sm">Match Score</Label>
             <span className="text-sm text-muted-foreground">
-              {filters.scoreRange[0]}-{filters.scoreRange[1]}%
+              {filters.scoreRange[0]} - {filters.scoreRange[1]}
             </span>
           </div>
           <Slider 

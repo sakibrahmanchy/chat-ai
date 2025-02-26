@@ -9,6 +9,20 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
+interface SkillAnalysis {
+  skill: string;
+  score: number;
+  matchRate: number;
+  candidateCount: number;
+}
+
+interface Distribution {
+  label: string;
+  value: number;
+  color: string;
+  count: number;
+}
+
 export default async function JobPage({
   params: { id: jobId },
 }: {
@@ -30,75 +44,110 @@ export default async function JobPage({
       notFound();
     }
     console.log(jobId)
-    // Get top candidates sorted by match score
-    const { data: topCandidates = [], error: candidatesError } = await supabase
+    // Get top candidates with their scores
+    const { data: topCandidates } = await supabase
       .from('resumes')
       .select(`
         id,
-        hash,
         parsed_content,
+        scores,
         searchable_skills,
         experience_months,
         current_position,
+        overall_score,
         location
       `)
       .eq('job_id', jobId)
-      // .order('scores->overall_score', { ascending: false })
+      .order('overall_score', { ascending: false })
       .limit(3);
 
-      console.log(topCandidates)
+    // Get candidates for skills analysis
+    const { data: candidatesWithScores } = await supabase
+      .from('resumes')
+      .select('scores')
+      .eq('job_id', jobId)
+      .not('scores', 'is', null);
 
-    if (candidatesError) {
-      console.error('Error fetching candidates:', candidatesError);
-    }
+    // Get skills analysis from job requirements and calculate match rates
+    const skillsAnalysis: SkillAnalysis[] = job.required_skills?.map((skill: string) => {
+      // Count how many candidates have this skill
+      const matchedCandidates = candidatesWithScores?.filter(candidate => 
+        candidate.scores?.analysis?.matched_skills?.includes(skill.toLowerCase())
+      ) || [];
+
+      // Calculate match percentage
+      const matchRate = candidatesWithScores?.length 
+        ? (matchedCandidates.length / candidatesWithScores.length) * 100
+        : 0;
+
+      // Calculate average score for this skill across candidates
+      const averageScore = matchedCandidates.reduce((acc, candidate) => {
+        const skillScore = candidate.scores?.skills_scores?.[skill.toLowerCase()] || 0;
+        return acc + skillScore;
+      }, 0) / (matchedCandidates.length || 1);
+
+      return {
+        skill,
+        score: Math.round(averageScore * 10),
+        matchRate: Math.round(matchRate),
+        candidateCount: matchedCandidates.length
+      };
+    }) || [];
+
+    // Sort skills by score
+    skillsAnalysis.sort((a, b) => b.score - a.score);
 
     // Get total number of candidates
     const { count: totalCandidates } = await supabase
       .from('resumes')
       .select('*', { count: 'exact', head: true })
-      .eq('job_id', jobId)
-      .eq('status', 'processed');
+      .eq('job_id', jobId);
 
+    // Get candidates for distribution analysis
+    const { data: candidatesForDistribution } = await supabase
+      .from('resumes')
+      .select('overall_score')
+      .eq('job_id', jobId)
+      .not('overall_score', 'is', null);
+
+    // Calculate candidate distribution
+    const distribution: Distribution[] = calculateCandidateDistribution(candidatesForDistribution || []);
+
+    const timeToHire = job.application_deadline ? 
+      (() => {
+        const daysLeft = Math.ceil((new Date(job.application_deadline).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+        if (daysLeft < 0) return 'Deadline passed';
+        if (daysLeft === 0) return 'Due today';
+        if (daysLeft < 30) return `${daysLeft} days left`;
+        const months = Math.floor(daysLeft / 30);
+        const remainingDays = daysLeft % 30;
+        return `${months} month${months > 1 ? 's' : ''}${remainingDays ? ` and ${remainingDays} days` : ''} left`;
+      })()
+      : '30 days (estimated)';
     const metrics = {
       totalCandidates: totalCandidates || 0,
-      timeToHire: 12,
+      timeToHire: timeToHire,
       matchRate: Math.round(
-        topCandidates.reduce((acc, curr) => acc + (curr.scores?.overall_score || 0), 0) / 
-        (topCandidates.length || 1)
+        topCandidates?.reduce((acc, curr) => acc + (curr?.overall_score || 0), 0) / 
+        (topCandidates?.length || 1)
       ),
     };
 
-    // Get skills analysis from job requirements
-    const skillsAnalysis = job.required_skills?.map(skill => ({
-      skill,
-      score: Math.round(
-        topCandidates.reduce((acc, curr) => {
-          const hasSkill = curr.scores?.analysis?.matched_skills?.includes(skill) || false;
-          return acc + (hasSkill ? 100 : 0);
-        }, 0) / (topCandidates.length || 1)
-      )
-    })) || [];
-
-    // Prepare data for the preview component
     const previewData = {
-      job: {
-        // ...job,
-        status: job.status || 'active'
-      },
+      job,
       metrics,
-      candidates: topCandidates.map(candidate => ({
+      candidates: topCandidates?.map(candidate => ({
         id: candidate.id,
         name: candidate.parsed_content?.full_name || '',
         role: candidate.current_position || '',
-        email: candidate.parsed_content?.email || '',
-        phone: candidate.parsed_content?.phone || '',
-        location: candidate.location ? 
-          `${candidate.location.city}, ${candidate.location.state}, ${candidate.location.country}` : '',
-        experience: `${Math.floor((candidate.experience_months || 0) / 12)} years`,
+        email: candidate.parsed_content?.personal_emails?.length ? candidate.parsed_content?.personal_emails[0] : '',
+        phone: candidate.parsed_content?.personal_numbers?.length ? candidate.parsed_content?.personal_numbers[0] : ''  ,
+        location: formatLocation(candidate.location),
+        experience: formatExperience(candidate.experience_months),
         company: candidate.parsed_content?.experiences?.[0]?.company || '',
         education: candidate.parsed_content?.education?.[0]?.degree_name || '',
-        availability: '1 month notice',
-        score: candidate.scores?.overall_score || 0,
+        availability: 'Immediate',
+        score: candidate.overall_score || 0,
         skills: candidate.searchable_skills || [],
         scores: {
           skillsScore: candidate.scores?.skills_score || 0,
@@ -108,17 +157,67 @@ export default async function JobPage({
             strengths: candidate.scores?.analysis?.strengths || []
           }
         }
-      })),
-      skillsAnalysis
+      })) || [],
+      skillsAnalysis,
+      distribution,
+      isLoading: false,
     };
 
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen">
         <JobDetailsPreview {...previewData} />
       </div>
     );
   } catch (error) {
-    console.error('Error fetching job details:', error);
+    console.error('Error:', error);
     return null;
   }
+}
+
+function formatLocation(location: any) {
+  if (!location) return '';
+  const parts = [];
+  if (location.city) parts.push(location.city);
+  if (location.state) parts.push(location.state);
+  if (location.country) parts.push(location.country);
+  return parts.join(', ');
+}
+
+function formatExperience(months: number) {
+  if (!months) return '0 years';
+  const years = Math.floor(months / 12);
+  const remainingMonths = months % 12;
+  if (years === 0) return `${remainingMonths} months`;
+  if (remainingMonths === 0) return `${years} years`;
+  return `${years} years ${remainingMonths} months`;
+}
+
+function calculateCandidateDistribution(candidates: { overall_score: number }[]): Distribution[] {
+  if (!candidates.length) return [];
+
+  const highlyQualified = candidates.filter(c => c.overall_score >= 8).length;
+  const qualified = candidates.filter(c => c.overall_score >= 6 && c.overall_score < 8).length;
+  const potential = candidates.filter(c => c.overall_score < 6).length;
+  const total = candidates.length;
+
+  return [
+    {
+      label: "Highly Qualified",
+      value: Math.round((highlyQualified / total) * 100),
+      color: "bg-emerald-500",
+      count: highlyQualified
+    },
+    {
+      label: "Qualified",
+      value: Math.round((qualified / total) * 100),
+      color: "bg-blue-500",
+      count: qualified
+    },
+    {
+      label: "Potential",
+      value: Math.round((potential / total) * 100),
+      color: "bg-amber-500",
+      count: potential
+    }
+  ];
 } 

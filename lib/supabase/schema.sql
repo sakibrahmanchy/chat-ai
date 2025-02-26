@@ -51,6 +51,25 @@ create table public.addresses (
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
+-- Credit Actions table to track what actions cost credits
+CREATE TABLE credit_actions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  action_type VARCHAR NOT NULL,
+  credits_required INT4 NOT NULL,
+  is_active BOOLEAN DEFAULT true,
+  description TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Add some default credit actions
+INSERT INTO credit_actions (action_type, credits_required, description) VALUES
+  ('post_job', 1, 'Post a new job listing'),
+  ('view_resume', 1, 'View a candidate resume'),
+  ('contact_candidate', 2, 'Contact a candidate'),
+  ('ai_match', 3, 'Use AI matching for candidates'),
+  ('export_resume', 2, 'Export candidate resume');
+
 -- Enable RLS (Row Level Security)
 alter table public.users enable row level security;
 alter table public.user_preferences enable row level security;
@@ -98,4 +117,18 @@ create trigger users_handle_updated_at
 
 create trigger user_preferences_handle_updated_at
   before update on public.user_preferences
-  for each row execute procedure public.handle_updated_at(); 
+  for each row execute procedure public.handle_updated_at();
+
+-- Add package_actions junction table
+CREATE TABLE credit_package_actions (
+  package_id UUID REFERENCES credit_packages(id) ON DELETE CASCADE,
+  action_id UUID REFERENCES credit_actions(id) ON DELETE CASCADE,
+  PRIMARY KEY (package_id, action_id)
+);
+
+-- Add RLS policies
+ALTER TABLE credit_package_actions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Public read access"
+  ON credit_package_actions FOR SELECT
+  USING (true); 

@@ -38,6 +38,9 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
 import { resumeSearch } from '@/lib/services/resume-search.service';
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { useRouter } from "next/navigation";
+import { AddToListDialog } from "./add-to-list-dialog";
+import { useCompany } from "@/hooks/use-company";
 
 const CANDIDATES_PER_PAGE = 20;
 
@@ -95,24 +98,25 @@ interface ParsedContent {
 }
 
 interface ResumeScores {
-  overall_score: number;
-  skills_score: number;
-  experience_score: number;
-  education_score: number;
-  role_match_score?: number;
+  overallScore: number;
+  skillsScore: number;
+  experienceScore: number;
+  educationScore: number;
+  roleMatchScore?: number;
   analysis: {
-    matched_skills: string[];
-    missing_skills: string[];
-    strengths: string[];
-    improvements: string[];
-    experience_analysis: string;
-    education_analysis: string;
-    overall_feedback: string;
+    matchedSkills: string[];
+    missingSkills: string[];
+    strengthAreas: string[];
+    improvementAreas: string[];
+    experienceAnalysis: string;
+    educationAnalysis: string;
+    overallFeedback: string;
   };
   metadata: {
     processing_time: number;
     confidence_score: number;
     processed_at: string;
+    file_url: string;
   };
 }
 
@@ -131,6 +135,12 @@ interface Resume {
   };
   created_at: string;
   updated_at: string;
+  metadata: {
+    processing_time: number;
+    confidence_score: number;
+    processed_at: string;
+    file_url: string;
+  };
 }
 
 // Update the helper functions to use the new types
@@ -141,7 +151,7 @@ const getEducation = (resume: Resume) => {
 };
 
 const getMatchScore = (resume: Resume) => {
-  return resume.scores?.overall_score || 0;
+  return resume?.overall_score || 0;
 };
 
 // Update the search function to use the new data structure
@@ -206,7 +216,10 @@ export function CandidateListView({
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [loadingScores, setLoadingScores] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
+  const router = useRouter();
+  const { companyId } = useCompany();
 
   // Filter states
   const [searchTerm, setSearchTerm] = useState('');
@@ -228,6 +241,7 @@ export function CandidateListView({
     loadLocations();
   }, [userId, jobId]);
 
+  
   const [filters, setFilters] = useState({
     showFilters: showFiltersDefault,
     skills: initialFilters?.skills || [],
@@ -242,6 +256,71 @@ export function CandidateListView({
   const { ref, inView } = useInView({
     threshold: 0,
   });
+
+
+  const loadInitialData = async () => {
+    setLoading(true);
+    try {
+      setIsLoading(true);
+      const searchFilters = {
+        ...filters,
+        searchTerm: searchTerm,
+        skills: filters.skills.length > 0 ? filters.skills : undefined,
+        status: filters.status.length > 0 ? filters.status : undefined,
+        location: filters.location === "all" ? undefined : filters.location,
+        experienceMonths: filters.experienceMonths[0] === 0 && filters.experienceMonths[1] === 999
+          ? undefined
+          : filters.experienceMonths,
+        scoreRange: filters.scoreRange[0] === 0 && filters.scoreRange[1] === 10 ? undefined : filters.scoreRange
+      };
+
+      const result = await resumeSearch.searchResumes(
+        jobId,
+        searchFilters
+      );
+      console.log('result', result);
+      setResumes(result.resumes);
+      setLastVisible(result.lastDoc);
+      setHasMore(result.hasMore);
+    } catch (error) {
+      console.error('Error loading resumes:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load resumes",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+      setIsLoading(false);
+    }
+  };
+
+  // Modified score calculation function
+  const handleCalculateScore = async (resume: Resume) => {
+    try {
+      setLoadingScores(prev => ({ ...prev, [resume.id]: true }));
+
+      // Only pass IDs to scoring function
+      await scoreResume(resume.id, jobId);
+
+      loadInitialData();
+      
+      toast({
+        title: "Success",
+        description: "Match score updated successfully",
+      });
+    } catch (error) {
+      console.error('Error calculating score:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update match score",
+        variant: "destructive"
+      });
+    } finally {
+      setLoadingScores(prev => ({ ...prev, [resume.id]: false }));
+    }
+  };
+
 
   // Update loadMore function
   const loadMore = async () => {
@@ -286,42 +365,6 @@ export function CandidateListView({
 
   // Update initial data loading
   useEffect(() => {
-    const loadInitialData = async () => {
-      setLoading(true);
-      try {
-        setIsLoading(true);
-        const searchFilters = {
-          ...filters,
-          searchTerm: searchTerm,
-          skills: filters.skills.length > 0 ? filters.skills : undefined,
-          status: filters.status.length > 0 ? filters.status : undefined,
-          location: filters.location === "all" ? undefined : filters.location,
-          experienceMonths: filters.experienceMonths[0] === 0 && filters.experienceMonths[1] === 999
-            ? undefined
-            : filters.experienceMonths,
-          scoreRange: filters.scoreRange[0] === 0 && filters.scoreRange[1] === 10 ? undefined : filters.scoreRange
-        };
-
-        const result = await resumeSearch.searchResumes(
-          jobId,
-          searchFilters
-        );
-
-        setResumes(result.resumes);
-        setLastVisible(result.lastDoc);
-        setHasMore(result.hasMore);
-      } catch (error) {
-        console.error('Error loading resumes:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load resumes",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-        setIsLoading(false);
-      }
-    };
     console.log({ filters, searchTerm })
     loadInitialData();
   }, [filters, searchTerm]); // Update dependencies
@@ -358,67 +401,20 @@ export function CandidateListView({
   const [showCheckMatch, setShowCheckMatch] = useState(false);
 
   const handleDownload = (downloadUrl: string) => {
+    console.log(downloadUrl)
     window.open(downloadUrl, '_blank');
   };
 
-  const handleCheckMatch = async (resume: Resume) => {
-    try {
-      setIsCalculating(resume.id);
-
-      const job: Job = {
-        id: jobId,
-        title: jobTitle,
-        description: jobDescription,
-        requiredSkills: Array.isArray(requiredSkills) ? requiredSkills : [],
-        requirements: requirements || '',
-        status: 'active', // Add any required fields from Job type
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        userId: userId,
-        company: '',
-        location: '',
-        type: 'full-time',
-        salary: '',
-        category: '',
-        experiences: '',
-        education: '',
-        skills: Array.isArray(requiredSkills) ? requiredSkills : [],
-      };
-
-      // Pass the properly structured job object
-      const newScores = await scoreResume(resume, job);
-
-      // Update the resume with new scores in Firestore
-      const resumeRef = doc(db, 'users', userId, 'jobs', jobId, 'resumes', resume.id);
-      await updateDoc(resumeRef, {
-        scores: newScores,
-        updatedAt: new Date()
-      });
-
-      // Update local state
-      setResumes(prev => prev.map(r =>
-        r.id === resume.id
-          ? { ...r, scores: newScores, updatedAt: new Date().toISOString() }
-          : r
-      ));
-
-      toast({
-        title: "Match Score Updated",
-        description: "The candidate's match score has been recalculated.",
-      });
-    } catch (error) {
-      console.error('Error calculating match score:', error);
-      toast({
-        title: "Error",
-        description: "Failed to calculate match score. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsCalculating(null);
+  const formatDate = (date: { month: number; year: number } | string | undefined) => {
+    if (!date) return 'Present';
+    
+    if (typeof date === 'string') {
+      return new Intl.DateTimeFormat('en-US', {
+        year: 'numeric',
+        month: 'short'
+      }).format(new Date(date));
     }
-  };
 
-  const formatDate = (date: { month: number; year: number }) => {
     return new Intl.DateTimeFormat('en-US', {
       year: 'numeric',
       month: 'short'
@@ -646,29 +642,37 @@ export function CandidateListView({
                                   className="h-7 w-7"
                                   onClick={(e) => {
                                     e.stopPropagation(); // Prevent row expansion
-                                    handleCheckMatch(resume);
+                                    handleCalculateScore(resume);
                                   }}
-                                  disabled={isCalculating === resume.id}
+                                  disabled={loadingScores[resume.id]}
                                 >
-                                  {isCalculating === resume.id ? (
-                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                  {loadingScores[resume.id] ? (
+                                    <>
+                                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    </>
                                   ) : (
                                     <Sparkles className="h-3 w-3" />
                                   )}
                                 </Button>
-                                <Link href={`/dashboard/candidates/${resume.id}`}>
-                                  <Button variant="ghost" size="icon" className="h-7 w-7">
-                                    <Eye className="h-3 w-3" />
-                                  </Button>
-                                </Link>
                                 <Button
                                   variant="ghost"
                                   size="icon"
                                   className="h-7 w-7"
-                                  onClick={() => handleDownload(resume.scores.metadata.processed_at)}
+                                  onClick={() => handleDownload(resume.metadata.file_url)}
                                 >
                                   <Download className="h-3 w-3" />
                                 </Button>
+                                <AddToListDialog
+                                  resumeId={resume.id}
+                                  userId={userId}
+                                  companyId={companyId}
+                                  onSuccess={() => {
+                                    toast({
+                                      title: "Success",
+                                      description: "Candidate added to list successfully"
+                                    });
+                                  }}
+                                />
                               </div>
                             </div>
                           </div>
@@ -689,7 +693,7 @@ export function CandidateListView({
                                       <div className="text-sm text-muted-foreground">{resume.parsed_content.experiences[0].company}</div>
                                       <div className="text-xs text-muted-foreground">
                                         {formatDate(resume.parsed_content.experiences[0].starts_at)} -
-                                        {resume.parsed_content.experiences[0].ends_at ? formatDate(resume.parsed_content.experiences[0].ends_at) : 'Present'}
+                                        {formatDate(resume.parsed_content.experiences[0].ends_at) || 'Present'}
                                       </div>
                                     </div>
                                   </div>
@@ -768,11 +772,11 @@ export function CandidateListView({
                                     <div className="space-y-1">
                                       <div className="flex justify-between text-sm">
                                         <span>Skills Match</span>
-                                        <span className="font-medium">{resume.scores?.skills_score?.toFixed(1)}/10</span>
+                                        <span className="font-medium">{(resume.scores?.skillsScore || 0).toFixed(1)}/10</span>
                                       </div>
-                                      <Progress value={resume.scores?.skills_score * 10} className="h-2" />
+                                      <Progress value={resume.scores?.skillsScore * 10} className="h-2" />
                                       <div className="text-xs text-muted-foreground mt-1">
-                                        {resume.scores?.analysis?.matched_skills?.join(', ')}
+                                        {resume.scores?.analysis?.matchedSkills?.join(', ')}
                                       </div>
                                     </div>
 
@@ -780,11 +784,11 @@ export function CandidateListView({
                                     <div className="space-y-1">
                                       <div className="flex justify-between text-sm">
                                         <span>Experience Match</span>
-                                        <span className="font-medium">{resume.scores?.experience_score?.toFixed(1)}/10</span>
+                                        <span className="font-medium">{(resume.scores?.experienceScore || 0)?.toFixed(1)}/10</span>
                                       </div>
-                                      <Progress value={resume.scores?.experience_score * 10} className="h-2" />
+                                      <Progress value={resume.scores?.experienceScore * 10} className="h-2" />
                                       <div className="text-xs text-muted-foreground mt-1">
-                                        {resume.scores?.analysis?.experience_analysis}
+                                        {resume.scores?.analysis?.experienceAnalysis}
                                       </div>
                                     </div>
 
@@ -792,35 +796,35 @@ export function CandidateListView({
                                     <div className="space-y-1">
                                       <div className="flex justify-between text-sm">
                                         <span>Education Match</span>
-                                        <span className="font-medium">{resume.scores?.education_score?.toFixed(1)}/10</span>
+                                        <span className="font-medium">{(resume.scores?.educationScore || 0)?.toFixed(1)}/10</span>
                                       </div>
-                                      <Progress value={resume.scores?.education_score * 10} className="h-2" />
+                                      <Progress value={resume.scores?.educationScore * 10} className="h-2" />
                                       <div className="text-xs text-muted-foreground mt-1">
-                                        {resume.scores?.analysis?.education_analysis}
+                                        {resume.scores?.analysis?.educationAnalysis}
                                       </div>
                                     </div>
 
                                     {/* Role Match Score */}
-                                    {resume.scores?.role_match_score && (
+                                    {/* {resume.scores?.roleMatchScore && ( */}
                                       <div className="space-y-1">
                                         <div className="flex justify-between text-sm">
                                           <span>Role Fit</span>
-                                          <span className="font-medium">{resume.scores.role_match_score.toFixed(1)}/10</span>
+                                          <span className="font-medium">{(resume?.scores?.roleMatchScore || 0)?.toFixed(1)}/10</span>
                                         </div>
-                                        <Progress value={resume.scores.role_match_score * 10} className="h-2" />
+                                        <Progress value={resume?.scores?.roleMatchScore  || 0 * 10} className="h-2" />
                                       </div>
-                                    )}
+                                    {/* )} */}
                                   </div>
                                 </div>
 
                                 {/* Detailed Analysis */}
                                 <div className="space-y-4">
                                   {/* Overall Feedback */}
-                                  {resume.scores?.analysis?.overall_feedback && (
+                                  {resume.scores?.analysis?.overallFeedback && (
                                     <div>
                                       <div className="text-sm font-medium mb-1">Overall Analysis</div>
                                       <p className="text-sm text-muted-foreground">
-                                        {resume.scores.analysis.overall_feedback}
+                                        {resume.scores.analysis.overallFeedback}
                                       </p>
                                     </div>
                                   )}
@@ -828,22 +832,26 @@ export function CandidateListView({
                                   {/* Skill Analysis */}
                                   <div className="grid grid-cols-2 gap-4">
                                     {/* Matched Skills */}
-                                    <div>
-                                      <div className="text-sm font-medium text-green-600 mb-1">Matched Skills</div>
-                                      <div className="flex flex-wrap gap-1">
-                                        {resume.scores?.analysis?.matched_skills?.map((skill, index) => (
-                                          <Badge key={index} variant="secondary" className="text-xs">
-                                            {skill}
-                                          </Badge>
-                                        ))}
-                                      </div>
+
+                                      <div>
+                                        <div className="text-sm font-medium text-green-600 mb-1">Matched Skills</div>
+                                        <div className="flex flex-wrap gap-1">
+
+                                          {resume.scores?.analysis?.matchedSkills?.length === 0 && <span className="text-xs text-muted-foreground space-y-1 list-disc list-inside">No skills matched.</span>}
+                                          {resume.scores?.analysis?.matchedSkills?.map((skill, index) => (
+                                            <Badge key={index} variant="secondary" className="text-xs">
+                                              {skill}
+                                            </Badge>
+                                          ))}
+                                        </div>
                                     </div>
+      
 
                                     {/* Missing Skills */}
                                     <div>
                                       <div className="text-sm font-medium text-amber-600 mb-1">Missing Skills</div>
                                       <div className="flex flex-wrap gap-1">
-                                        {resume.scores?.analysis?.missing_skills?.map((skill, index) => (
+                                        {resume.scores?.analysis?.missingSkills?.map((skill, index) => (
                                           <Badge key={index} variant="outline" className="text-xs">
                                             {skill}
                                           </Badge>
@@ -852,13 +860,13 @@ export function CandidateListView({
                                     </div>
                                   </div>
 
-                                  {/* Strengths and Improvements */}
+                                  {/* strengthAreas and improvementAreas */}
                                   <div className="grid grid-cols-2 gap-4">
-                                    {/* Strengths */}
+                                    {/* strengthAreas */}
                                     <div>
-                                      <div className="text-sm font-medium text-green-600 mb-1">Key Strengths</div>
+                                      <div className="text-sm font-medium text-green-600 mb-1">Key strengthAreas</div>
                                       <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
-                                        {resume.scores?.analysis?.strengths?.map((strength, index) => (
+                                        {resume.scores?.analysis?.strengthAreas?.map((strength, index) => (
                                           <li key={index}>{strength}</li>
                                         ))}
                                       </ul>
@@ -868,7 +876,7 @@ export function CandidateListView({
                                     <div>
                                       <div className="text-sm font-medium text-amber-600 mb-1">Areas for Improvement</div>
                                       <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
-                                        {resume.scores?.analysis?.improvements?.map((area, index) => (
+                                        {resume.scores?.analysis?.improvementAreas?.map((area, index) => (
                                           <li key={index}>{area}</li>
                                         ))}
                                       </ul>

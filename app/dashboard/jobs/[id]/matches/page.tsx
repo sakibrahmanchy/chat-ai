@@ -50,8 +50,6 @@ export default async function JobPage({
       .eq('company_id', user.company_id)
       .single();
 
-      console.log({ job, error: jobError })
-
     if (jobError || !job) {
       redirect("/dashboard/jobs");
     }
@@ -68,6 +66,7 @@ export default async function JobPage({
         experience_months,
         current_position,
         overall_score,
+        metadata,
         location,
         created_at,
         updated_at
@@ -76,7 +75,7 @@ export default async function JobPage({
       .order('overall_score', { ascending: false })
       .order('created_at', { ascending: false })
       .limit(CANDIDATES_PER_PAGE);
-    console.log(resumes);
+
     if (resumesError) {
       console.error('Error fetching resumes:', resumesError);
       return null;
@@ -88,6 +87,7 @@ export default async function JobPage({
         jobId={jobId} 
         jobTitle={job.title}
         userId={userId}
+        companyId={user.company_id}
         jobDescription={job.description}
         requiredSkills={job.skills || []}
         requirements={job.requirements}

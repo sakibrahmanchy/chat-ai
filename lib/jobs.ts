@@ -1,174 +1,106 @@
-import { db } from "@/firebase";
-import { Job } from "@/app/types/job";
-import { 
-  collection, 
-  doc, 
-  getDoc, 
-  getDocs, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc,
-  query,
-  orderBy,
-  where
-} from "firebase/firestore";
+import { supabase } from '@/lib/supabase/client';
+import { Job } from '@/app/types/job';
 
-const JOBS_COLLECTION = 'jobs';
+export async function getJobs() {
+  const { data: jobs, error } = await supabase
+    .from('jobs')
+    .select(`
+      *,
+      company:company_id (
+        id,
+        name,
+        logo
+      )
+    `)
+    .eq('status', 'active')
+    .order('created_at', { ascending: false });
 
-export async function getJob(jobId: string): Promise<Job | null> {
-  try {
-    const jobRef = doc(db, JOBS_COLLECTION, jobId);
-    const jobSnap = await getDoc(jobRef);
-
-    if (!jobSnap.exists()) {
-      return null;
-    }
-
-    return {
-      id: jobSnap.id,
-      ...jobSnap.data(),
-      createdAt: jobSnap.data().createdAt?.toDate(),
-      updatedAt: jobSnap.data().updatedAt?.toDate(),
-    } as Job;
-  } catch (error) {
-    console.error('Error fetching job:', error);
-    return null;
-  }
+  if (error) throw error;
+  return jobs || [];
 }
 
-export async function getJobs(companyId?: string): Promise<Job[]> {
-  try {
-    const jobsRef = collection(db, JOBS_COLLECTION);
-    let jobsQuery = query(jobsRef, orderBy('createdAt', 'desc'));
+export async function getJob(id: string) {
+  const { data: job, error } = await supabase
+    .from('jobs')
+    .select(`
+      *,
+      company:company_id (
+        id,
+        name,
+        logo
+      )
+    `)
+    .eq('id', id)
+    .single();
 
-    if (companyId) {
-      jobsQuery = query(jobsRef, 
-        where('companyId', '==', companyId),
-        orderBy('createdAt', 'desc')
-      );
+  if (error) throw error;
+  if (!job) throw new Error('Job not found');
+
+  return {
+    ...job,
+    requirements: job.requirements || [],
+    company: {
+      id: job.company?.id || '',
+      name: job.company?.name || 'Unknown Company',
+      logo: job.company?.logo
     }
-
-    const querySnapshot = await getDocs(jobsQuery);
-    
-    return querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate(),
-      updatedAt: doc.data().updatedAt?.toDate(),
-    })) as Job[];
-  } catch (error) {
-    console.error('Error fetching jobs:', error);
-    return [];
-  }
+  };
 }
 
-export async function createJob(data: Omit<Job, 'id' | 'createdAt' | 'updatedAt'>): Promise<Job | null> {
-  try {
-    const jobsRef = collection(db, JOBS_COLLECTION);
-    const docRef = await addDoc(jobsRef, {
-      ...data,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+export async function applyForJob(jobId: string, userId: string, resumeId: string) {
+  const { error } = await supabase
+    .from('job_applications')
+    .insert({
+      job_id: jobId,
+      user_id: userId,
+      resume_id: resumeId,
+      status: 'pending',
+      applied_at: new Date().toISOString()
     });
 
-    const newJob = await getJob(docRef.id);
-    return newJob;
-  } catch (error) {
-    console.error('Error creating job:', error);
-    return null;
-  }
+  if (error) throw error;
 }
 
-export async function updateJob(jobId: string, data: Partial<Job>): Promise<Job | null> {
-  try {
-    const jobRef = doc(db, JOBS_COLLECTION, jobId);
-    
-    await updateDoc(jobRef, {
-      ...data,
-      updatedAt: new Date(),
-    });
+export async function getUserApplications(userId: string) {
+  const { data: applications, error } = await supabase
+    .from('job_applications')
+    .select(`
+      *,
+      job:job_id (
+        *,
+        company:company_id (
+          id,
+          name,
+          logo
+        )
+      ),
+      resume:resume_id (*)
+    `)
+    .eq('user_id', userId)
+    .order('applied_at', { ascending: false });
 
-    const updatedJob = await getJob(jobId);
-    return updatedJob;
-  } catch (error) {
-    console.error('Error updating job:', error);
-    return null;
-  }
+  if (error) throw error;
+  return applications || [];
 }
 
-export async function deleteJob(jobId: string): Promise<boolean> {
-  try {
-    const jobRef = doc(db, JOBS_COLLECTION, jobId);
-    await deleteDoc(jobRef);
-    return true;
-  } catch (error) {
-    console.error('Error deleting job:', error);
-    return false;
-  }
-}
+export async function searchJobs(query: string) {
+  const { data: jobs, error } = await supabase
+    .from('jobs')
+    .select(`
+      *,
+      company:company_id (
+        id,
+        name,
+        logo
+      )
+    `)
+    .eq('status', 'active')
+    .textSearch('title', query, {
+      type: 'websearch',
+      config: 'english'
+    })
+    .order('created_at', { ascending: false });
 
-// Additional utility functions
-
-export async function getActiveJobs(companyId?: string): Promise<Job[]> {
-  try {
-    const jobsRef = collection(db, JOBS_COLLECTION);
-    let jobsQuery = query(
-      jobsRef, 
-      where('status', '==', 'active'),
-      orderBy('createdAt', 'desc')
-    );
-
-    if (companyId) {
-      jobsQuery = query(
-        jobsRef,
-        where('companyId', '==', companyId),
-        where('status', '==', 'active'),
-        orderBy('createdAt', 'desc')
-      );
-    }
-
-    const querySnapshot = await getDocs(jobsQuery);
-    
-    return querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate(),
-      updatedAt: doc.data().updatedAt?.toDate(),
-    })) as Job[];
-  } catch (error) {
-    console.error('Error fetching active jobs:', error);
-    return [];
-  }
-}
-
-export async function getJobsByStatus(status: string, companyId?: string): Promise<Job[]> {
-  try {
-    const jobsRef = collection(db, JOBS_COLLECTION);
-    let jobsQuery = query(
-      jobsRef, 
-      where('status', '==', status),
-      orderBy('createdAt', 'desc')
-    );
-
-    if (companyId) {
-      jobsQuery = query(
-        jobsRef,
-        where('companyId', '==', companyId),
-        where('status', '==', status),
-        orderBy('createdAt', 'desc')
-      );
-    }
-
-    const querySnapshot = await getDocs(jobsQuery);
-    
-    return querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate(),
-      updatedAt: doc.data().updatedAt?.toDate(),
-    })) as Job[];
-  } catch (error) {
-    console.error('Error fetching jobs by status:', error);
-    return [];
-  }
+  if (error) throw error;
+  return jobs || [];
 } 

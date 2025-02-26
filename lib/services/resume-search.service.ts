@@ -65,27 +65,30 @@ export class ResumeSearchService {
 
   async searchResumes(
     jobId: string,
-    filters: {
-      skills?: string[];
-      scoreRange?: [number, number];
-      experienceMonths?: [number, number];
-      searchTerm?: string;
-      sortBy?: 'score' | 'date';
-      matchType?: 'AND' | 'OR';
-      location?: string;
-    },
+    filters: SearchFilters,
     page = 1
   ) {
     try {
       let query = supabase
         .from('resumes')
-        .select('*', { count: 'exact' })
+        .select(`
+          id,
+          hash,
+          parsed_content,
+          scores,
+          searchable_skills,
+          experience_months,
+          current_position,
+          overall_score,
+          metadata,
+          location,
+          created_at,
+          updated_at
+        `, { count: 'exact' })
         .eq('job_id', jobId);
 
       // Apply filters
       if (filters.skills?.length) {
-        // Use containedBy for AND operation (all skills must be present)
-        // Use overlap for OR operation (any skill can be present)
         if (filters.matchType === 'AND') {
           filters.skills.forEach(skill => {
             query = query.contains('searchable_skills', [skill.toLowerCase()]);
@@ -108,7 +111,6 @@ export class ResumeSearchService {
       }
 
       if (filters.location && filters.location !== 'all') {
-        // Search in the location object's fields
         query = query.or(
           `location->>city.ilike.%${filters.location}%,` +
           `location->>state.ilike.%${filters.location}%,` +
@@ -125,20 +127,18 @@ export class ResumeSearchService {
       }
 
       // Always sort by score first, then by date
-      query = query
-        .order('overall_score', { ascending: false })
-        // .order('created_at', { ascending: false });
+      query = query.order('overall_score', { ascending: false });
 
       // Apply pagination
       const start = (page - 1) * this.ITEMS_PER_PAGE;
       query = query.range(start, start + this.ITEMS_PER_PAGE - 1);
 
-      const { data: resumes, error, count } = await query;
-
+      const { data, error, count } = await query;
+      console.log({ data })
       if (error) throw error;
 
       return {
-        resumes,
+        resumes: data,
         hasMore: count ? (start + this.ITEMS_PER_PAGE) < count : false,
         total: count || 0
       };
@@ -157,8 +157,6 @@ export class ResumeSearchService {
         .not('location', 'is', null);
 
       if (error) throw error;
-
-      console.log({ data })
 
       const locations = new Set<string>();
       data?.forEach(item => {

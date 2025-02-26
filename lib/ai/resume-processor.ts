@@ -1,8 +1,9 @@
 'use server'
 import { OpenAI } from 'openai';
-import { adminDb } from '@/firebase-admin';
+import { adminDb, adminStorage } from '@/firebase-admin';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { createClient } from '@supabase/supabase-js';
+import mammoth from 'mammoth';
 const crypto = require('crypto');
 
 const openai = new OpenAI();
@@ -216,69 +217,57 @@ export interface ParsedResume {
   rawText: string;
 }
 
-// Add this function to calculate initial match score
-const calculateInitialScore = (parsedContent: any, job: any) => {
-  let score = 0;
-  const maxScore = 10;
-
-  // Skills match (40% weight)
-  const requiredSkills = new Set(job.requiredSkills.map((s: string) => s.toLowerCase()));
-  const candidateSkills = new Set(parsedContent.skills?.map((s: string) => s.toLowerCase()) || []);
-  const matchingSkills = [...requiredSkills].filter(skill => candidateSkills.has(skill));
-  const skillsScore = requiredSkills.size > 0 ? (matchingSkills.length / requiredSkills.size) * 4 : 4;
-
-  // Experience match (30% weight)
-  const experienceScore = Math.min((parsedContent.total_experience_in_months || 0) / 60, 1) * 3;
-
-  // Education level (20% weight)
-  const educationScore = parsedContent.education?.length ? 2 : 0;
-
-  // Location match (10% weight)
-  const locationScore = 1; // Default for now
-
-  score = skillsScore + experienceScore + educationScore + locationScore;
-
-  return {
-    overallScore: Math.min(Math.round(score * 10) / 10, 10),
-    skillsMatch: Math.round((skillsScore / 4) * 100),
-    experienceMatch: Math.round((experienceScore / 3) * 100),
-    educationMatch: Math.round((educationScore / 2) * 100),
-    locationMatch: Math.round(locationScore * 100),
-    matchingSkills,
-    missingSkills: [...requiredSkills].filter(skill => !candidateSkills.has(skill))
-  };
-};
-
-export async function processResume(fileBuffer: Buffer, jobId: string, userId: string): Promise<{ parsedData: ParsedResume, hash: string }> {
+export async function processResume(fileBuffer: Buffer, jobId: string, userId: string): Promise<{ parsedData: ParsedResume, hash: string, id: string }> {
   try {
-    // Import and parse PDF
-    const { default: pdfParse } = await import('pdf-parse/lib/pdf-parse.js');
-    const data = await pdfParse(fileBuffer, {
-      version: true
-    });
-    
-    const resumeText = data.text;
-    if (!resumeText) {
-      throw new Error('No text content extracted from PDF');
+    const fileType = await detectFileType(fileBuffer);
+    let resumeText = '';
+    if (fileType === 'pdf') {
+      const { default: pdfParse } = await import('pdf-parse/lib/pdf-parse.js');
+      const data = await pdfParse(fileBuffer);
+      resumeText = data.text;
+    } else if (fileType === 'docx') {
+      // Parse DOCX
+      const { value } = await mammoth.extractRawText({ buffer: fileBuffer });
+      resumeText = value;
+    } else {
+      throw new Error('Unsupported file type. Please upload a PDF or DOCX file.');
     }
-    
+
+    console.log('resumeText', resumeText);
     // Generate document ID
     const hash = crypto
       .createHash('sha256')
       .update(resumeText)
       .digest('hex');
-    
+
+    // Upload file to Firebase Storage
+    const bucket = adminStorage.bucket();
+    const filePath = `resumes/${userId}/${hash}${fileType === 'pdf' ? '.pdf' : '.docx'}`;
+    const file = bucket.file(filePath);
+    await file.save(fileBuffer);
+
+    // Get the public URL
+    const [url] = await file.getSignedUrl({
+      action: 'read',
+      expires: '03-01-2500' // Far future expiration
+    });
+
     // Check cache in resumes collection
     const { data: cachedResume } = await supabase
       .from('resumes')
-      .select('*')
+      .select('id, parsed_content')
       .eq('hash', hash)
       .single();
 
     if (cachedResume) {
       console.log('Found cached resume data');
-      return cachedResume.parsed_content as ParsedResume;
+      return {
+        parsedData: cachedResume.parsed_content as ParsedResume,
+        hash,
+        id: cachedResume.id
+      };
     }
+
 
     // Keep existing OpenAI parsing code
     const response = await openai.chat.completions.create({
@@ -305,7 +294,7 @@ export async function processResume(fileBuffer: Buffer, jobId: string, userId: s
 
     const parsedData = JSON.parse(parsedContent) as ParsedResume;
     parsedData.rawText = resumeText;
-
+  
     // Validate required fields
     if (!parsedData.full_name || !parsedData.experiences || !parsedData.education || !parsedData.skills) {
       throw new Error('Missing required fields in parsed data');
@@ -316,7 +305,6 @@ export async function processResume(fileBuffer: Buffer, jobId: string, userId: s
       hash,
       user_id: userId,
       job_id: jobId,
-      // status: 'processed',
       searchable_skills: parsedData.skills.map(s => s.toLowerCase()),
       experience_months: Number(parsedData.total_experience_in_months),
       location: {
@@ -326,10 +314,11 @@ export async function processResume(fileBuffer: Buffer, jobId: string, userId: s
       },
       current_position: parsedData.occupation,
       metadata: {
-        file_name: 'resume.pdf', // TODO: Get actual filename
+        file_name: `resume.${fileType === 'pdf' ? 'pdf' : 'docx'}`,
         file_size: fileBuffer.length,
         file_hash: hash,
-        mime_type: 'application/pdf'
+        mime_type: fileType === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        file_url: url
       },
       parsed_content: parsedData,
       created_at: new Date().toISOString(),
@@ -337,9 +326,10 @@ export async function processResume(fileBuffer: Buffer, jobId: string, userId: s
     };
 
     // Save to Supabase
-    const { error } = await supabase
+    const { error, data } = await supabase
       .from('resumes')
-      .insert(resumeDoc);
+      .insert(resumeDoc)
+      .select('id');
 
     if (error) {
       console.error('Error saving to Supabase:', error);
@@ -348,10 +338,25 @@ export async function processResume(fileBuffer: Buffer, jobId: string, userId: s
 
     return {
       parsedData,
-      hash
+      hash,
+      id: data[0].id
     };
   } catch (error) {
-    console.error('Error in processResume:', error);
+    console.error('Error processing resume:', error);
     throw error;
   }
-} 
+}
+
+// Helper function to detect file type from buffer
+async function detectFileType(buffer: Buffer): Promise<'pdf' | 'docx'> {
+  // Check for PDF magic number
+  if (buffer.toString('hex', 0, 4) === '25504446') {
+    return 'pdf';
+  }
+
+  if (buffer.toString('hex', 0, 2) === '504b') {
+    return 'docx';
+  }
+
+  throw new Error('Unsupported file type. Please upload a PDF or DOCX file.');
+}

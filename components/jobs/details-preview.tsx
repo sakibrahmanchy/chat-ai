@@ -23,16 +23,29 @@ import {
   Search,
   Share2,
   Check,
-  Copy
+  Copy,
+  Loader2,
+  Pencil,
+  PlusCircle
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "@/hooks/use-toast";
+import Link from "next/link";
+import { Textarea } from "@/components/ui/textarea";
+import { useRouter } from "next/navigation";
+import { 
+  Tooltip, 
+  TooltipContent, 
+  TooltipTrigger,
+  TooltipProvider 
+} from "@/components/ui/tooltip";
+import { format } from "date-fns";
 
 interface JobDetailsPreviewProps {
   job: any;
   metrics: {
     totalCandidates: number;
-    timeToHire: number;
+    timeToHire: string | number;
     matchRate: number;
   };
   candidates: Array<{
@@ -60,17 +73,32 @@ interface JobDetailsPreviewProps {
   skillsAnalysis: Array<{
     skill: string;
     score: number;
+    matchRate: number;
+    candidateCount: number;
   }>;
+  distribution?: Array<{
+    label: string;
+    value: number;
+    color: string;
+    count: number;
+  }>;
+  isLoading?: boolean;
 }
 
 export function JobDetailsPreview({ 
   job,
   metrics,
   candidates,
-  skillsAnalysis 
+  skillsAnalysis,
+  distribution = [],
+  isLoading = false,
 }: JobDetailsPreviewProps) {
-  const [expandedCandidate, setExpandedCandidate] = useState(candidates[0]);
+  const [expandedCandidateId, setExpandedCandidateId] = useState(candidates[0]?.id);
   const [copied, setCopied] = useState(false);
+  const [isEditingInstructions, setIsEditingInstructions] = useState(false);
+  const [instructions, setInstructions] = useState(job.scoring_instructions || '');
+  const [isSaving, setIsSaving] = useState(false);
+  const router = useRouter();
 
   const handleCopyLink = async () => {
     const publicLink = `${window.location.origin}/jobs/apply/${job.id}`;
@@ -81,6 +109,47 @@ export function JobDetailsPreview({
       description: "Job application link has been copied to clipboard",
     });
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleExpandCandidate = (candidateId: string) => {
+    setExpandedCandidateId(candidateId === expandedCandidateId ? null : candidateId);
+  };
+
+  const handleSaveInstructions = async () => {
+    try {
+      setIsSaving(true);
+      const response = await fetch(`/api/jobs/${job.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scoring_instructions: instructions })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update instructions');
+      }
+
+      setIsEditingInstructions(false);
+      router.refresh();
+      
+      toast({
+        title: "Success",
+        description: "Scoring instructions updated successfully",
+      });
+    } catch (error) {
+      console.error('Error saving instructions:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save scoring instructions",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Format deadline date
+  const formatDeadlineDate = (date: string) => {
+    return format(new Date(date), 'MMM dd, yyyy');
   };
 
   return (
@@ -97,6 +166,17 @@ export function JobDetailsPreview({
           <div className="flex gap-2 self-end sm:self-auto">
             <Button
               variant="outline"
+              className="gap-2"
+              size="sm"
+              asChild
+            >
+              <Link href={`/dashboard/jobs/${job.id}/upload`}>
+                <PlusCircle className="h-4 w-4" />
+                <span>Add Candidates</span>
+              </Link>
+            </Button>
+            <Button
+              variant="default"
               size="sm"
               onClick={handleCopyLink}
               className="gap-2"
@@ -113,13 +193,74 @@ export function JobDetailsPreview({
                 </>
               )}
             </Button>
-            <button
-              className="inline-flex items-center text-xs sm:text-sm text-indigo-600 hover:text-indigo-700 transition-colors"
-            >
-              <Mail className="h-3 w-3 sm:h-4 sm:w-4 mr-1.5" />
-              <span className="hidden sm:inline">Contact Candidates</span>
-            </button>
           </div>
+        </div>
+      </div>
+
+      <div className="border-t p-4 sm:p-6">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h4 className="font-medium">Scoring Instructions</h4>
+            {!isEditingInstructions && (
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => setIsEditingInstructions(true)}
+              >
+                <Pencil className="h-4 w-4 mr-2" />
+                Add custom instructions
+              </Button>
+            )}
+          </div>
+          
+          {isEditingInstructions ? (
+            <div className="space-y-4">
+              <Textarea
+                value={instructions}
+                onChange={(e) => setInstructions(e.target.value)}
+                placeholder="Add specific instructions for scoring candidates..."
+                className="min-h-[100px]"
+              />
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setIsEditingInstructions(false);
+                    setInstructions(job.scoring_instructions || '');
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleSaveInstructions}
+                  disabled={isSaving}
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    'Save Instructions'
+                  )}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-lg border bg-slate-50 p-4">
+              {job.scoring_instructions ? (
+                <p className="text-sm text-slate-600 whitespace-pre-wrap">
+                  {job.scoring_instructions}
+                </p>
+              ) : (
+                <p className="text-sm text-slate-500 italic">
+                  No specific scoring instructions added yet.
+                </p>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -134,21 +275,37 @@ export function JobDetailsPreview({
                 value: metrics.totalCandidates,
                 icon: <Users className="h-4 w-4" />,
                 change: "+12%",
-                color: "text-emerald-600"
+                color: "text-emerald-600",
+                format: (v: number) => v
               },
               {
                 label: "Time to Hire",
                 value: metrics.timeToHire,
                 icon: <Clock className="h-4 w-4" />,
                 change: "-25%",
-                color: "text-blue-600"
+                color: "text-blue-600",
+                format: (v: number) => (
+                    <TooltipProvider>
+                    <div className="flex items-center gap-2 mt-4">
+                      <Tooltip delayDuration={0}>
+                        <TooltipTrigger>
+                          {v}
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="bg-white p-2 text-sm shadow-lg">
+                          <p>Deadline: {formatDeadlineDate(job.application_deadline)}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                  </TooltipProvider>
+                )
               },
               {
-                label: "Match Rate",
+                label: "Match Score",
                 value: metrics.matchRate,
                 icon: <BarChart className="h-4 w-4" />,
                 change: "+5%",
-                color: "text-violet-600"
+                color: "text-violet-600",
+                format: (v: number) => v.toFixed(1) + "/10"
               }
             ].map((stat, index) => (
               <Card key={index} className="border-slate-200 hover:border-slate-300 transition-colors">
@@ -162,144 +319,194 @@ export function JobDetailsPreview({
                       {stat.change}
                     </div>
                   </div>
-                  <div className="text-lg sm:text-2xl font-bold mb-1">{stat.value}</div>
+                  <div className="text-lg sm:text-2xl font-bold mb-1">
+                    {stat.format(stat.value)}
+                  </div>
                   <div className="text-xs sm:text-sm text-slate-600">{stat.label}</div>
                 </CardContent>
               </Card>
             ))}
           </div>
 
-          {/* Candidate Card - Improved Mobile Layout */}
+          {/* Top Candidates Section */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h4 className="font-medium">Top Matches</h4>
-              <Button variant="ghost" size="sm" className="text-xs sm:text-sm">
-                View All
+              <h4 className="font-medium">Top Candidates</h4>
+              <Button
+                variant="outline"
+                size="sm"
+                asChild
+              >
+                <Link href={`/dashboard/jobs/${job.id}/matches`}>
+                  View All Candidates
+                </Link>
               </Button>
             </div>
-
-            <div className="rounded-lg border bg-white">
-              <div className="p-4 border-b bg-slate-50/50">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-medium shrink-0">
-                      {expandedCandidate.name.split(' ').map(n => n[0]).join('')}
-                    </div>
-                    <div>
-                      <div className="font-medium flex items-center gap-2">
-                        {expandedCandidate.name}
-                        <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
-                      </div>
-                      <div className="text-sm text-slate-600">{expandedCandidate.role}</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="text-right">
-                      <div className="text-sm font-medium">Match Score</div>
-                      <div className="text-xl sm:text-2xl font-bold text-indigo-600">
-                        {expandedCandidate.score} %
-                      </div>
-                    </div>
-                    <Button variant="outline" size="sm" className="shrink-0">
-                      <ChevronDown className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-4">
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div className="space-y-6">
-                    {/* Contact & Professional Info - Better Mobile Layout */}
-                    <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-1">
-                      <div className="space-y-2">
-                        <h4 className="font-medium text-sm text-slate-600">Contact Information</h4>
-                        <div className="grid gap-2">
-                          {[
-                            { icon: <Mail className="h-4 w-4" />, value: expandedCandidate.email },
-                            { icon: <Phone className="h-4 w-4" />, value: expandedCandidate.phone },
-                            { icon: <MapPin className="h-4 w-4" />, value: expandedCandidate.location }
-                          ].map((item, i) => (
-                            <div key={i} className="flex items-center gap-2 text-sm">
-                              <span className="text-slate-400">{item.icon}</span>
-                              <span className="truncate">{item.value}</span>
+            {candidates.length > 0 ? (
+              <div className="grid gap-4">
+                {candidates.map((candidate) => (
+                  <div 
+                    key={candidate.id}
+                    className="rounded-lg border bg-white transition-all duration-200"
+                  >
+                    <div className="p-4 border-b bg-slate-50/50">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-medium shrink-0">
+                            {candidate.name.split(' ').map(n => n[0]).join('')}
+                          </div>
+                          <div>
+                            <div className="font-medium flex items-center gap-2">
+                              {candidate.name}
+                              <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
                             </div>
-                          ))}
+                            <div className="text-sm text-slate-600">{candidate.role}</div>
+                          </div>
                         </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <h4 className="font-medium text-sm text-slate-600">Professional Details</h4>
-                        <div className="grid gap-2">
-                          {[
-                            { icon: <Briefcase className="h-4 w-4" />, value: `${expandedCandidate.experience} Experience` },
-                            { icon: <Building2 className="h-4 w-4" />, value: `Current: ${expandedCandidate.company}` },
-                            { icon: <GraduationCap className="h-4 w-4" />, value: expandedCandidate.education },
-                            { icon: <Calendar className="h-4 w-4" />, value: `Available in ${expandedCandidate.availability}` }
-                          ].map((item, i) => (
-                            <div key={i} className="flex items-center gap-2 text-sm">
-                              <span className="text-slate-400">{item.icon}</span>
-                              <span className="truncate">{item.value}</span>
+                        <div className="flex items-center gap-4">
+                          <div className="text-right">
+                            <div className="text-sm font-medium">Match Score</div>
+                            <div className="text-xl sm:text-2xl font-bold text-indigo-600">
+                              {candidate.score.toFixed(1)}/10
                             </div>
-                          ))}
+                          </div>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="shrink-0"
+                            onClick={() => handleExpandCandidate(candidate.id)}
+                          >
+                            {expandedCandidateId === candidate.id ? (
+                              <ChevronUp className="h-4 w-4" />
+                            ) : (
+                              <ChevronDown className="h-4 w-4" />
+                            )}
+                          </Button>
                         </div>
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <h4 className="font-medium text-sm text-slate-600">Key Skills</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {expandedCandidate.skills.map((skill, i) => (
-                          <Badge key={i} variant="secondary" className="text-xs">{skill}</Badge>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
+                    {expandedCandidateId === candidate.id && (
+                      <div className="p-4">
+                        <div className="grid md:grid-cols-2 gap-6">
+                          <div className="space-y-6">
+                            <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-1">
+                              <div className="space-y-2">
+                                <h4 className="font-medium text-sm text-slate-600">Contact Information</h4>
+                                <div className="grid gap-2">
+                                  {[
+                                    { icon: <Mail className="h-4 w-4" />, value: candidate.email },
+                                    { icon: <Phone className="h-4 w-4" />, value: candidate.phone },
+                                    { icon: <MapPin className="h-4 w-4" />, value: candidate.location }
+                                  ].map((item, i) => (
+                                    <div key={i} className="flex items-center gap-2 text-sm">
+                                      <span className="text-slate-400">{item.icon}</span>
+                                      <span className="truncate">{item.value}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
 
-                  <div className="space-y-6">
-                    <div className="space-y-3">
-                      <h4 className="font-medium text-sm text-slate-600">Evaluation Scores</h4>
-                      <div className="space-y-2">
-                        {[
-                          { label: "Skills Match", value: expandedCandidate.scores.skillsScore },
-                          { label: "Experience", value: expandedCandidate.scores.experienceScore },
-                          { label: "Education", value: expandedCandidate.scores.educationScore }
-                        ].map((score, index) => (
-                          <div key={index} className="space-y-1">
-                            <div className="flex justify-between text-sm">
-                              <span>{score.label}</span>
-                              <span className="font-medium">{score.value}%</span>
+                              <div className="space-y-2">
+                                <h4 className="font-medium text-sm text-slate-600">Professional Details</h4>
+                                <div className="grid gap-2">
+                                  {[
+                                    { icon: <Briefcase className="h-4 w-4" />, value: `${candidate.experience} Experience` },
+                                    { icon: <Building2 className="h-4 w-4" />, value: `Current: ${candidate.company}` },
+                                    { icon: <GraduationCap className="h-4 w-4" />, value: candidate.education },
+                                    { icon: <Calendar className="h-4 w-4" />, value: `Available in ${candidate.availability}` }
+                                  ].map((item, i) => (
+                                    <div key={i} className="flex items-center gap-2 text-sm">
+                                      <span className="text-slate-400">{item.icon}</span>
+                                      <span className="truncate">{item.value}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
                             </div>
-                            <Progress value={score.value} className="h-2" />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
 
-                    <div className="space-y-2">
-                      <h4 className="font-medium text-sm text-slate-600">Key Strengths</h4>
-                      <div className="space-y-1">
-                        {expandedCandidate.scores.analysis.strengths.map((strength, i) => (
-                          <div key={i} className="flex items-center gap-2 text-sm">
-                            <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                            <span>{strength}</span>
+                            <div className="space-y-2">
+                              <h4 className="font-medium text-sm text-slate-600">Key Skills</h4>
+                              <div className="flex flex-wrap gap-2">
+                                {candidate.skills.map((skill, i) => (
+                                  <Badge key={i} variant="secondary" className="text-xs">{skill}</Badge>
+                                ))}
+                              </div>
+                            </div>
                           </div>
-                        ))}
-                      </div>
-                    </div>
 
-                    <div className="grid grid-cols-2 gap-2">
-                      <button className="text-xs sm:text-sm text-indigo-600 hover:text-indigo-700 transition-colors inline-flex items-center justify-center py-2">
-                        Shortlist For Interview
-                      </button>
-                      <button className="text-xs sm:text-sm text-slate-600 hover:text-slate-900 transition-colors inline-flex items-center justify-center py-2">
-                        Download CV
-                      </button>
-                    </div>
+                          <div className="space-y-6">
+                            <div className="space-y-3">
+                              <h4 className="font-medium text-sm text-slate-600">Evaluation Scores</h4>
+                              <div className="space-y-2">
+                                {[
+                                  { label: "Skills Match", value: candidate.scores.skillsScore },
+                                  { label: "Experience", value: candidate.scores.experienceScore },
+                                  { label: "Education", value: candidate.scores.educationScore }
+                                ].map((score, index) => (
+                                  <div key={index} className="space-y-1">
+                                    <div className="flex justify-between text-sm">
+                                      <span>{score.label}</span>
+                                      <span className="font-medium">{score.value.toFixed(1)}/10</span>
+                                    </div>
+                                    <Progress 
+                                      value={score.value * 10}
+                                      className="h-2" 
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div className="space-y-2">
+                              <h4 className="font-medium text-sm text-slate-600">Key Strengths</h4>
+                              <div className="space-y-1">
+                                {candidate.scores.analysis.strengths.map((strength, i) => (
+                                  <div key={i} className="flex items-center gap-2 text-sm">
+                                    <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                                    <span>{strength}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2">
+                              <button className="text-xs sm:text-sm text-indigo-600 hover:text-indigo-700 transition-colors inline-flex items-center justify-center py-2">
+                                Shortlist For Interview
+                              </button>
+                              <button className="text-xs sm:text-sm text-slate-600 hover:text-slate-900 transition-colors inline-flex items-center justify-center py-2">
+                                Download CV
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-lg border border-dashed p-8 text-center">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-50">
+                  <Users className="h-6 w-6 text-slate-400" />
+                </div>
+                <h3 className="mt-4 text-sm font-medium text-slate-900">
+                  No candidates yet
+                </h3>
+                <p className="mt-2 text-sm text-slate-500">
+                  Share your job posting to start receiving applications.
+                </p>
+                <div className="mt-6">
+                  <Button
+                    size="sm"
+                    variant="default"
+                    onClick={() => handleCopyLink()}
+                  >
+                    Share Job Post
+                  </Button>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
 
@@ -312,10 +519,18 @@ export function JobDetailsPreview({
                 {skillsAnalysis.map((item, index) => (
                   <div key={index} className="space-y-1">
                     <div className="flex justify-between text-sm">
-                      <span>{item.skill}</span>
-                      <span className="font-medium">{item.score}%</span>
+                      <span className="flex items-center gap-2">
+                        {item.skill}
+                        <span className="text-xs text-muted-foreground">
+                          ({item.candidateCount} candidates)
+                        </span>
+                      </span>
+                      <span className="font-medium">{(item.score / 10).toFixed(1)}/10</span>
                     </div>
                     <Progress value={item.score} className="h-2" />
+                    <div className="text-xs text-muted-foreground">
+                      {item.matchRate}% of candidates have this skill
+                    </div>
                   </div>
                 ))}
               </div>
@@ -325,26 +540,37 @@ export function JobDetailsPreview({
               <h4 className="font-medium mb-4">Candidate Distribution</h4>
               <Card>
                 <CardContent className="pt-6">
-                  <div className="space-y-2">
-                    {[
-                      { label: "Highly Qualified", value: 45, color: "bg-emerald-500" },
-                      { label: "Qualified", value: 32, color: "bg-blue-500" },
-                      { label: "Potential", value: 23, color: "bg-amber-500" }
-                    ].map((item, index) => (
-                      <div key={index} className="space-y-1">
-                        <div className="flex justify-between text-sm">
-                          <span>{item.label}</span>
-                          <span>{item.value}%</span>
+                  {isLoading ? (
+                    <div className="flex items-center justify-center h-32">
+                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : distribution.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-32 text-muted-foreground">
+                      <p>No distribution data available</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {distribution.map((item, index) => (
+                        <div key={index} className="space-y-1">
+                          <div className="flex justify-between text-sm">
+                            <span className="flex items-center gap-2">
+                              {item.label}
+                              <span className="text-xs text-muted-foreground">
+                                ({item.count} candidates)
+                              </span>
+                            </span>
+                            <span>{item.value}%</span>
+                          </div>
+                          <div className="h-2 rounded-full bg-slate-200">
+                            <div
+                              className={`h-full rounded-full ${item.color}`}
+                              style={{ width: `${item.value}%` }}
+                            />
+                          </div>
                         </div>
-                        <div className="h-2 rounded-full bg-slate-200">
-                          <div
-                            className={`h-full rounded-full ${item.color}`}
-                            style={{ width: `${item.value}%` }}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>

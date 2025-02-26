@@ -19,6 +19,9 @@ import {
 import { scoreResume } from '@/lib/ai/resume-scorer';
 import { supabase } from '@/lib/supabase/client';
 import { createClient } from '@supabase/supabase-js';
+import { activityService } from '@/lib/services/activity.service';
+import { createHash } from 'crypto';
+import { creditService } from '@/lib/services/credits.service';
 
 const supabaseClient = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -130,50 +133,89 @@ export async function POST(
   { params }: { params: { jobId: string } }
 ) {
   try {
-    const { userId } = await auth();
+    let { userId } = await auth();
     if (!userId) {
-      return new NextResponse('Unauthorized', { status: 401 });
+      const { error: companyIdError, data } = await supabase.from('jobs')
+      .select('company_id')
+      .eq('id', params.jobId)
+      .single();
+      if (companyIdError) throw companyIdError;
+      const companyId = data.company_id;
+      const { data: userData, error: userError } = await supabase.from('users').select('id').eq('company_id', companyId).single();
+      if (userError) throw userError;
+      userId = userData.id;
+
+      if (!userId) {
+        return new NextResponse('Unauthorized', { status: 401 });
+      }
+    }
+
+    const hasCredits = await creditService.hasEnoughCredits(
+      userId,
+      'process_resume'
+    );
+
+    if (!hasCredits) {
+      return new NextResponse('Insufficient credits', { status: 402 });
     }
 
     const formData = await req.formData();
-    const file = formData.get('resumes') as File;
-    
+    const file = formData.get('resume') as File;
     if (!file) {
       return new NextResponse('No file uploaded', { status: 400 });
     }
 
-    const buffer = Buffer.from(await file.arrayBuffer());
-    
-    // Process resume
-    const { parsedData, hash } = await processResume(buffer, params.jobId, userId);
-    
-    // // Get job details for scoring
-    // const jobDoc = await adminDb.collection('jobs').doc(params.jobId).get();
-    // if (!jobDoc.exists) {
-    //   return new NextResponse('Job not found', { status: 404 });
-    // }
+    // Process resume and get parsed data
+    const fileBuffer = Buffer.from(await file.arrayBuffer());
+    const { parsedData, hash, id } = await processResume(fileBuffer, params.jobId, userId);
 
-    const job = await supabaseClient
-      .from('jobs')
-      .select('*')
-      .eq('id', params.jobId)
-      .single();
+    const { data: job, error: jobError } = await supabase.from('jobs').select('*').eq('id', params.jobId).single(); 
+    if (jobError) throw jobError;
 
-    // Score resume against job
-    const scores = await scoreResume(parsedData, job.data);
+    // Score resume using only IDs
+    const scores = await scoreResume(id, params.jobId);
 
-    console.log(parsedData);
-
-    await supabaseClient
+    // Update resume with scores
+    const { error: updateError } = await supabase
       .from('resumes')
-      .update({
+      .update({ 
         scores,
-        matchScore: scores.averageScore,
-        updatedAt: new Date().toISOString()
+        overall_score: scores.overallScore,
+        updated_at: new Date().toISOString()
       })
-      .eq('hash', hash);
+      .eq('id', id);
 
-    return NextResponse.json({ success: true, data: parsedData });
+    if (updateError) throw updateError;
+
+    // Generate a UUID for activity logging
+    const activityId = uuidv4();
+
+    // Log activity with UUID instead of hash
+    await activityService.logActivity({
+      userId,
+      companyId: job.company_id,
+      type: 'resume_uploaded',
+      description: activityService.getActivityDescription('resume_uploaded', {
+        jobTitle: job.title
+      }),
+      entityType: 'resume',
+      entityId: activityId,
+      metadata: {
+        jobTitle: job.title,
+        jobId: job.id,
+        resumeId: hash,
+        candidateName: parsedData.full_name
+      }
+    });
+
+    await creditService.useCredits(
+      userId,
+      'process_resume',
+      'resume',
+      id
+    );
+
+    return NextResponse.json({ success: true, data: parsedData, id: hash });
   } catch (error) {
     console.error('Error processing resume:', error);
     return new NextResponse('Error processing resume', { status: 500 });
