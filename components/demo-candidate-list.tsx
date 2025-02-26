@@ -405,6 +405,7 @@ export function DemoCandidateList() {
     <div className="w-full h-[600px] rounded-xl border overflow-hidden">
       <CandidateListView
         initialResumes={DEMO_RESUMES}
+        skipDataFetch={true}
         jobId="demo"
         jobTitle="Senior Backend Developer - Node.JS (Remote Worldwide)"
         userId="demo"

@@ -85,47 +85,13 @@ const RESPONSE_FORMAT = {
   }
 } as const;
 
-export async function scoreResume(resumeId: string, jobId: string): Promise<ScoreResult> {
+export async function scoreResume(resume: Resume, job: Job): Promise<ScoreResult> {
   try {
-    console.log('scoring resume', resumeId, jobId);
-    // Fetch job and resume data
-    const { data: job } = await supabase
-      .from('jobs')
-      .select(`
-        id,
-        title,
-        description,
-        required_skills,
-        requirements,
-        scoring_instructions
-      `)
-      .eq('id', jobId)
-      .single();
-
-    if (!job) throw new Error('Job not found');
-
-    const { data: resume } = await supabase
-      .from('resumes')
-      .select(`
-        id,
-        hash,
-        parsed_content,
-        searchable_skills,
-        experience_months,
-        current_position,
-        location
-      `)
-      .eq('id', resumeId)
-      .single();
-
-    if (!resume) throw new Error('Resume not found');
-
     // Get AI analysis
-    const startTime = Date.now();
     const aiAnalysis = await analyzeResume(resume, job);
 
     // Get initial score calculation
-    const initialScore = calculateInitialScore(resume.parsed_content, job);
+    const initialScore = calculateInitialScore(resume.parsedContent, job);
 
     // Combine scores with weights (70% AI, 30% calculated)
     const combinedScores = {
@@ -197,6 +163,7 @@ export async function scoreResume(resumeId: string, jobId: string): Promise<Scor
         calculated: initialScore
       }
     };
+    console.log('finalScores', finalScores);
 
     // Store scores in Supabase
     const { error } = await supabase
@@ -285,20 +252,13 @@ function calculateInitialScore(parsedContent: any, job: any) {
 }
 
 // Helper function to analyze resume using AI
-async function analyzeResume(resume: any, job: any) {
+async function analyzeResume(resume: Resume, job: Job) {
   try {
-    const { parsed_content: parsedContent } = resume;
+    const { parsedContent } = resume;
 
     const prompt = `
-      You are analyzing a resume for a job position. The analysis must strictly follow any custom scoring instructions if provided.
+      Analyze this resume against the job requirements and provide a detailed scoring.
       
-      ${job.scoring_instructions ? `
-      IMPORTANT - Custom Scoring Instructions:
-      ${job.scoring_instructions}
-      
-      These custom instructions take precedence over standard evaluation criteria. Adjust your scoring weights and analysis to prioritize these requirements.
-      ` : ''}
-
       Job Details:
       Title: ${job.title}
       Required Skills: ${job.requiredSkills?.join(', ') || ''}
@@ -312,25 +272,13 @@ async function analyzeResume(resume: any, job: any) {
       Education: ${JSON.stringify(parsedContent?.education || [])}
       Skills: ${JSON.stringify(parsedContent?.skills || [])}
       
-      Provide a comprehensive analysis with the following structure:
-      1. First evaluate against any custom scoring instructions (if provided)
-      2. Then assess standard criteria:
-         - Skills match with required skills
-         - Experience relevance and years
-         - Overall fit for the role
+      Provide a detailed analysis focusing on:
+      1. Skills match with required skills
+      2. Experience relevance and years
+      3. Overall fit for the role
       
-      For each category, provide a score from 0-10 and detailed justification.
-      
-      In the analysis:
-      - Begin the overall feedback by addressing custom instruction criteria first
-      - List strengths/weaknesses based on custom instructions as priority items
-      - Adjust final scores to give extra weight to custom instruction criteria
-      - Provide specific examples of how the candidate meets or fails to meet custom requirements
-      
-      Remember: Custom scoring instructions should significantly influence the final scores and analysis.
+      Score each category from 0-10 and provide detailed feedback.
     `;
-
-    console.log('Analyzing resume with prompt:', prompt);
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini-2024-07-18",
@@ -353,6 +301,7 @@ async function analyzeResume(resume: any, job: any) {
     }
 
     const result = JSON.parse(response.choices[0].message.content);
+
     // Provide default values if any scores are missing
     return {
       skillsScore: result.skillsScore || 0,

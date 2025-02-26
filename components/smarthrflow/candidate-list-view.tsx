@@ -59,6 +59,7 @@ interface CandidateListViewProps {
     experienceLevel?: string;
     matchScore?: [number, number];
   };
+  skipDataFetch?: boolean;
 }
 
 // Add proper filter type
@@ -154,27 +155,6 @@ const getMatchScore = (resume: Resume) => {
   return resume?.overall_score || 0;
 };
 
-// Update the search function to use the new data structure
-const searchResumes = (resumes: Resume[], searchTerm: string) => {
-  const searchLower = searchTerm.toLowerCase();
-  return resumes.filter(resume => {
-    const name = resume.parsed_content?.full_name?.toLowerCase() || '';
-    const skills = resume.searchable_skills?.map(s => s.toLowerCase()) || [];
-    const content = resume.parsed_content?.experiences?.map(e =>
-      `${e.title} ${e.company}`.toLowerCase()
-    ).join(' ') || '';
-
-    return name.includes(searchLower) ||
-      skills.some(skill => skill.includes(searchLower)) ||
-      content.includes(searchLower);
-  });
-};
-
-// Update other helper functions similarly
-const calculateTotalYears = (resume: Resume) => {
-  return Math.floor(resume.experience_months / 12);
-};
-
 const getSkills = (resume: Resume) => {
   return resume.searchable_skills || [];
 };
@@ -183,20 +163,6 @@ const getLocation = (resume: Resume) => {
   const { city, state, country } = resume.location || {};
   const parts = [city, state, country].filter(Boolean);
   return parts.join(', ') || 'No location';
-};
-
-// Add this helper function near the top of the file
-const formatYearsOfExperience = (months: number) => {
-  const years = Math.floor(months / 12);
-  const remainingMonths = months % 12;
-  if (years === 0) return `${remainingMonths} months`;
-  if (remainingMonths === 0) return `${years} years`;
-  return `${years} years ${remainingMonths} months`;
-};
-
-// Add this helper function to format percentages
-const formatPercentage = (value: number) => {
-  return `${Math.round(value)}%`;
 };
 
 export function CandidateListView({
@@ -208,7 +174,8 @@ export function CandidateListView({
   requiredSkills,
   requirements,
   showFiltersDefault = false,
-  initialFilters
+  initialFilters,
+  skipDataFetch = false
 }: CandidateListViewProps) {
   const [resumes, setResumes] = useState<Resume[]>(initialResumes);
   const [lastVisible, setLastVisible] = useState<any>(null);
@@ -259,6 +226,7 @@ export function CandidateListView({
 
 
   const loadInitialData = async () => {
+    if (skipDataFetch) return;
     setLoading(true);
     try {
       setIsLoading(true);

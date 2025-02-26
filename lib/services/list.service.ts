@@ -96,7 +96,8 @@ export class ListService {
         ),
         added_by:users (
           id,
-          name
+          first_name,
+          last_name
         )
       `)
       .eq('list_id', listId)
