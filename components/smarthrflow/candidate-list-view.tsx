@@ -123,29 +123,6 @@ interface ResumeScores {
   };
 }
 
-interface Resume {
-  id: string;
-  hash: string;
-  parsed_content: ParsedContent;
-  scores: ResumeScores;
-  searchable_skills: string[];
-  experience_months: number;
-  current_position: string;
-  location: {
-    city: string;
-    state: string;
-    country: string;
-  };
-  created_at: string;
-  updated_at: string;
-  metadata: {
-    processing_time: number;
-    confidence_score: number;
-    processed_at: string;
-    file_url: string;
-  };
-}
-
 // Update the helper functions to use the new types
 const getEducation = (resume: Resume) => {
   const education = resume.parsed_content?.education;
@@ -833,11 +810,11 @@ export function CandidateListView({
                                 {/* Detailed Analysis */}
                                 <div className="space-y-4">
                                   {/* Overall Feedback */}
-                                  {resume.scores?.analysis?.overallFeedback && (
+                                  {resume.scores?.analysis?.educationAnalysis && (
                                     <div>
                                       <div className="text-sm font-medium mb-1">Overall Analysis</div>
                                       <p className="text-sm text-muted-foreground">
-                                        {resume.scores.analysis.overallFeedback}
+                                        {resume.scores.analysis.educationAnalysis}
                                       </p>
                                     </div>
                                   )}

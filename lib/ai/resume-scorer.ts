@@ -85,13 +85,20 @@ const RESPONSE_FORMAT = {
   }
 } as const;
 
-export async function scoreResume(resume: Resume, job: Job): Promise<ScoreResult> {
+export async function scoreResume(resumeId: number, jobId: string): Promise<ScoreResult> {
   try {
+    const startTime = Date.now();
+    const { data: resume, error: resumeError } = await supabase.from('resumes').select('*').eq('id', resumeId).single();
+    if (resumeError) throw resumeError;
+
+    const { data: job, error: jobError } = await supabase.from('jobs').select('*').eq('id', jobId).single();
+    if (jobError) throw jobError;
+    
     // Get AI analysis
     const aiAnalysis = await analyzeResume(resume, job);
 
     // Get initial score calculation
-    const initialScore = calculateInitialScore(resume.parsedContent, job);
+    const initialScore = calculateInitialScore(resume.parsed_content, job);
 
     // Combine scores with weights (70% AI, 30% calculated)
     const combinedScores = {
@@ -163,7 +170,6 @@ export async function scoreResume(resume: Resume, job: Job): Promise<ScoreResult
         calculated: initialScore
       }
     };
-    console.log('finalScores', finalScores);
 
     // Store scores in Supabase
     const { error } = await supabase
@@ -184,10 +190,11 @@ export async function scoreResume(resume: Resume, job: Job): Promise<ScoreResult
           },
           metadata: {
             processing_time: Date.now() - startTime,
-            confidence_score: aiAnalysis.confidence || 0.8,
+            // confidence_score: aiAnalysis.confidence || 0.8,
             processed_at: new Date().toISOString()
           }
         },
+        overall_score: finalScores.overallScore,
         updated_at: new Date().toISOString()
       })
       .eq('id', resume.id);
@@ -254,14 +261,19 @@ function calculateInitialScore(parsedContent: any, job: any) {
 // Helper function to analyze resume using AI
 async function analyzeResume(resume: Resume, job: Job) {
   try {
-    const { parsedContent } = resume;
+    const { parsed_content: parsedContent } = resume;
+
+    console.log({ job })
 
     const prompt = `
       Analyze this resume against the job requirements and provide a detailed scoring.
+
+      Very Important: Your scoring MUST prioritize the special instructions above everything else.
+      Repeat: Prioritize special instructions, override job description and requirements and everything else for analysis and scoring both.
       
       Job Details:
       Title: ${job.title}
-      Required Skills: ${job.requiredSkills?.join(', ') || ''}
+      Required Skills: ${job.required_skills?.join(', ') || ''}
       Description: ${job.description || ''}
       Requirements: ${job.requirements || ''}
       
@@ -272,14 +284,21 @@ async function analyzeResume(resume: Resume, job: Job) {
       Education: ${JSON.stringify(parsedContent?.education || [])}
       Skills: ${JSON.stringify(parsedContent?.skills || [])}
       
-      Provide a detailed analysis focusing on:
+      Provide a detailed analysis focusing on following and must prioritize special instructions above everything else::
       1. Skills match with required skills
       2. Experience relevance and years
       3. Overall fit for the role
+      4. Education relevance and years
+      5. Location match
+      6. Role match
+      7. Overall score
       
-      Score each category from 0-10 and provide detailed feedback.
-    `;
+      Score each category from 0-10 and provide detailed feedback considering special instructions above everything else.
 
+      ${job.scoring_instructions ? 'Special Instructions: Consider & Prioritize the following scoring instructions even more than the job description and requirements,'
+        + 'specifically and count them in the scoring: ' + job.scoring_instructions : ''}
+    `;
+    console.log({ prompt })
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini-2024-07-18",
       messages: [
@@ -301,6 +320,8 @@ async function analyzeResume(resume: Resume, job: Job) {
     }
 
     const result = JSON.parse(response.choices[0].message.content);
+
+    console.log({ result })
 
     // Provide default values if any scores are missing
     return {

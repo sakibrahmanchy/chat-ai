@@ -1,32 +1,160 @@
-import { ParsedResume } from "@/lib/ai/resume-processor";
+
+export interface ParsedContent {
+  city: string
+  role: string
+  state: string
+  skills: string[]
+  country: string
+  rawText: string
+  summary: string
+  headline: string
+  education: Education[]
+  full_name: string
+  languages: any[]
+  last_name: string
+  first_name: string
+  occupation: string
+  experiences: Experience[]
+  middle_name: string
+  certifications: Certification[]
+  personal_emails: string[]
+  skills_with_yoe: SkillsWithYoe[]
+  personal_numbers: string[]
+  total_experience_in_months: number
+}
+
+export interface Education {
+  grade: any
+  school: string
+  ends_at: EndsAt
+  starts_at: StartsAt
+  degree_name: string
+  description: string
+  achievements: any[]
+  field_of_study: string
+}
+
+export interface EndsAt {
+  day: number
+  year: number
+  month: number
+}
+
+export interface StartsAt {
+  day: number
+  year: number
+  month: number
+}
+
+export interface Experience {
+  title: string
+  company: string
+  ends_at?: EndsAt2
+  location: string
+  starts_at: StartsAt2
+  description: string
+  achievements: any[]
+  technologies: string[]
+}
+
+export interface EndsAt2 {
+  day: number
+  year: number
+  month: number
+}
+
+export interface StartsAt2 {
+  day: number
+  year: number
+  month: number
+}
+
+export interface Certification {
+  url: any
+  name: string
+  ends_at: any
+  authority: string
+  starts_at: StartsAt3
+  license_number: any
+}
+
+export interface StartsAt3 {
+  day: number
+  year: number
+  month: number
+}
+
+export interface SkillsWithYoe {
+  yoe: number
+  name: string
+}
+
 
 export interface Resume {
-  id: string;
-  // Frequently queried fields (top level)
-  searchableSkills: string[];  // Denormalized, lowercase for searching
-  experienceMonths: number;    // Pre-calculated
-  matchScore: number;         // Pre-calculated
-  status: string;
-  createdAt: string;
-  
-  // Metadata (top level for quick access)
+  id: number
+  searchable_skills: string[];
+  experience_months: number;
+  current_position: string;
+  created_at: string;
   metadata: {
-    fileName: string;
-    fileSize: number;
-    downloadUrl: string;
+    file_name: string;
+    file_size: number;
+    file_url: string;
   };
-
-  // Detailed content (accessed less frequently)
-  parsedContent: {
-    full_name: string;
-    occupation: string;
-    // ... other parsed fields
+  location: {
+    city: string;
+    state: string;
+    country: string;
   };
-
-  // Detailed scores (accessed when viewing details)
-  scores?: {
+  parsed_content: ParsedContent;
+  job_id?: string;
+  user_id?: string;
+  overall_score: number;
+  scores: {
+    analysis: {
+      matchedSkills: string[];
+      missingSkills: string[];
+      strengthAreas: string[];
+      skillsAnalysis: string;
+      overallFeedback: string;
+      improvementAreas: string[];
+      educationAnalysis: string;
+      experienceAnalysis: string;
+    };
+    rawScores: {
+      ai: {
+        analysis: {
+          matchedSkills: string[];
+          missingSkills: string[];
+          strengthAreas: string[];
+          skillsAnalysis: string;
+          overallFeedback: string;
+          improvementAreas: string[];
+          educationAnalysis: string;
+          experienceAnalysis: string;
+        };
+        skillsScore: number;
+        averageScore: number;
+        overallScore: number;
+        educationScore: number;
+        roleMatchScore: number;
+        experienceScore: number;
+      };
+      calculated: {
+        skillsMatch: number;
+        overallScore: number;
+        locationMatch: number;
+        missingSkills: string[];
+        educationMatch: number;
+        matchingSkills: string[];
+        experienceMatch: number;
+      };
+    };
+    lastUpdated: string;
     skillsScore: number;
+    overallScore: number;
+    educationScore: number;
+    roleMatchScore: number;
     experienceScore: number;
-    // ... other scores
-  };
+  }
 } 

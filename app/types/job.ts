@@ -4,22 +4,22 @@ export interface Job {
   description: string;
   requirements: string[];
   responsibilities: string[];
-  location: string;
-  type: string; // full-time, part-time, contract
-  experience: string;
-  salary?: {
-    min: number;
-    max: number;
-    currency: string;
-  };
+  location: {
+    city: string;
+    state: string;
+    country: string;
+  }
+  type: string;
+  experience: number;
+  salary_min?: number;
+  salary_max?: number;
   skills: string[];
   companyId: string;
-  company?: {
-    id: string;
-    name: string;
-    logo?: string;
-  };
-  status: string; // active, closed, draft
+  required_skills: string[];
+  status: string;
   createdAt: Date;
   updatedAt: Date;
+  scoring_instructions?: string;
+  total_applications?: number;
+  total_views?: number;
 } 

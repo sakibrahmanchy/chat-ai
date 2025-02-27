@@ -1,3 +1,4 @@
+import { Resume } from '@/app/types/resume';
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
@@ -8,56 +9,11 @@ const supabase = createClient(
 interface SearchFilters {
   skills?: string[];
   scoreRange?: [number, number];
-  status?: string[];
   experienceMonths?: [number, number];
   searchTerm?: string;
   sortBy?: 'score' | 'date';
   matchType?: 'AND' | 'OR';
   location?: string;
-}
-
-interface Resume {
-  id: string;
-  hash: string;
-  parsed_content: {
-    full_name: string;
-    occupation: string;
-    education: Array<{
-      degree_name: string;
-      school: string;
-      starts_at?: string;
-      ends_at?: string;
-    }>;
-    experiences: Array<{
-      title: string;
-      company: string;
-      starts_at: string;
-      ends_at?: string;
-    }>;
-    skills: string[];
-  };
-  scores: {
-    overall_score: number;
-    skills_score: number;
-    experience_score: number;
-    education_score: number;
-    analysis: {
-      matched_skills: string[];
-      missing_skills: string[];
-      strengths: string[];
-      weaknesses: string[];
-    };
-  };
-  searchable_skills: string[];
-  experience_months: number;
-  current_position: string;
-  location: {
-    city: string;
-    state: string;
-    country: string;
-  };
-  created_at: string;
-  updated_at: string;
 }
 
 export class ResumeSearchService {
@@ -138,7 +94,7 @@ export class ResumeSearchService {
       if (error) throw error;
 
       return {
-        resumes: data,
+        resumes: data as Resume[],
         hasMore: count ? (start + this.ITEMS_PER_PAGE) < count : false,
         total: count || 0
       };
