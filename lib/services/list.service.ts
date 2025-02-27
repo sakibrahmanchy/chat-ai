@@ -16,6 +16,7 @@ export class ListService {
     name: string;
     description?: string;
     companyId: string;
+    jobId?: string;
     createdBy: string;
   }) {
     const { data: list, error } = await supabase
@@ -24,7 +25,8 @@ export class ListService {
         name: data.name,
         description: data.description,
         company_id: data.companyId,
-        created_by: data.createdBy
+        created_by: data.createdBy,
+        job_id: data.jobId
       })
       .select()
       .single();
@@ -33,14 +35,14 @@ export class ListService {
     return list;
   }
 
-  async getLists(companyId: string) {
+  async getLists(jobId: string) {
     const { data: lists, error } = await supabase
       .from('candidate_lists')
       .select(`
         *,
         items:list_items(count)
       `)
-      .eq('company_id', companyId)
+      .eq('job_id', jobId)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -58,6 +60,18 @@ export class ListService {
     notes?: string;
     addedBy: string;
   }) {
+    // Check if resume already exists in list
+    const { data: existing } = await supabase
+      .from('list_items')
+      .select()
+      .eq('list_id', data.listId)
+      .eq('resume_id', data.resumeId)
+      .single();
+
+    if (existing) {
+      throw new Error('Resume already exists in this list');
+    }
+
     const { error } = await supabase
       .from('list_items')
       .insert({

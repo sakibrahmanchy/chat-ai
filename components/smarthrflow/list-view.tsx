@@ -26,6 +26,13 @@ import {
   Filter,
 } from "lucide-react";
 import { getRelativeTimeString } from "@/lib/utils";
+import { exportData } from '@/lib/utils/export';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface ListViewProps {
   list: any;
@@ -46,6 +53,34 @@ export function ListView({ list, initialResumes, userId }: ListViewProps) {
     return name.includes(query) || skills.includes(query);
   });
 
+  const handleExport = async (format: 'csv' | 'excel') => {
+    const exportColumns = [
+      { header: 'Name', key: 'name' },
+      { header: 'Current Role', key: 'role' },
+      { header: 'Skills', key: 'skills' },
+      { header: 'Experience (Years)', key: 'experience' },
+      { header: 'Education', key: 'education' },
+      { header: 'Location', key: 'location' },
+      { header: 'Added Date', key: 'addedDate' }
+    ];
+
+    const exportData = filteredResumes.map(resume => ({
+      name: resume.parsedContent?.full_name || '',
+      role: resume.parsedContent?.occupation || '',
+      skills: resume.searchableSkills?.join(', ') || '',
+      experience: Math.floor((resume.experienceMonths || 0) / 12),
+      education: resume.parsedContent?.education?.[0]?.degree_name || '',
+      location: resume.location || '',
+      addedDate: new Date(resume.createdAt).toLocaleDateString()
+    }));
+
+    await exportData(exportData, {
+      filename: `${list.name}-${new Date().toISOString().split('T')[0]}`,
+      format,
+      columns: exportColumns
+    });
+  };
+
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
@@ -60,9 +95,22 @@ export function ListView({ list, initialResumes, userId }: ListViewProps) {
               <Filter className="h-4 w-4 mr-2" />
               Filter
             </Button>
-            <Button variant="outline" size="sm">
-              Export
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Download className="h-4 w-4 mr-2" />
+                  Export
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => handleExport('csv')}>
+                  Export as CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExport('excel')}>
+                  Export as Excel
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>

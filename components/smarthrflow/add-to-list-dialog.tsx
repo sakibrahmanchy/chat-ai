@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -28,9 +28,11 @@ interface List {
   name: string;
   description?: string;
   items: number;
+  companyId: string;
+  jobId?: string;
 }
 
-export function AddToListDialog({ resumeId, userId, companyId, onSuccess }: AddToListDialogProps) {
+export function AddToListDialog({ resumeId, userId, companyId, jobId, onSuccess }: AddToListDialogProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [lists, setLists] = useState<List[]>([]);
@@ -41,7 +43,7 @@ export function AddToListDialog({ resumeId, userId, companyId, onSuccess }: AddT
 
   const loadLists = async () => {
     try {
-      const lists = await listService.getLists(companyId);
+      const lists = await listService.getLists(jobId);
       setLists(lists);
     } catch (error) {
       console.error('Error loading lists:', error);
@@ -57,7 +59,8 @@ export function AddToListDialog({ resumeId, userId, companyId, onSuccess }: AddT
         name: newList.name,
         description: newList.description,
         companyId,
-        createdBy: userId
+        createdBy: userId,
+        jobId
       });
 
       setLists([...lists, list]);
@@ -102,13 +105,17 @@ export function AddToListDialog({ resumeId, userId, companyId, onSuccess }: AddT
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to add candidate to list.",
+        description: "Failed to add candidate to list:" + error,
         variant: "destructive"
       });
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadLists();
+  }, []);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

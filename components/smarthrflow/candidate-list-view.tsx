@@ -41,6 +41,8 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useRouter } from "next/navigation";
 import { AddToListDialog } from "./add-to-list-dialog";
 import { useCompany } from "@/hooks/use-company";
+import { exportData } from '@/lib/utils/export';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 const CANDIDATES_PER_PAGE = 20;
 
@@ -402,6 +404,34 @@ export function CandidateListView({
     </div>
   );
 
+  const handleExport = async (format: 'csv' | 'excel') => {
+    const exportColumns = [
+      { header: 'Name', key: 'name' },
+      { header: 'Role', key: 'role' },
+      { header: 'Email', key: 'email' },
+      { header: 'Phone', key: 'phone' },
+      { header: 'Location', key: 'location' },
+      { header: 'Experience', key: 'experience' },
+      { header: 'Current Company', key: 'company' },
+      { header: 'Education', key: 'education' },
+      { header: 'Match Score', key: 'score' },
+      { header: 'Skills', key: 'skills' },
+      { header: 'Status', key: 'status' }
+    ];
+
+    const dataToExport = filteredResumes.map(candidate => ({
+      ...candidate,
+      skills: candidate.searchable_skills.join(', '),
+      score: `${Math.round(candidate.scores?.overallScore * 10)}%`
+    }));
+
+    await exportData(dataToExport, {
+      filename: `candidates-${new Date().toISOString().split('T')[0]}`,
+      format,
+      columns: exportColumns
+    });
+  };
+
   return (
     <div className="h-[calc(100vh-4rem)] flex flex-col lg:flex-row">
       {/* Filters */}
@@ -459,9 +489,22 @@ export function CandidateListView({
                 <Filter className="h-4 w-4" />
                 <span className="sm:hidden">Filters</span>
               </Button>
-              <Button variant="outline" className="flex-1 sm:flex-none">
-                Export
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Download className="h-4 w-4 mr-2" />
+                    Export
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onClick={() => handleExport('csv')}>
+                    Export as CSV
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleExport('excel')}>
+                    Export as Excel
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
 
@@ -512,7 +555,7 @@ export function CandidateListView({
                         >
                           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full">
                             {/* Basic Info */}
-                            <div className="flex items-center gap-2 w-full sm:w-[200px] sm:min-w-[200px]">
+                            <div className="flex sm:flex-row items-center gap-2 w-full sm:w-[200px] sm:min-w-[200px]">
                               {resumes.indexOf(resume) < 3 && (
                                 <Star className="h-3 w-3 text-yellow-400 flex-shrink-0" />
                               )}
@@ -541,15 +584,17 @@ export function CandidateListView({
                             </div>
 
                             {/* Mobile Info */}
-                            <div className="grid grid-cols-2 gap-2 w-full sm:hidden mt-2">
-                              <div className="text-xs text-muted-foreground">
-                                <MapPin className="h-3 w-3 inline mr-1" />
-                                {getLocation(resume)}
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                <Calendar className="h-3 w-3" />
-                                <span>{resume.experience_months / 12 || "Not specified"}</span>
-                              </div>
+                            <div className="grid grid-cols-2 gap-2 w-full sm:hidden  mt-2">
+                              {/* <div className="flex">
+                                <div className="text-xs text-muted-foreground">
+                                  <MapPin className="h-3 w-3 inline mr-1" />
+                                  {getLocation(resume)}
+                                </div>
+                                <div className="flex gaps-2 text-xs text-muted-foreground">
+                                  <Calendar className="h-3 w-3" />
+                                  <span>{Math.floor(resume.experience_months / 12) + 'y' || "Not specified"}</span>
+                                </div>
+                              </div> */}
                               <div className="col-span-2 space-y-1">
                                 <div className="flex justify-between text-xs">
                                   <span>Match Score</span>
@@ -575,30 +620,26 @@ export function CandidateListView({
                               </div>
 
                               {/* Skills */}
-                              <div className="flex min-w-[200px]">
-                                <div className="flex flex-wrap gap-1">
-                                  {(() => {
-                                    const skillsList = getSkills(resume);
-                                    const displaySkills = skillsList.slice(0, 3);
-                                    return (
-                                      <>
-                                        {displaySkills.map((skill, index) => (
-                                          <Badge
-                                            key={`${resume.id}-${index}`}
-                                            variant="secondary"
-                                            className="text-xs px-1.5 py-0"
-                                          >
-                                            {skill?.name || skill}
-                                          </Badge>
-                                        ))}
-                                        {skillsList.length > 3 && (
-                                          <Badge variant="outline" className="text-xs px-1.5 py-0">
-                                            +{skillsList.length - 3}
-                                          </Badge>
-                                        )}
-                                      </>
-                                    );
-                                  })()}
+                              <div className="hidden lg:flex min-w-[200px]">
+                                <div className="flex flex-wrap gap-1 max-w-[300px]">
+                                  {resume.searchable_skills?.slice(0, 3).map((skill, index) => (
+                                    <Badge 
+                                      key={index} 
+                                      variant="secondary"
+                                      className="text-xs px-1.5 py-0 truncate max-w-[150px]"
+                                      title={skill}
+                                    >
+                                      {skill}
+                                    </Badge>
+                                  ))}
+                                  {(resume.searchable_skills?.length || 0) > 3 && (
+                                    <Badge 
+                                      variant="outline" 
+                                      className="text-xs px-1.5 py-0"
+                                    >
+                                      +{(resume.searchable_skills?.length || 0) - 3}
+                                    </Badge>
+                                  )}
                                 </div>
                               </div>
 
@@ -626,14 +667,18 @@ export function CandidateListView({
                                   variant="ghost"
                                   size="icon"
                                   className="h-7 w-7"
-                                  onClick={() => handleDownload(resume.metadata.file_url)}
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    handleDownload(resume.metadata.file_url);
+                                  }}
                                 >
                                   <Download className="h-3 w-3" />
                                 </Button>
                                 <AddToListDialog
                                   resumeId={resume.id}
                                   userId={userId}
-                                  companyId={companyId}
+                                  companyId={companyId || ''}
+                                  jobId={jobId}
                                   onSuccess={() => {
                                     toast({
                                       title: "Success",
@@ -670,14 +715,14 @@ export function CandidateListView({
                                 {/* Skills with Experience */}
                                 <div>
                                   <div className="text-sm font-medium mb-2">Skills & Experience</div>
-                                  <div className="grid grid-cols-2 gap-2">
+                                  <div className="flex space-y-2 gap-2">
                                     {Object.values(resume.parsed_content?.skills_with_yoe || {}).map((skill: any) => (
                                       <div
                                         key={skill.name}
                                         className="flex items-center justify-between text-sm p-2 bg-white rounded border"
                                       >
                                         <span>{skill.name}</span>
-                                        <span className="text-xs text-muted-foreground">{skill.years}y</span>
+                                        {skill.years && <span className="text-xs text-muted-foreground">{skill.years}y</span>}
                                       </div>
                                     ))}
                                   </div>
@@ -798,33 +843,19 @@ export function CandidateListView({
                                   )}
 
                                   {/* Skill Analysis */}
-                                  <div className="grid grid-cols-2 gap-4">
-                                    {/* Matched Skills */}
-
-                                      <div>
-                                        <div className="text-sm font-medium text-green-600 mb-1">Matched Skills</div>
-                                        <div className="flex flex-wrap gap-1">
-
-                                          {resume.scores?.analysis?.matchedSkills?.length === 0 && <span className="text-xs text-muted-foreground space-y-1 list-disc list-inside">No skills matched.</span>}
-                                          {resume.scores?.analysis?.matchedSkills?.map((skill, index) => (
-                                            <Badge key={index} variant="secondary" className="text-xs">
-                                              {skill}
-                                            </Badge>
-                                          ))}
-                                        </div>
-                                    </div>
-      
-
-                                    {/* Missing Skills */}
-                                    <div>
-                                      <div className="text-sm font-medium text-amber-600 mb-1">Missing Skills</div>
-                                      <div className="flex flex-wrap gap-1">
-                                        {resume.scores?.analysis?.missingSkills?.map((skill, index) => (
-                                          <Badge key={index} variant="outline" className="text-xs">
-                                            {skill}
-                                          </Badge>
-                                        ))}
-                                      </div>
+                                  <div className="space-y-2">
+                                    <h3 className="font-semibold">Skills</h3>
+                                    <div className="flex flex-wrap gap-1.5">
+                                      {resume.searchable_skills?.map((skill, index) => (
+                                        <Badge 
+                                          key={index} 
+                                          variant="secondary"
+                                          className="text-sm px-2 py-0.5"
+                                          title={skill}
+                                        >
+                                          {skill}
+                                        </Badge>
+                                      ))}
                                     </div>
                                   </div>
 

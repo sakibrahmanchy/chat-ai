@@ -26,7 +26,9 @@ import {
   Copy,
   Loader2,
   Pencil,
-  PlusCircle
+  PlusCircle,
+  List,
+  User2Icon
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "@/hooks/use-toast";
@@ -150,17 +152,17 @@ export function JobDetailsPreview({
   };
 
   return (
-    <div className="rounded-xl border bg-white shadow-2xl overflow-hidden max-w-[1400px] mx-auto backdrop-blur-sm backdrop-saturate-150">
+    <div className="rounded-xl border bg-white shadow-2xl overflow-hidden max-w-[1400px] mx-auto">
       {/* Enhanced Header */}
       <div className="border-b bg-gradient-to-r from-slate-50 to-white p-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex flex-wrap items-center gap-2 sm:gap-4">
             <h3 className="font-semibold text-lg text-slate-800">{job.title}</h3>
-            <Badge variant="success" className="h-6 bg-emerald-50 text-emerald-700 hover:bg-emerald-100">
+            <Badge variant="secondary" className="h-6 bg-emerald-50 text-emerald-700 hover:bg-emerald-100">
               {job.status}
             </Badge>
           </div>
-          <div className="flex gap-2 self-end sm:self-auto">
+          <div className="flex gap-2">
             <Button
               variant="outline"
               className="gap-2"
@@ -261,9 +263,9 @@ export function JobDetailsPreview({
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-slate-200">
+      <div className="sm:flex lg:grid sm:-p-4 sm:grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-slate-200">
         {/* Main Content */}
-        <div className="lg:col-span-8 p-4 sm:p-6">
+        <div className="sm:col-span-1 lg:col-span-8 p-4 sm:p-6">
           {/* Stats Grid - Enhanced Mobile Layout */}
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-6 sm:mb-8">
             {[
@@ -327,17 +329,31 @@ export function JobDetailsPreview({
 
           {/* Top Candidates Section */}
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-2 lg:flex-row lg:items-center justify-between">
               <h4 className="font-medium">Top Candidates</h4>
-              <Button
-                variant="outline"
-                size="sm"
-                asChild
-              >
-                <Link href={`/dashboard/jobs/${job.id}/matches`}>
-                  View All Candidates
-                </Link>
-              </Button>
+              <div className="flex items-center gap-2 lg:justify-end ">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  asChild
+                >
+                  <Link href={`/dashboard/jobs/${job.id}/lists`}>
+                    <List className="h-4 w-4" />
+                    Saved Lists
+                  </Link>
+                </Button>
+                <Button
+                  variant="default"
+                  size="sm"
+                  asChild
+                >
+
+                  <Link href={`/dashboard/jobs/${job.id}/matches`}>
+                    <User2Icon className="h-4 w-4" />
+                    View All Candidates
+                  </Link>
+                </Button>
+              </div>
             </div>
             {candidates.length > 0 ? (
               <div className="grid gap-4">
