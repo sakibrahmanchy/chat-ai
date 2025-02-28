@@ -64,65 +64,6 @@ interface CandidateListViewProps {
   skipDataFetch?: boolean;
 }
 
-// Add proper filter type
-interface Filters {
-  search: string;
-  matchScore: [number, number];
-  skills: string[];
-  experiences: 'any' | 'entry' | 'mid' | 'senior' | 'lead';
-  location: 'any' | 'remote' | 'onsite' | 'hybrid';
-  showFilters: boolean;
-}
-
-// First, let's define proper types for our Supabase data structure
-interface ParsedContent {
-  full_name: string;
-  occupation: string;
-  education: Array<{
-    degree_name: string;
-    school: string;
-    starts_at?: string;
-    ends_at?: string;
-  }>;
-  experiences: Array<{
-    title: string;
-    company: string;
-    starts_at: string;
-    ends_at?: string;
-  }>;
-  skills: string[];
-  total_experience_in_months: number;
-  city?: string;
-  state?: string;
-  country?: string;
-  personal_emails?: string[];
-  personal_numbers?: string[];
-  skills_with_yoe?: Record<string, { name: string; years: number }>;
-}
-
-interface ResumeScores {
-  overallScore: number;
-  skillsScore: number;
-  experienceScore: number;
-  educationScore: number;
-  roleMatchScore?: number;
-  analysis: {
-    matchedSkills: string[];
-    missingSkills: string[];
-    strengthAreas: string[];
-    improvementAreas: string[];
-    experienceAnalysis: string;
-    educationAnalysis: string;
-    overallFeedback: string;
-  };
-  metadata: {
-    processing_time: number;
-    confidence_score: number;
-    processed_at: string;
-    file_url: string;
-  };
-}
-
 // Update the helper functions to use the new types
 const getEducation = (resume: Resume) => {
   const education = resume.parsed_content?.education;
@@ -187,7 +128,7 @@ export function CandidateListView({
     loadLocations();
   }, [userId, jobId]);
 
-  
+
   const [filters, setFilters] = useState({
     showFilters: showFiltersDefault,
     skills: initialFilters?.skills || [],
@@ -251,7 +192,7 @@ export function CandidateListView({
       await scoreResume(resume.id, jobId);
 
       loadInitialData();
-      
+
       toast({
         title: "Success",
         description: "Match score updated successfully",
@@ -354,7 +295,7 @@ export function CandidateListView({
 
   const formatDate = (date: { month: number; year: number } | string | undefined) => {
     if (!date) return 'Present';
-    
+
     if (typeof date === 'string') {
       return new Intl.DateTimeFormat('en-US', {
         year: 'numeric',
@@ -545,8 +486,8 @@ export function CandidateListView({
                                 </p>
                               </div>
 
-                               {/* Middle: Location & Date */}
-                               <div className="flex gap-3 text-xs text-muted-foreground w-[180px] min-w-[180px]">
+                              {/* Middle: Location & Date */}
+                              <div className="flex gap-3 text-xs text-muted-foreground w-[180px] min-w-[180px]">
                                 {resume.location?.country && (
                                   <div className="flex items-center gap-1">
                                     <MapPin className="h-3 w-3" />
@@ -600,8 +541,8 @@ export function CandidateListView({
                               <div className="hidden lg:flex min-w-[200px]">
                                 <div className="flex flex-wrap gap-1 max-w-[300px]">
                                   {resume.searchable_skills?.slice(0, 3).map((skill, index) => (
-                                    <Badge 
-                                      key={index} 
+                                    <Badge
+                                      key={index}
                                       variant="secondary"
                                       className="text-xs px-1.5 py-0 truncate max-w-[150px]"
                                       title={skill}
@@ -610,8 +551,8 @@ export function CandidateListView({
                                     </Badge>
                                   ))}
                                   {(resume.searchable_skills?.length || 0) > 3 && (
-                                    <Badge 
-                                      variant="outline" 
+                                    <Badge
+                                      variant="outline"
                                       className="text-xs px-1.5 py-0"
                                     >
                                       +{(resume.searchable_skills?.length || 0) - 3}
@@ -762,23 +703,20 @@ export function CandidateListView({
                                     <div className="space-y-1">
                                       <div className="flex justify-between text-sm">
                                         <span>Skills Match</span>
-                                        <span className="font-medium">{(resume.scores?.skillsScore || 0).toFixed(1)}/10</span>
+                                        <span className="font-medium">{(resume.scores?.skills_score || 0).toFixed(1)}/10</span>
                                       </div>
-                                      <Progress value={resume.scores?.skillsScore * 10} className="h-2" />
-                                      <div className="text-xs text-muted-foreground mt-1">
-                                        {resume.scores?.analysis?.matchedSkills?.join(', ')}
-                                      </div>
+                                      <Progress value={resume.scores?.skills_score * 10} className="h-2" />
                                     </div>
 
                                     {/* Experience Score */}
                                     <div className="space-y-1">
                                       <div className="flex justify-between text-sm">
                                         <span>Experience Match</span>
-                                        <span className="font-medium">{(resume.scores?.experienceScore || 0)?.toFixed(1)}/10</span>
+                                        <span className="font-medium">{(resume.scores?.experience_score || 0)?.toFixed(1)}/10</span>
                                       </div>
-                                      <Progress value={resume.scores?.experienceScore * 10} className="h-2" />
+                                      <Progress value={resume.scores?.experience_score * 10} className="h-2" />
                                       <div className="text-xs text-muted-foreground mt-1">
-                                        {resume.scores?.analysis?.experienceAnalysis}
+                                        {resume.scores?.analysis?.experience_analysis}
                                       </div>
                                     </div>
 
@@ -786,23 +724,23 @@ export function CandidateListView({
                                     <div className="space-y-1">
                                       <div className="flex justify-between text-sm">
                                         <span>Education Match</span>
-                                        <span className="font-medium">{(resume.scores?.educationScore || 0)?.toFixed(1)}/10</span>
+                                        <span className="font-medium">{(resume.scores?.education_score || 0)?.toFixed(1)}/10</span>
                                       </div>
-                                      <Progress value={resume.scores?.educationScore * 10} className="h-2" />
+                                      <Progress value={resume.scores?.education_score * 10} className="h-2" />
                                       <div className="text-xs text-muted-foreground mt-1">
-                                        {resume.scores?.analysis?.educationAnalysis}
+                                        {resume.scores?.analysis?.education_analysis}
                                       </div>
                                     </div>
 
                                     {/* Role Match Score */}
                                     {/* {resume.scores?.roleMatchScore && ( */}
-                                      <div className="space-y-1">
+                                    {/* <div className="space-y-1">
                                         <div className="flex justify-between text-sm">
                                           <span>Role Fit</span>
                                           <span className="font-medium">{(resume?.scores?.roleMatchScore || 0)?.toFixed(1)}/10</span>
                                         </div>
                                         <Progress value={resume?.scores?.roleMatchScore  || 0 * 10} className="h-2" />
-                                      </div>
+                                      </div> */}
                                     {/* )} */}
                                   </div>
                                 </div>
@@ -810,29 +748,56 @@ export function CandidateListView({
                                 {/* Detailed Analysis */}
                                 <div className="space-y-4">
                                   {/* Overall Feedback */}
-                                  {resume.scores?.analysis?.educationAnalysis && (
+                                  {resume.scores?.analysis?.education_analysis && (
                                     <div>
                                       <div className="text-sm font-medium mb-1">Overall Analysis</div>
                                       <p className="text-sm text-muted-foreground">
-                                        {resume.scores.analysis.educationAnalysis}
+                                        {resume.scores.analysis.education_analysis}
                                       </p>
                                     </div>
                                   )}
 
                                   {/* Skill Analysis */}
-                                  <div className="space-y-2">
-                                    <h3 className="font-semibold">Skills</h3>
-                                    <div className="flex flex-wrap gap-1.5">
-                                      {resume.searchable_skills?.map((skill, index) => (
-                                        <Badge 
-                                          key={index} 
-                                          variant="secondary"
-                                          className="text-sm px-2 py-0.5"
-                                          title={skill}
-                                        >
-                                          {skill}
-                                        </Badge>
-                                      ))}
+                                  <div className="flex flex-col gap-2">
+
+
+                                    <div className="flex flex-row justify-evenly">
+                                      <div className="flex-1">
+                                        <h3 className="font-semibold">Matching Skills</h3>
+                                        <div className="flex flex-wrap gap-1.5">
+                                          {resume?.scores?.analysis?.matched_skills?.length > 0 ? (
+                                            resume?.scores?.analysis?.matched_skills?.map((skill, index) => (
+                                              <Badge
+                                                key={index}
+                                                variant="secondary"
+                                                className="text-sm px-2 py-0.5"
+                                                title={skill}
+                                              >
+                                                {skill}
+                                              </Badge>
+                                            ))) : (
+                                            <p className="text-xs text-muted-foreground">No matching skills</p>
+                                          )}
+                                        </div>
+                                      </div>
+                                      <div className="flex-1">
+                                        <h3 className="font-semibold">Missing Skills</h3>
+                                        <div className="flex flex-wrap gap-1.5">
+                                          {resume?.scores?.analysis?.missing_skills?.length > 0 ? (
+                                            resume?.scores?.analysis?.missing_skills?.map((skill, index) => (
+                                              <Badge
+                                                key={index}
+                                                variant="secondary"
+                                                className="text-sm px-2 py-0.5"
+                                                title={skill}
+                                              >
+                                                {skill}
+                                              </Badge>
+                                            ))) : (
+                                            <p className="text-xs text-muted-foreground">No missing skills</p>
+                                          )}
+                                        </div>
+                                      </div>
                                     </div>
                                   </div>
 
@@ -842,7 +807,7 @@ export function CandidateListView({
                                     <div>
                                       <div className="text-sm font-medium text-green-600 mb-1">Key strengthAreas</div>
                                       <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
-                                        {resume.scores?.analysis?.strengthAreas?.map((strength, index) => (
+                                        {resume.scores?.analysis?.strengths?.map((strength: string, index: number) => (
                                           <li key={index}>{strength}</li>
                                         ))}
                                       </ul>
@@ -852,7 +817,7 @@ export function CandidateListView({
                                     <div>
                                       <div className="text-sm font-medium text-amber-600 mb-1">Areas for Improvement</div>
                                       <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
-                                        {resume.scores?.analysis?.improvementAreas?.map((area, index) => (
+                                        {resume.scores?.analysis?.weaknesses?.map((area: string, index: number) => (
                                           <li key={index}>{area}</li>
                                         ))}
                                       </ul>

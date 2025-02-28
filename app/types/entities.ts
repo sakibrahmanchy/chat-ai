@@ -256,26 +256,6 @@ interface Skill extends BaseEntity {
   parentSkillId?: string;
 }
 
-// Resume Score
-interface ResumeScore extends BaseEntity {
-  resumeId: string;
-  jobId: string;
-  candidateId: string;
-  // Queryable scores
-  overallScore: number;
-  skillsScore: number;
-  experienceScore: number;
-  educationScore: number;
-  locationScore: number;
-  // Arrays for filtering
-  matchedSkills: string[];
-  missingSkills: string[];
-  // Embedded analysis data
-  analysis: JsonObject;
-  // Metadata
-  scoringVersion: string;
-  confidence: number;
-}
 
 // Activity Tracking
 interface Activity extends BaseEntity {

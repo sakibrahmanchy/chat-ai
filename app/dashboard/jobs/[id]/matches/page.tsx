@@ -2,6 +2,7 @@ import { CandidateListView } from "@/components/smarthrflow/candidate-list-view"
 import { createClient } from '@supabase/supabase-js';
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import { Resume } from "@/app/types/resume";
 
 // Create a server-side Supabase client
 const supabase = createClient(
@@ -83,7 +84,7 @@ export default async function JobPage({
 
     return (
       <CandidateListView 
-        initialResumes={resumes} 
+        initialResumes={resumes as Resume[]} 
         jobId={jobId} 
         jobTitle={job.title}
         userId={userId}

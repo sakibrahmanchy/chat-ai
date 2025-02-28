@@ -1,3 +1,4 @@
+import { ResumeScore } from "./resume-score"
 
 export interface ParsedContent {
   city: string
@@ -110,51 +111,5 @@ export interface Resume {
   job_id?: string;
   user_id?: string;
   overall_score: number;
-  scores: {
-    analysis: {
-      matchedSkills: string[];
-      missingSkills: string[];
-      strengthAreas: string[];
-      skillsAnalysis: string;
-      overallFeedback: string;
-      improvementAreas: string[];
-      educationAnalysis: string;
-      experienceAnalysis: string;
-    };
-    rawScores: {
-      ai: {
-        analysis: {
-          matchedSkills: string[];
-          missingSkills: string[];
-          strengthAreas: string[];
-          skillsAnalysis: string;
-          overallFeedback: string;
-          improvementAreas: string[];
-          educationAnalysis: string;
-          experienceAnalysis: string;
-        };
-        skillsScore: number;
-        averageScore: number;
-        overallScore: number;
-        educationScore: number;
-        roleMatchScore: number;
-        experienceScore: number;
-      };
-      calculated: {
-        skillsMatch: number;
-        overallScore: number;
-        locationMatch: number;
-        missingSkills: string[];
-        educationMatch: number;
-        matchingSkills: string[];
-        experienceMatch: number;
-      };
-    };
-    lastUpdated: string;
-    skillsScore: number;
-    overallScore: number;
-    educationScore: number;
-    roleMatchScore: number;
-    experienceScore: number;
-  }
+  scores: ResumeScore;
 } 

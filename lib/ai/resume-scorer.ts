@@ -3,6 +3,7 @@ import { OpenAI } from 'openai';
 import { Resume } from '@/app/types/resume';
 import { Job } from '@/app/types/job';
 import { createClient } from '@supabase/supabase-js';
+import { ResumeScore } from '@/app/types/resume-score';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -45,6 +46,10 @@ const RESPONSE_FORMAT = {
       overallScore: {
         type: "number",
         description: "Score out of 10 for overall match"
+      },
+      averageScore: {
+        type: "number",
+        description: "Average score of the candidate out of 10"
       },
       analysis: {
         type: "object",
@@ -99,6 +104,10 @@ export async function scoreResume(resumeId: number, jobId: string): Promise<Scor
 
     // Get initial score calculation
     const initialScore = calculateInitialScore(resume.parsed_content, job);
+
+    console.log({ initialScore })
+
+    console.log({ aiAnalysis })
 
     // Combine scores with weights (70% AI, 30% calculated)
     const combinedScores = {
@@ -186,14 +195,15 @@ export async function scoreResume(resumeId: number, jobId: string): Promise<Scor
             strengths: finalScores.analysis.strengthAreas,
             weaknesses: finalScores.analysis.improvementAreas,
             experience_analysis: finalScores.analysis.experienceAnalysis,
-            education_analysis: finalScores.analysis.educationAnalysis || ''
+            education_analysis: finalScores.analysis.educationAnalysis || '',
+            overall_feedback: finalScores.analysis.overallFeedback
           },
           metadata: {
             processing_time: Date.now() - startTime,
             // confidence_score: aiAnalysis.confidence || 0.8,
             processed_at: new Date().toISOString()
           }
-        },
+        } as ResumeScore,
         overall_score: finalScores.overallScore,
         updated_at: new Date().toISOString()
       })
@@ -212,12 +222,12 @@ export async function scoreResume(resumeId: number, jobId: string): Promise<Scor
 }
 
 // Helper function to calculate initial score (moved from resume-processor.ts)
-function calculateInitialScore(parsedContent: any, job: any) {
+function calculateInitialScore(parsedContent: Resume['parsed_content'], job: Job) {
   let score = 0;
   const maxScore = 10;
 
   // Skills match (40% weight)
-  const requiredSkills = new Set(job.requiredSkills?.map((s: string) => s.toLowerCase()) || []);
+  const requiredSkills = new Set(job.required_skills?.map((s: string) => s.toLowerCase()) || []);
   
   // Handle different skill formats
   let candidateSkills: Set<string>;
@@ -243,16 +253,16 @@ function calculateInitialScore(parsedContent: any, job: any) {
   const educationScore = parsedContent.education?.length ? 2 : 0;
 
   // Location match (10% weight)
-  const locationScore = 1; // Default for now
+  // const locationScore = 1; // Default for now
 
-  score = skillsScore + experienceScore + educationScore + locationScore;
+  score = skillsScore + experienceScore + educationScore;
 
   return {
     overallScore: Math.min(Math.round(score * 10) / 10, 10),
     skillsMatch: Math.round((skillsScore / 4) * 100),
     experienceMatch: Math.round((experienceScore / 3) * 100),
     educationMatch: Math.round((educationScore / 2) * 100),
-    locationMatch: Math.round(locationScore * 100),
+    // locationMatch: Math.round(locationScore * 100), // Default for now
     matchingSkills,
     missingSkills: [...requiredSkills].filter(skill => !candidateSkills.has(skill))
   };
@@ -263,52 +273,45 @@ async function analyzeResume(resume: Resume, job: Job) {
   try {
     const { parsed_content: parsedContent } = resume;
 
-    console.log({ job })
 
-    const prompt = `
-      Analyze this resume against the job requirements and provide a detailed scoring.
+    const aiPrompt = ` You are an expert HR professional and resume analyzer. You frequently analyze resumes and provide 
+    detailed analysis and accurate scoring  based on the match between the resume and job requirements for top companies 
+    looking for top talent.`;
 
-      Very Important: Your scoring MUST prioritize the special instructions above everything else.
-      Repeat: Prioritize special instructions, override job description and requirements and everything else for analysis and scoring both.
-      
-      Job Details:
+    const taskPrompt = `You are given a resume and a job description. You need to analyze the resume and provide a detailed analysis and accurate scoring 
+    based on the match between the resume and job requirements.`;
+
+    const jobPromptRegular = `Job Details:
       Title: ${job.title}
       Required Skills: ${job.required_skills?.join(', ') || ''}
       Description: ${job.description || ''}
-      Requirements: ${job.requirements || ''}
-      
-      Resume Details:
+      Requirements: ${job.requirements || ''} `;
+
+    const jobPromptSpecial = `For job ${job.title} and description ${job.description} (which you can override for special instructions), 
+    with must follow special Instructions: ${job.scoring_instructions || ''} `;
+
+    const resumePrompt = `Resume Details:
       Name: ${parsedContent?.full_name || ''}
       Current Role: ${parsedContent?.occupation || ''}
       Experience: ${JSON.stringify(parsedContent?.experiences || [])}
       Education: ${JSON.stringify(parsedContent?.education || [])}
-      Skills: ${JSON.stringify(parsedContent?.skills || [])}
-      
-      Provide a detailed analysis focusing on following and must prioritize special instructions above everything else::
-      1. Skills match with required skills
-      2. Experience relevance and years
-      3. Overall fit for the role
-      4. Education relevance and years
-      5. Location match
-      6. Role match
-      7. Overall score
-      
-      Score each category from 0-10 and provide detailed feedback considering special instructions above everything else.
+      Skills: ${JSON.stringify(parsedContent?.skills || [])}`;
 
-      ${job.scoring_instructions ? 'Special Instructions: Consider & Prioritize the following scoring instructions even more than the job description and requirements,'
-        + 'specifically and count them in the scoring: ' + job.scoring_instructions : ''}
-    `;
-    console.log({ prompt })
+    const finalPrompt = job.scoring_instructions ? 
+    `${job.scoring_instructions} ${taskPrompt} ${jobPromptSpecial} ${resumePrompt} ${job.scoring_instructions}` 
+    : `${taskPrompt} ${jobPromptRegular} ${resumePrompt}`;
+
+    console.log({ finalPrompt })
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini-2024-07-18",
       messages: [
         {
           role: "system",
-          content: "You are an expert HR professional and resume analyzer. Provide detailed analysis and accurate scoring based on the match between the resume and job requirements."
+          content: aiPrompt
         },
         {
           role: "user",
-          content: prompt
+          content: finalPrompt
         }
       ],
       temperature: 0.3,
