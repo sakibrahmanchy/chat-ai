@@ -72,6 +72,17 @@ export class AdminCreditService {
     return pkg;
   }
 
+  async getPackage(id: string) {
+    const { data: pkg, error } = await supabase
+      .from('credit_packages')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) throw error;
+    return pkg;
+  }
+
   async assignCreditsToCompany(companyId: string, credits: number, notes?: string) {
     const { data: transaction, error } = await supabase
       .from('credit_transactions')
