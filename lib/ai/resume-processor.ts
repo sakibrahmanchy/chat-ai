@@ -1,11 +1,17 @@
 'use server'
 import { OpenAI } from 'openai';
 import { adminDb, adminStorage } from '@/firebase-admin';
-import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { createClient } from '@supabase/supabase-js';
 import mammoth from 'mammoth';
 import { Resume } from '@/app/types/resume';
+import pdfParse from 'pdf-parse';
 const crypto = require('crypto');
+const textract = require('textract');
+const util = require('util');
+const fs = require('fs');
+const path = require('path');
+const WordExtractor = require('word-extractor');
+const extractor = new WordExtractor();
 
 const openai = new OpenAI();
 
@@ -141,6 +147,76 @@ const RESPONSE_FORMAT = {
     required: ["full_name", "experiences", "education", "skills"]
   }
 } as const;
+
+
+function cleanExtractedText(text: string) {
+  // Normalize whitespace (replace multiple spaces with a single space)
+  let cleanedText = text.replace(/\s+/g, ' ').trim();
+
+  // Ensure consistent line breaks (replace multiple newlines with a single newline)
+  cleanedText = cleanedText.replace(/\n+/g, '\n');
+
+  // Remove any special non-ASCII characters that might cause issues
+  cleanedText = cleanedText.replace(/[^\x00-\x7F]/g, '');
+
+  // Optionally remove excessive punctuation (such as multiple dashes or dots)
+  cleanedText = cleanedText.replace(/[-–—]{2,}/g, '-'); // Replace multiple dashes with a single dash
+  cleanedText = cleanedText.replace(/\.+/g, '.'); // Replace multiple dots with a single dot
+  return cleanedText;
+}
+
+async function extractAndCleanTextFromDocBuffer(fileBuffer: Buffer) {
+  // Step 1: Write the buffer to a temporary .doc file
+  const tempFilePath = path.join(__dirname, `temp_${Date.now()}.doc`);
+  fs.writeFileSync(tempFilePath, fileBuffer);
+
+  try {
+    // Step 2: Extract text from the temporary file
+    const doc = await extractor.extract(tempFilePath);
+    const extractedText = doc.getBody();
+
+    // Step 3: Clean and normalize the extracted text
+    const cleanedText = cleanExtractedText(extractedText);
+
+    // Step 4: Clean up the temporary file
+    fs.unlinkSync(tempFilePath);
+
+    return cleanedText;
+  } catch (err) {
+    // Clean up the temporary file in case of an error
+    fs.unlinkSync(tempFilePath);
+    console.error(err);
+    throw new Error('Error extracting text from DOC file: ' + err.message);
+  }
+}
+
+async function extractTextFromFile(fileBuffer: Buffer, fileType: string, filename: string) {
+  let fileContent = '';
+  const textractFromBuffer = util.promisify(textract.fromBufferWithMime);
+  if (fileType.includes('pdf')) {
+    try {
+      const pdfData = await pdfParse(fileBuffer);
+      fileContent = pdfData.text;
+    } catch (e) {
+      fileContent = await textractFromBuffer(fileType, fileBuffer);
+    }
+  } else {
+   
+    try {
+      const fileExt = path.extname(filename)
+      if (fileExt?.toLowerCase() === '.doc') {
+        fileContent = await extractAndCleanTextFromDocBuffer(fileBuffer);
+      } else {
+        fileContent = await textractFromBuffer(fileType, fileBuffer);
+      }
+    } catch (err) {
+      console.error(err);
+      throw new Error('Error extracting text from file: ' + err.message);
+    }
+  }
+
+  return fileContent;
+}
 
 export async function processResume(fileBuffer: Buffer, jobId: string, userId: string): Promise<{ parsedData: Resume['parsed_content'], hash: string, id: number }> {
   try {
