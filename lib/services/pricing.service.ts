@@ -143,6 +143,47 @@ export class PricingService {
 
     return purchases || [];
   }
+
+  async updatePackage(data: {
+    id: string;
+    name: string;
+    description: string;
+    credits: number;
+    price: number;
+  }) {
+    const { error } = await supabase
+      .from('credit_packages')
+      .update({
+        name: data.name,
+        description: data.description,
+        credits: data.credits,
+        price: data.price,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', data.id);
+
+    if (error) throw error;
+  }
+
+  async togglePackageStatus(id: string) {
+    const { data: pkg } = await supabase
+      .from('credit_packages')
+      .select('is_active')
+      .eq('id', id)
+      .single();
+
+    if (!pkg) throw new Error('Package not found');
+
+    const { error } = await supabase
+      .from('credit_packages')
+      .update({
+        is_active: !pkg.is_active,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id);
+
+    if (error) throw error;
+  }
 }
 
 export const pricingService = PricingService.getInstance(); 

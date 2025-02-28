@@ -27,11 +27,6 @@ export default async function AdminCreditsPage() {
 
         <TabsContent value="packages">
           <div className="space-y-8">
-            <div className="flex justify-between items-center">
-              <h1 className="text-3xl font-bold">Credit Packages</h1>
-              <PackageForm />
-            </div>
-
             <Card className="p-6">
               <PackageList packages={packages} />
             </Card>
