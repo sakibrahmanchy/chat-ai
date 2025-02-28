@@ -6,11 +6,11 @@ import mammoth from 'mammoth';
 import { Resume } from '@/app/types/resume';
 import pdfParse from 'pdf-parse';
 const crypto = require('crypto');
-const textract = require('textract');
-const util = require('util');
-const fs = require('fs');
-const path = require('path');
-const WordExtractor = require('word-extractor');
+// import textract from 'textract';
+import util from 'util';
+import fs from 'fs';
+import path from 'path';
+import WordExtractor from 'word-extractor';
 const extractor = new WordExtractor();
 
 const openai = new OpenAI();
@@ -192,7 +192,10 @@ async function extractAndCleanTextFromDocBuffer(fileBuffer: Buffer) {
 
 async function extractTextFromFile(fileBuffer: Buffer, fileType: string, filename: string) {
   let fileContent = '';
-  const textractFromBuffer = util.promisify(textract.fromBufferWithMime);
+  const textract = await import('textract');
+  const textractFromBuffer = util.promisify(textract.default.fromBufferWithMime);
+
+
   if (fileType.includes('pdf')) {
     try {
       const pdfData = await pdfParse(fileBuffer);
@@ -222,18 +225,19 @@ export async function processResume(fileBuffer: Buffer, jobId: string, userId: s
   try {
     const fileType = await detectFileType(fileBuffer);
     let resumeText = '';
-    if (fileType === 'pdf') {
-      const { default: pdfParse } = await import('pdf-parse/lib/pdf-parse.js');
-      const data = await pdfParse(fileBuffer);
-      resumeText = data.text;
-    } else if (fileType === 'docx') {
-      // Parse DOCX
-      const { value } = await mammoth.extractRawText({ buffer: fileBuffer });
-      resumeText = value;
-    } else {
-      throw new Error('Unsupported file type. Please upload a PDF or DOCX file.');
-    }
-
+    // if (fileType === 'pdf') {
+    //   const { default: pdfParse } = await import('pdf-parse/lib/pdf-parse.js');
+    //   const data = await pdfParse(fileBuffer);
+    //   resumeText = data.text;
+    // } else if (fileType === 'docx') {
+    //   // Parse DOCX
+    //   const { value } = await mammoth.extractRawText({ buffer: fileBuffer });
+    //   resumeText = value;
+    // } else {
+    //   throw new Error('Unsupported file type. Please upload a PDF or DOCX file.');
+    // }
+    
+    resumeText = await extractTextFromFile(fileBuffer, fileType, 'file.pdf');
     console.log('resumeText', resumeText);
     // Generate document ID
     const hash = crypto
