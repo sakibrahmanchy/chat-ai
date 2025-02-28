@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { DemoCandidateList } from "@/components/demo-candidate-list";
-
+import { Logo } from "@/components/preview/logo";
 export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
@@ -18,14 +18,13 @@ export default function Home() {
       <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-sm border-b">
         <div className="max-w-screen-xl mx-auto flex items-center justify-between p-4">
           <Link href="/" className="flex items-center space-x-3">
-            <div className="bg-gradient-to-r from-indigo-500 to-indigo-600 p-1.5 rounded-lg shadow-md">
-              <BrainCircuit className="h-6 w-6 text-white" />
-            </div>
-            <span className="text-xl tracking-tight">
+              <Logo size={40} animated />
+
+            {/* <span className="text-xl tracking-tight">
               <span className="font-light">Smart</span>
               <span className="font-bold text-indigo-600">HR</span>
               <span className="font-medium">Flow</span>
-            </span>
+            </span> */}
           </Link>
           <div className="flex items-center gap-4">
             <AuthButton 

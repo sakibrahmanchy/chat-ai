@@ -2,6 +2,7 @@
 
 import { SignedIn, UserButton } from "@clerk/nextjs"
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "./ui/button"
 import { 
   Briefcase, 
@@ -22,6 +23,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 import { useState } from "react"
+import { Logo } from "./preview/logo";
 
 const navigationItems = [
   {
@@ -65,14 +67,7 @@ function Header() {
         {/* Enhanced Logo */}
         <div className="flex items-center">
           <Link href="/dashboard" className="flex items-center space-x-3 hover:opacity-90 transition-opacity">
-            <div className="bg-gradient-to-r from-indigo-500 to-indigo-600 p-1.5 rounded-lg shadow-md">
-              <BrainCircuit className="h-6 w-6 text-white" />
-            </div>
-            <span className="text-xl tracking-tight">
-              <span className="font-light">Smart</span>
-              <span className="font-bold text-indigo-600">HR</span>
-              <span className="font-medium">Flow</span>
-            </span>
+              <Logo size={40} animated />
           </Link>
         </div>
 
