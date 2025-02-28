@@ -46,7 +46,7 @@ export class CreditService {
     // Start transaction
     const { data: company, error: balanceError } = await supabase
       .from('company_credits')
-      .select('credits_balance')
+      .select('credits_balance, credits_used')
       .eq('company_id', companyId)
       .single();
 

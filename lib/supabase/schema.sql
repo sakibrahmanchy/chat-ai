@@ -131,4 +131,24 @@ ALTER TABLE credit_package_actions ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Public read access"
   ON credit_package_actions FOR SELECT
-  USING (true); 
+  USING (true);
+
+create table credit_requests (
+  id uuid default uuid_generate_v4() primary key,
+  company_id uuid references companies(id) not null,
+  user_id varchar(255) references users(id) not null,
+  package_id uuid references credit_packages(id) not null,
+  message text,
+  status varchar(255) not null default 'pending',
+  created_at timestamp with time zone default now(),
+  updated_at timestamp with time zone default now()
+);
+
+-- Add policies
+create policy "Users can create credit requests"
+  on credit_requests for insert
+  with check (auth.uid() = user_id);
+
+create policy "Users can view their own credit requests"
+  on credit_requests for select
+  using (auth.uid() = user_id); 

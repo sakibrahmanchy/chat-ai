@@ -4,6 +4,7 @@ import { adminDb, adminStorage } from '@/firebase-admin';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { createClient } from '@supabase/supabase-js';
 import mammoth from 'mammoth';
+import { Resume } from '@/app/types/resume';
 const crypto = require('crypto');
 
 const openai = new OpenAI();
@@ -141,83 +142,7 @@ const RESPONSE_FORMAT = {
   }
 } as const;
 
-export interface ParsedResume {
-  first_name: string;
-  middle_name: string;
-  last_name: string;
-  full_name: string;
-  occupation: string;
-  role: string;
-  headline: string;
-  summary: string;
-  country: string;
-  city: string;
-  state: string;
-  experiences: Array<{
-    starts_at: {
-      day: number;
-      month: number;
-      year: number;
-    };
-    ends_at?: {
-      day: number;
-      month: number;
-      year: number;
-    };
-    company: string;
-    title: string;
-    description: string;
-    location: string;
-    technologies: string[];
-    achievements: string[];
-  }>;
-  education: Array<{
-    starts_at: {
-      day: number;
-      month: number;
-      year: number;
-    };
-    ends_at: {
-      day: number;
-      month: number;
-      year: number;
-    };
-    field_of_study: string;
-    degree_name: string;
-    school: string;
-    description: string;
-    grade: string | null;
-    achievements: string[];
-  }>;
-  certifications: Array<{
-    starts_at: {
-      day: number;
-      month: number;
-      year: number;
-    };
-    ends_at?: {
-      day: number;
-      month: number;
-      year: number;
-    };
-    name: string;
-    license_number: string | null;
-    authority: string;
-    url: string | null;
-  }>;
-  skills: string[];
-  skills_with_yoe: Array<{
-    name: string;
-    yoe: number;
-  }>;
-  personal_emails: string[];
-  personal_numbers: string[];
-  languages: string[];
-  total_experience_in_months: number;
-  rawText: string;
-}
-
-export async function processResume(fileBuffer: Buffer, jobId: string, userId: string): Promise<{ parsedData: ParsedResume, hash: string, id: string }> {
+export async function processResume(fileBuffer: Buffer, jobId: string, userId: string): Promise<{ parsedData: Resume['parsed_content'], hash: string, id: number }> {
   try {
     const fileType = await detectFileType(fileBuffer);
     let resumeText = '';
@@ -262,7 +187,7 @@ export async function processResume(fileBuffer: Buffer, jobId: string, userId: s
     if (cachedResume) {
       console.log('Found cached resume data');
       return {
-        parsedData: cachedResume.parsed_content as ParsedResume,
+        parsedData: cachedResume.parsed_content as Resume['parsed_content'],
         hash,
         id: cachedResume.id
       };
@@ -292,7 +217,7 @@ export async function processResume(fileBuffer: Buffer, jobId: string, userId: s
       throw new Error('No content received from OpenAI');
     }
 
-    const parsedData = JSON.parse(parsedContent) as ParsedResume;
+    const parsedData = JSON.parse(parsedContent) as Resume['parsed_content'];
     parsedData.rawText = resumeText;
   
     // Validate required fields

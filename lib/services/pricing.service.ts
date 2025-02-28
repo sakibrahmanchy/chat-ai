@@ -1,9 +1,9 @@
 import { supabase } from '@/lib/supabase/client';
-import Stripe from 'stripe';
+// import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2023-10-16'
-});
+// const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+//   apiVersion: '2023-10-16'
+// });
 
 export class PricingService {
   private static instance: PricingService;
@@ -17,15 +17,34 @@ export class PricingService {
     return PricingService.instance;
   }
 
-  async getAvailablePackages(isAddon: boolean = false): Promise<any[]> {
+  async getAvailablePackages(isAddon = false) {
     const { data: packages } = await supabase
       .from('credit_packages')
       .select('*')
-      .eq('is_active', true)
       .eq('is_addon', isAddon)
-      .order('credits', { ascending: true });
-    
+      .eq('is_active', true)
+      .order('credits');
+
     return packages || [];
+  }
+
+  async requestCredits(data: {
+    companyId: string;
+    userId: string;
+    packageId: string;
+    message?: string;
+  }) {
+    const { error } = await supabase
+      .from('credit_requests')
+      .insert({
+        company_id: data.companyId,
+        user_id: data.userId,
+        package_id: data.packageId,
+        message: data.message,
+        status: 'pending'
+      });
+
+    return !error;
   }
 
   async createCheckoutSession(

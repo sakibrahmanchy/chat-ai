@@ -173,19 +173,8 @@ export async function POST(
     if (jobError) throw jobError;
 
     // Score resume using only IDs
-    const scores = await scoreResume(id, params.jobId);
+    await scoreResume(id, params.jobId);
 
-    // Update resume with scores
-    const { error: updateError } = await supabase
-      .from('resumes')
-      .update({ 
-        scores,
-        overall_score: scores.overallScore,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', id);
-
-    if (updateError) throw updateError;
 
     // Generate a UUID for activity logging
     const activityId = uuidv4();
