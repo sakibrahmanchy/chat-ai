@@ -4,16 +4,7 @@ import { adminDb, adminStorage } from '@/firebase-admin';
 import { createClient } from '@supabase/supabase-js';
 import mammoth from 'mammoth';
 import { Resume } from '@/app/types/resume';
-import { PDFDocument } from 'pdf-lib';
 const crypto = require('crypto');
-import pdf2json from 'pdf2json';
-// import textract from 'textract';
-// import util from 'util';
-// import fs from 'fs';
-// import path from 'path';
-// // import WordExtractor from 'word-extractor';
-// const extractor = new WordExtractor();
-
 const openai = new OpenAI();
 
 // Create a server-side Supabase client
@@ -149,94 +140,6 @@ const RESPONSE_FORMAT = {
   }
 } as const;
 
-
-// Utility function to clean extracted text
-function cleanExtractedText(text: string) {
-  // Normalize whitespace (replace multiple spaces with a single space)
-  let cleanedText = text.replace(/\s+/g, ' ').trim();
-
-  // Ensure consistent line breaks (replace multiple newlines with a single newline)
-  cleanedText = cleanedText.replace(/\n+/g, '\n');
-
-  // Remove any special non-ASCII characters that might cause issues
-  cleanedText = cleanedText.replace(/[^\x00-\x7F]/g, '');
-
-  // Remove email addresses (simple pattern, could be extended)
-  cleanedText = cleanedText.replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g, '[EMAIL REMOVED]');
-
-  // Remove phone numbers (simple pattern, could be extended)
-  cleanedText = cleanedText.replace(/\b\d{10}\b/g, '[PHONE REMOVED]');
-
-  // Remove excessive punctuation (e.g., multiple dashes or periods)
-  cleanedText = cleanedText.replace(/[-–—]{2,}/g, '-'); // Replace multiple dashes with a single dash
-  cleanedText = cleanedText.replace(/\.+/g, '.'); // Replace multiple dots with a single dot
-
-  // Optionally, remove HTML tags (for extra security in case the content is displayed on web)
-  cleanedText = cleanedText.replace(/<\/?[^>]+(>|$)/g, "");
-
-  return cleanedText;
-}
-
-// Extract and clean text from the resume file
-async function extractResumeText(fileBuffer: Buffer, fileType: string) {
-  let resumeText = '';
-
-  if (fileType === 'pdf') {
-    try {
-      // Attempt to parse with pdf-parse
-      const { default: pdfParse } = await import('pdf-parse/lib/pdf-parse.js');
-      const data = await pdfParse(fileBuffer);
-      resumeText = data.text;
-    } catch (error) {
-      console.error('pdf-parse failed, falling back to pdf-lib:', error);
-
-      try {
-        // Fallback to pdf-lib
-        const pdfDoc = await PDFDocument.load(fileBuffer);
-        const pages = pdfDoc.getPages();
-        resumeText = '';
-
-        for (const page of pages) {
-          const textContent = await page.getTextContent();  // This part needs to be replaced as pdf-lib doesn't support getTextContent.
-          resumeText += textContent.items.map(item => item.str).join(' ') + '\n';
-        }
-      } catch (fallbackError) {
-        console.error('pdf-lib failed as well:', fallbackError);
-
-        // Fallback to pdf2json
-        try {
-          const pdfParser = new pdf2json();
-          resumeText = await new Promise((resolve, reject) => {
-            pdfParser.on('pdfParser_dataError', err => reject(err));
-            pdfParser.on('pdfParser_dataReady', () => {
-              const text = pdfParser.getRawTextContent();
-              resolve(text);
-            });
-            pdfParser.parseBuffer(fileBuffer);
-          });
-        } catch (pdf2jsonError) {
-          console.error('pdf2json failed as well:', pdf2jsonError);
-          throw new Error('Error extracting text from PDF: All libraries failed.');
-        }
-      }
-    }
-  } else if (fileType === 'docx') {
-    try {
-      // Parse DOCX using mammoth
-      const { value } = await mammoth.extractRawText({ buffer: fileBuffer });
-      resumeText = value;
-    } catch (docxError) {
-      console.error('Error parsing DOCX:', docxError);
-      throw new Error('Error extracting text from DOCX file.');
-    }
-  } else {
-    throw new Error('Unsupported file type. Please upload a PDF or DOCX file.');
-  }
-
-  // Clean the extracted text to ensure it is properly formatted and secure
-  return cleanExtractedText(resumeText);
-}
-
 export async function processResume(fileBuffer: Buffer, jobId: string, userId: string): Promise<{ parsedData: Resume['parsed_content'], hash: string, id: number }> {
   try {
     const fileType = await detectFileType(fileBuffer);
@@ -247,7 +150,7 @@ export async function processResume(fileBuffer: Buffer, jobId: string, userId: s
     formData.append('fileBuffer', new Blob([fileBuffer]), `file.${fileType}`);
     formData.append('fileType', fileType);
 
-    const responseFromParser = await fetch(`http://localhost:8080/extract-text`, {
+    const responseFromParser = await fetch(`https://textract-cloud-run-568768904673.us-central1.run.app/extract-text`, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',

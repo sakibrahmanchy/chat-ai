@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Table,
   TableBody,
@@ -21,6 +21,13 @@ import {
 import { adminCreditService } from "@/lib/services/admin/credit.service";
 import { toast } from "@/hooks/use-toast";
 import { PackageForm } from "./package-form";
+import { DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Dialog } from "@/components/ui/dialog";
+import { DialogHeader } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DialogDescription } from "@radix-ui/react-dialog";
+import { adminCompanyService } from "@/lib/services/admin/company.service";
+import { creditService } from "@/lib/services/credits.service";
 
 interface CreditPackage {
   id: string;
@@ -40,7 +47,9 @@ interface PackageListProps {
 export function PackageList({ packages }: PackageListProps) {
   const [packageList, setPackageList] = useState(packages);
   const [editingPackage, setEditingPackage] = useState<CreditPackage | null>(null);
-  console.log({ editingPackage });
+  const [assigningPackage, setAssigningPackage] = useState<CreditPackage | null>(null);
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
 
   const handleStatusChange = async (id: string, isActive: boolean) => {
     try {
@@ -63,6 +72,14 @@ export function PackageList({ packages }: PackageListProps) {
     }
   };
 
+  useEffect(() => {
+    const fetchCompanies = async () => {
+      const companies = await adminCompanyService.getAllCompanies();
+      setCompanies(companies);
+    };
+    fetchCompanies();
+  }, []);
+  console.log(assigningPackage);
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
@@ -131,6 +148,12 @@ export function PackageList({ packages }: PackageListProps) {
                         Activate
                       </DropdownMenuItem>
                     )}
+                    <DropdownMenuItem onClick={() => {
+                      setAssigningPackage(pkg);
+                    }}>
+                      <Edit2 className="mr-2 h-4 w-4" />
+                      Assign to Company
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>
@@ -147,6 +170,45 @@ export function PackageList({ packages }: PackageListProps) {
             // Refresh package list or handle success
           }}
         />
+      )}
+      {assigningPackage && (
+        <Dialog open={!!assigningPackage} onOpenChange={() => setAssigningPackage(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Assign Package to Company</DialogTitle>
+            </DialogHeader>
+            <DialogDescription>
+              Select a company to assign the package to.
+              <Select onValueChange={(value) => {
+                console.log('selected company', value);
+                setSelectedCompany(value as string);
+              }}>
+                <SelectTrigger className="mt-4">
+                  <SelectValue placeholder="Select a company" />
+                </SelectTrigger>
+                <SelectContent className="bg-white">
+                  {companies.map((company) => (
+                    <SelectItem key={company.id} value={company.id}>
+                      {company.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              <Button onClick={async () => {
+                    console.log('assigning package', assigningPackage);
+                    await creditService.addCreditPackageToCompany(selectedCompany, assigningPackage.id);
+                    toast({
+                      title: "Package assigned",
+                      description: "Package has been assigned to the company.",
+                    });
+                    setAssigningPackage(null);
+                  }} className="mt-4">
+                    Assign
+                  </Button>
+            </DialogDescription>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

@@ -78,25 +78,12 @@ async function getJobs(userId: string) {
 
     .order('created_at', { ascending: false });
 
-  console.log({ jobs })
+  if (error) {
+    console.error('Error fetching jobs:', error);
+    return [];
+  }
 
-  return jobs.map(data => ({
-      ...data,
-      // Convert Firestore timestamps to ISO strings
-      createdAt: data.createdAt?.toDate().toISOString(),
-      updatedAt: data.updatedAt?.toDate().toISOString(),
-      // Ensure required fields exist
-      requiredSkills: data.requiredSkills || data.skills || [],
-      location_structured: data.location_structured || {
-        city: data.location?.city,
-        state: data.location?.state,
-        country: data.location?.country
-      },
-      employmentType: data.employmentType || data.type,
-      totalApplications: data.totalApplications || 0,
-      totalViews: data.totalViews || 0,
-      status: data.status || 'active'
-    } as Job));
+  return jobs;
 }
 
 export default async function JobsPage() {

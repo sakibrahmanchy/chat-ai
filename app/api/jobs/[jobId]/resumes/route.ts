@@ -161,6 +161,7 @@ export async function POST(
 
     const formData = await req.formData();
     const file = formData.get('resume') as File;
+
     if (!file) {
       return new NextResponse('No file uploaded', { status: 400 });
     }
@@ -175,6 +176,9 @@ export async function POST(
     // Score resume using only IDs
     await scoreResume(id, params.jobId);
 
+    await supabase.from('jobs').update({
+      total_applications: job.total_applications + 1
+    }).eq('id', params.jobId);
 
     // Generate a UUID for activity logging
     const activityId = uuidv4();

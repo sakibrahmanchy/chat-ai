@@ -13,21 +13,20 @@ export class AdminCompanyService {
   }
 
   async getAllCompanies() {
-    const { data: companies } = await supabase
+    const { error, data: companies } = await supabase
       .from('companies')
       .select(`
         *,
         users: users(count),
-        jobs: jobs(count),
-        credit_balance: credits(sum)
+        jobs: jobs(count)
       `)
       .order('created_at', { ascending: false });
-
+    console.log(companies, error);
     return companies?.map(company => ({
       id: company.id,
       name: company.name,
       status: company.status,
-      credits: company.credit_balance?.sum || 0,
+    credits: company.credit_balance?.sum || 0,
       usersCount: company.users[0]?.count || 0,
       jobsCount: company.jobs[0]?.count || 0,
       createdAt: company.created_at,

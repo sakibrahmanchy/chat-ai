@@ -84,13 +84,19 @@ export class AdminCreditService {
   }
 
   async assignCreditsToCompany(companyId: string, credits: number, notes?: string) {
+
+    const { data: companyCredits, error: companyCreditsError } = await supabase
+      .from('company_credits')
+      .select('credits_balance, credits_used')
+      .eq('company_id', companyId)
+      .single();
+
     const { data: transaction, error } = await supabase
       .from('credit_transactions')
       .insert({
         company_id: companyId,
-        amount: credits,
-        type: 'admin_assignment',
-        notes,
+        credits_added: credits,
+        action_type: 'admin_assignment',
         created_at: new Date().toISOString()
       })
       .select()
@@ -98,13 +104,25 @@ export class AdminCreditService {
 
     if (error) throw error;
 
-    // Update company credits
-    const { error: updateError } = await supabase.rpc('add_company_credits', {
-      p_company_id: companyId,
-      p_amount: credits
-    });
+    // // Update company credits
+    // const { error: updateError } = await supabase.rpc('add_company_credits', {
+    //   p_company_id: companyId,
+    //   p_amount: credits
+    // });
 
-    if (updateError) throw updateError;
+      // Add company credits
+    const { error: insertError } = await supabase
+      .from('company_credits')
+      .insert({
+        company_id: companyId,
+        credits_balance: companyCredits?.credits_balance || 0  + credits,
+        credits_used: companyCredits?.credits_used || 0,
+        last_topped_up: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
+
+    if (insertError) throw insertError;
 
     return transaction;
   }

@@ -12,6 +12,7 @@ import { supabase } from '@/lib/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Progress } from '@/components/ui/progress';
 
+
 interface ResumeData {
   full_name: string;
   first_name: string;
@@ -235,7 +236,7 @@ export function ResumeUploader({ jobId }: { jobId: string }) {
       setProgress(0);
     }
   };
-  console.log(resumeData)
+
   return (
     <Card>
       <CardHeader>

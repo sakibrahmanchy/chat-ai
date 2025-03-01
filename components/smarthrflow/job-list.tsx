@@ -5,40 +5,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getRelativeTimeString } from "@/lib/utils";
 import Link from "next/link";
-import { Eye, Upload } from "lucide-react";
-
-interface Job {
-  id: string;
-  title: string;
-  description: string;
-  company: string;
-  location: string;
-  type: string;
-  requiredSkills?: string[];
-  createdAt: Date;
-  status: string;
-  applicantsCount?: number;
-  location_structured?: {
-    city: string;
-    state: string;
-    country: string;
-  };
-  employmentType?: string;
-  experienceRequired?: number;
-  salaryRange?: {
-    min: number;
-    max: number;
-    currency: string;
-  };
-  requirements?: string;
-  responsibilities?: string;
-  qualifications?: string;
-  benefits?: string;
-  department?: string;
-  totalApplications?: number;
-  totalViews?: number;
-  updatedAt?: Date;
-}
+import { Eye, MapPin, Upload, Pause, Play } from "lucide-react";
+import { Job } from "@/app/types/job";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/lib/supabase/client";
+import { cn } from "@/lib/utils";
 
 interface JobListProps {
   jobs: Job[];
@@ -49,7 +21,45 @@ function stripHtml(html: string) {
   return doc.body.textContent?.replace(/\s+/g, ' ').trim() || '';
 }
 
-export function JobList({ jobs }: JobListProps) {
+export function JobList({ jobs: initialJobs }: JobListProps) {
+  const [jobs, setJobs] = useState(initialJobs);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const { toast } = useToast();
+
+  const toggleJobStatus = async (jobId: string, currentStatus: string) => {
+    try {
+      setUpdatingId(jobId);
+      const newStatus = currentStatus === 'active' ? 'draft' : 'active';
+
+      const { error } = await supabase
+        .from('jobs')
+        .update({ status: newStatus })
+        .eq('id', jobId);
+
+      if (error) throw error;
+
+      setJobs(jobs.map(job => 
+        job.id === jobId 
+          ? { ...job, status: newStatus }
+          : job
+      ));
+
+      toast({
+        title: `Job ${newStatus === 'active' ? 'activated' : 'paused'} successfully`,
+        description: `The job posting is now ${newStatus}.`,
+      });
+    } catch (error) {
+      console.error('Error updating job status:', error);
+      toast({
+        title: "Error updating job status",
+        description: "Please try again later.",
+        variant: "destructive"
+      });
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
   return (
     <div className="space-y-4">
       {jobs.map((job) => (
@@ -58,26 +68,32 @@ export function JobList({ jobs }: JobListProps) {
             <div className="flex flex-col sm:flex-row justify-between gap-4">
               <div className="space-y-2">
                 <div className="flex items-start justify-between gap-4">
-                  <CardTitle className="line-clamp-2">{job.title}</CardTitle>
-                  <Badge variant="secondary" className="hidden sm:inline-flex">
-                    {job.status}
-                  </Badge>
+                  <CardTitle className="line-clamp-2 flex gap-2 items-center">
+                    {job.title}
+                    <Badge className={cn(
+                      "hidden sm:inline-flex",
+                      job.status === 'active' ? "bg-violet-500" :
+                      job.status === 'draft' ? "bg-yellow-500" :
+                      "text-white"
+                    )}>
+                      {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
+                    </Badge>
+                  </CardTitle>
                 </div>
                 <CardDescription>
                   <div className="flex flex-wrap gap-2 text-sm">
-                    <span>{job.company}</span>
-                    <span>•</span>
+                    <MapPin className="h-4 w-4" />
                     <span>
-                      {job.location_structured ? 
-                        `${job.location_structured.city}${job.location_structured.state ? `, ${job.location_structured.state}` : ''}${job.location_structured.country ? `, ${job.location_structured.country}` : ''}` 
+                      {job.location ? 
+                        `${job.location.city}${job.location.state ? `, ${job.location.state}` : ''}${job.location.country ? `, ${job.location.country}` : ''}` 
                         : job.location}
                     </span>
                     <span>•</span>
-                    <span>{job.employmentType || job.type}</span>
-                    {job.totalApplications !== undefined && (
+                    <span>{job.type}</span>
+                    {job.total_applications !== undefined && (
                       <>
-                        <span>•</span>
-                        <span>{job.totalApplications} applicants</span>
+                        <span>Applicants:</span>
+                        <span>{job.total_applications} applicants</span>
                       </>
                     )}
                   </div>
@@ -94,15 +110,15 @@ export function JobList({ jobs }: JobListProps) {
                 {stripHtml(job.description)}
               </p>
 
-              {job.salaryRange && (
+              {/* {job.salary_min && job.salary_max && (
                 <p className="text-sm">
-                  💰 {job.salaryRange.currency} {job.salaryRange.min.toLocaleString()} - {job.salaryRange.max.toLocaleString()}
+                  💰 {job.salary_min.toLocaleString()} - {job.salary_max.toLocaleString()}
                 </p>
-              )}
+              )} */}
 
-              {job.requiredSkills && job.requiredSkills.length > 0 && (
+              {job.required_skills && job.required_skills.length > 0 && (
                 <div className="flex flex-wrap gap-2">
-                  {job.requiredSkills.map((skill) => (
+                  {job.required_skills.map((skill) => (
                     <Badge key={skill} variant="outline" className="text-xs">
                       {skill}
                     </Badge>
@@ -112,10 +128,30 @@ export function JobList({ jobs }: JobListProps) {
 
               <div className="flex flex-col sm:flex-row justify-between gap-4 pt-4 border-t">
                 <p className="text-xs text-muted-foreground">
-                  Posted {getRelativeTimeString(job.createdAt)}
-                  {job.experienceRequired && ` • ${job.experienceRequired}+ years experience`}
+                  Posted {getRelativeTimeString(job.created_at)}
+                    {job.experience && ` • ${job.experience}+ years experience`} required
                 </p>
                 <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => toggleJobStatus(job.id, job.status)}
+                    disabled={updatingId === job.id}
+                  >
+                    {updatingId === job.id ? (
+                      <span className="animate-spin">⏳</span>
+                    ) : job.status === 'active' ? (
+                      <>
+                        <Pause className="h-4 w-4 mr-2" />
+                        Pause Job
+                      </>
+                    ) : (
+                      <>
+                        <Play className="h-4 w-4 mr-2" />
+                        Activate Job
+                      </>
+                    )}
+                  </Button>
                   <Link href={`/dashboard/jobs/${job.id}`}>
                     <Button variant="outline" size="sm">
                       <Eye className="h-4 w-4 mr-2" />

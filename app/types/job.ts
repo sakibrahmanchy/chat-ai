@@ -14,11 +14,11 @@ export interface Job {
   salary_min?: number;
   salary_max?: number;
   skills: string[];
-  companyId: string;
+  company_id: string;
   required_skills: string[];
   status: string;
-  createdAt: Date;
-  updatedAt: Date;
+  created_at: Date;
+  updated_at: Date;
   scoring_instructions?: string;
   total_applications?: number;
   total_views?: number;

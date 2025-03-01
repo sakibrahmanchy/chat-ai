@@ -18,7 +18,7 @@ export default async function AdminCreditsPage() {
 
   return (
     <div className="space-y-8">
-      <Tabs defaultValue="packages" className="w-full">
+      <Tabs defaultValue="transactions" className="w-full">
         <TabsList>
           <TabsTrigger value="packages">Credit Packages</TabsTrigger>
           <TabsTrigger value="actions">Credit Actions</TabsTrigger>

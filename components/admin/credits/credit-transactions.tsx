@@ -140,7 +140,8 @@ export function CreditTransactions({ transactions: initialTransactions }: Transa
         <TableHeader>
           <TableRow>
             <TableHead>Company</TableHead>
-            <TableHead>Credits</TableHead>
+            <TableHead>Credits Used</TableHead>
+            <TableHead>Credits Added</TableHead>
             <TableHead>Type</TableHead>
             <TableHead>Notes</TableHead>
             <TableHead>Date</TableHead>
@@ -151,8 +152,13 @@ export function CreditTransactions({ transactions: initialTransactions }: Transa
             <TableRow key={transaction.id}>
               <TableCell>{transaction.companies?.name}</TableCell>
               <TableCell>
-                <Badge className={getTransactionColor(transaction.amount)}>
-                  {transaction.amount > 0 ? '+' : ''}{transaction.amount}
+                <Badge className={getTransactionColor(transaction.credits_used)}>
+                  {transaction.credits_used > 0 ? '+' : ''}{transaction.credits_used}
+                </Badge>
+              </TableCell>
+              <TableCell>
+                <Badge className={getTransactionColor(transaction.credits_added)}>
+                  {transaction.credits_added > 0 ? '+' : ''}{transaction.credits_added}
                 </Badge>
               </TableCell>
               <TableCell>
