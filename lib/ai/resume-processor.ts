@@ -4,14 +4,15 @@ import { adminDb, adminStorage } from '@/firebase-admin';
 import { createClient } from '@supabase/supabase-js';
 import mammoth from 'mammoth';
 import { Resume } from '@/app/types/resume';
-import pdfParse from 'pdf-parse';
+import { PDFDocument } from 'pdf-lib';
 const crypto = require('crypto');
+import pdf2json from 'pdf2json';
 // import textract from 'textract';
-import util from 'util';
-import fs from 'fs';
-import path from 'path';
-import WordExtractor from 'word-extractor';
-const extractor = new WordExtractor();
+// import util from 'util';
+// import fs from 'fs';
+// import path from 'path';
+// // import WordExtractor from 'word-extractor';
+// const extractor = new WordExtractor();
 
 const openai = new OpenAI();
 
@@ -149,6 +150,7 @@ const RESPONSE_FORMAT = {
 } as const;
 
 
+// Utility function to clean extracted text
 function cleanExtractedText(text: string) {
   // Normalize whitespace (replace multiple spaces with a single space)
   let cleanedText = text.replace(/\s+/g, ' ').trim();
@@ -159,86 +161,110 @@ function cleanExtractedText(text: string) {
   // Remove any special non-ASCII characters that might cause issues
   cleanedText = cleanedText.replace(/[^\x00-\x7F]/g, '');
 
-  // Optionally remove excessive punctuation (such as multiple dashes or dots)
+  // Remove email addresses (simple pattern, could be extended)
+  cleanedText = cleanedText.replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g, '[EMAIL REMOVED]');
+
+  // Remove phone numbers (simple pattern, could be extended)
+  cleanedText = cleanedText.replace(/\b\d{10}\b/g, '[PHONE REMOVED]');
+
+  // Remove excessive punctuation (e.g., multiple dashes or periods)
   cleanedText = cleanedText.replace(/[-–—]{2,}/g, '-'); // Replace multiple dashes with a single dash
   cleanedText = cleanedText.replace(/\.+/g, '.'); // Replace multiple dots with a single dot
+
+  // Optionally, remove HTML tags (for extra security in case the content is displayed on web)
+  cleanedText = cleanedText.replace(/<\/?[^>]+(>|$)/g, "");
+
   return cleanedText;
 }
 
-async function extractAndCleanTextFromDocBuffer(fileBuffer: Buffer) {
-  // Step 1: Write the buffer to a temporary .doc file
-  const tempFilePath = path.join(__dirname, `temp_${Date.now()}.doc`);
-  fs.writeFileSync(tempFilePath, fileBuffer);
+// Extract and clean text from the resume file
+async function extractResumeText(fileBuffer: Buffer, fileType: string) {
+  let resumeText = '';
 
-  try {
-    // Step 2: Extract text from the temporary file
-    const doc = await extractor.extract(tempFilePath);
-    const extractedText = doc.getBody();
-
-    // Step 3: Clean and normalize the extracted text
-    const cleanedText = cleanExtractedText(extractedText);
-
-    // Step 4: Clean up the temporary file
-    fs.unlinkSync(tempFilePath);
-
-    return cleanedText;
-  } catch (err) {
-    // Clean up the temporary file in case of an error
-    fs.unlinkSync(tempFilePath);
-    console.error(err);
-    throw new Error('Error extracting text from DOC file: ' + err.message);
-  }
-}
-
-async function extractTextFromFile(fileBuffer: Buffer, fileType: string, filename: string) {
-  let fileContent = '';
-  const textract = await import('textract');
-  const textractFromBuffer = util.promisify(textract.default.fromBufferWithMime);
-
-
-  if (fileType.includes('pdf')) {
+  if (fileType === 'pdf') {
     try {
-      const pdfData = await pdfParse(fileBuffer);
-      fileContent = pdfData.text;
-    } catch (e) {
-      fileContent = await textractFromBuffer(fileType, fileBuffer);
+      // Attempt to parse with pdf-parse
+      const { default: pdfParse } = await import('pdf-parse/lib/pdf-parse.js');
+      const data = await pdfParse(fileBuffer);
+      resumeText = data.text;
+    } catch (error) {
+      console.error('pdf-parse failed, falling back to pdf-lib:', error);
+
+      try {
+        // Fallback to pdf-lib
+        const pdfDoc = await PDFDocument.load(fileBuffer);
+        const pages = pdfDoc.getPages();
+        resumeText = '';
+
+        for (const page of pages) {
+          const textContent = await page.getTextContent();  // This part needs to be replaced as pdf-lib doesn't support getTextContent.
+          resumeText += textContent.items.map(item => item.str).join(' ') + '\n';
+        }
+      } catch (fallbackError) {
+        console.error('pdf-lib failed as well:', fallbackError);
+
+        // Fallback to pdf2json
+        try {
+          const pdfParser = new pdf2json();
+          resumeText = await new Promise((resolve, reject) => {
+            pdfParser.on('pdfParser_dataError', err => reject(err));
+            pdfParser.on('pdfParser_dataReady', () => {
+              const text = pdfParser.getRawTextContent();
+              resolve(text);
+            });
+            pdfParser.parseBuffer(fileBuffer);
+          });
+        } catch (pdf2jsonError) {
+          console.error('pdf2json failed as well:', pdf2jsonError);
+          throw new Error('Error extracting text from PDF: All libraries failed.');
+        }
+      }
+    }
+  } else if (fileType === 'docx') {
+    try {
+      // Parse DOCX using mammoth
+      const { value } = await mammoth.extractRawText({ buffer: fileBuffer });
+      resumeText = value;
+    } catch (docxError) {
+      console.error('Error parsing DOCX:', docxError);
+      throw new Error('Error extracting text from DOCX file.');
     }
   } else {
-   
-    try {
-      const fileExt = path.extname(filename)
-      if (fileExt?.toLowerCase() === '.doc') {
-        fileContent = await extractAndCleanTextFromDocBuffer(fileBuffer);
-      } else {
-        fileContent = await textractFromBuffer(fileType, fileBuffer);
-      }
-    } catch (err) {
-      console.error(err);
-      throw new Error('Error extracting text from file: ' + err.message);
-    }
+    throw new Error('Unsupported file type. Please upload a PDF or DOCX file.');
   }
 
-  return fileContent;
+  // Clean the extracted text to ensure it is properly formatted and secure
+  return cleanExtractedText(resumeText);
 }
 
 export async function processResume(fileBuffer: Buffer, jobId: string, userId: string): Promise<{ parsedData: Resume['parsed_content'], hash: string, id: number }> {
   try {
     const fileType = await detectFileType(fileBuffer);
-    let resumeText = '';
-    // if (fileType === 'pdf') {
-    //   const { default: pdfParse } = await import('pdf-parse/lib/pdf-parse.js');
-    //   const data = await pdfParse(fileBuffer);
-    //   resumeText = data.text;
-    // } else if (fileType === 'docx') {
-    //   // Parse DOCX
-    //   const { value } = await mammoth.extractRawText({ buffer: fileBuffer });
-    //   resumeText = value;
-    // } else {
-    //   throw new Error('Unsupported file type. Please upload a PDF or DOCX file.');
-    // }
+    // const resumeText = extractResumeText(fileBuffer, fileType);
     
-    resumeText = await extractTextFromFile(fileBuffer, fileType, 'file.pdf');
-    console.log('resumeText', resumeText);
+    // Send the file buffer and type to the parsing service
+    const formData = new FormData();
+    formData.append('fileBuffer', new Blob([fileBuffer]), `file.${fileType}`);
+    formData.append('fileType', fileType);
+
+    const responseFromParser = await fetch(`http://localhost:8080/extract-text`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+      },
+      body: formData
+    });
+
+    if (!responseFromParser.ok) {
+      throw new Error(`Error parsing resume: ${responseFromParser.statusText}`);
+    }
+
+    const parsedText = await responseFromParser.json();
+    const resumeText = parsedText.text;
+
+    console.log({ resumeText });
+    // resumeText = await extractTextFromFile(fileBuffer, fileType, 'file.pdf');
+    // console.log('resumeText', resumeText);
     // Generate document ID
     const hash = crypto
       .createHash('sha256')
