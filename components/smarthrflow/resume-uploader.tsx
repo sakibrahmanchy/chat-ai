@@ -7,11 +7,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, FileText, Brain, Sparkles } from 'lucide-react';
+import { FileText, Brain, Sparkles } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Progress } from '@/components/ui/progress';
-
 
 interface ResumeData {
   full_name: string;
@@ -170,9 +168,9 @@ export function ResumeUploader({ jobId }: { jobId: string }) {
         method: 'POST',
         body: formData,
       });
-
+      
       if (!response.ok) throw new Error('Failed to parse resume');
-
+      
       const data = await response.json();
       setResumeData(data.data);
       setHash(data.id);
@@ -466,7 +464,7 @@ export function ResumeUploader({ jobId }: { jobId: string }) {
                     <span className="w-2 h-2 bg-gray-400 rounded-full" />
                     <span className="w-2 h-2 bg-gray-400 rounded-full" />
                   </motion.div>
-                </div>
+        </div>
               </motion.div>
             </motion.div>
           )}

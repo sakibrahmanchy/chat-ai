@@ -42,8 +42,8 @@ import {
   TooltipProvider 
 } from "@/components/ui/tooltip";
 import { format } from "date-fns";
-import CandidateSingleView from "../smarthrflow/candidate-single-view";
 import CandidatesExpandableListView from "../smarthrflow/candidates-expandable-list-view";
+import { listService } from "@/lib/services/list.service";
 
 interface JobDetailsPreviewProps {
   job: any;
@@ -357,7 +357,11 @@ export function JobDetailsPreview({
             </div>
             {candidates.length > 0 ? (
               <div className="grid gap-4">
-                <CandidatesExpandableListView candidates={candidates} initialExpandedCandidateId={candidates[0]?.id } />
+                <CandidatesExpandableListView 
+                  candidates={candidates} initialExpandedCandidateId={candidates[0]?.id }
+                  jobId={job.id}
+                  companyId={job.company_id}
+                />
               </div>
             ) : (
               <div className="rounded-lg border border-dashed p-8 text-center">
@@ -399,9 +403,9 @@ export function JobDetailsPreview({
                           ({item.candidateCount} candidates)
                         </span>
                       </span>
-                      <span className="font-medium">{(item.score / 10).toFixed(1)}/10</span>
+                      <span className="font-medium">{(item.matchRate / 10).toFixed(1)}/10</span>
                     </div>
-                    <Progress value={item.score} className="h-2" />
+                    <Progress value={item.matchRate} className="h-2" />
                     <div className="text-xs text-muted-foreground">
                       {item.matchRate}% of candidates have this skill
                     </div>

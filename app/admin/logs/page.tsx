@@ -1,4 +1,4 @@
-import { Card } from "@/components/ui/card";
+// import { Card } from "@/components/ui/card";
 // import { adminLogService } from "@/lib/services/admin/log.service";
 // import { LogList } from "@/components/admin/logs/log-list";
 // import { LogFilters } from "@/components/admin/logs/log-filters";

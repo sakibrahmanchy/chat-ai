@@ -127,10 +127,7 @@ export default async function JobPage({
     const metrics = {
       totalCandidates: totalCandidates || 0,
       timeToHire: timeToHire,
-      matchRate: Math.round(
-        topCandidates?.reduce((acc, curr) => acc + (curr?.overall_score || 0), 0) / 
-        (topCandidates?.length || 1)
-      ),
+      matchRate: job.average_match_score || 0,
     };
 
     const previewData = {

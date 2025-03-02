@@ -52,17 +52,17 @@ export class AdminSettingsService {
     };
   }
 
-  async updateSettings(section: string, settings: any) {
-    const { data, error } = await supabase
-      .from('system_settings')
-      .update({ [section]: settings })
-      .eq('id', 1) // Assuming single settings row
-      .select()
-      .single();
+  // async updateSettings(section: string, settings: any) {
+  //   const { data, error } = await supabase
+  //     .from('system_settings')
+  //     .update({ [section]: settings })
+  //     .eq('id', 1) // Assuming single settings row
+  //     .select()
+  //     .single();
 
-    if (error) throw error;
-    return data;
-  }
+  //   if (error) throw error;
+  //   return data;
+  // }
 
   async updateEmailTemplate(templateName: string, content: string) {
     const { data: settings } = await supabase
@@ -86,14 +86,14 @@ export class AdminSettingsService {
     return data;
   }
 
-  async testEmailSettings(settings: any) {
-    try {
-      // Implement email testing logic
-      return { success: true, message: 'Email settings tested successfully' };
-    } catch (error) {
-      return { success: false, message: error.message };
-    }
-  }
+  // async testEmailSettings(settings: any) {
+  //   try {
+  //     // Implement email testing logic
+  //     return { success: true, message: 'Email settings tested successfully' };
+  //   } catch (error) {
+  //     return { success: false, message: error.message };
+  //   }
+  // }
 }
 
 export const adminSettingsService = AdminSettingsService.getInstance(); 

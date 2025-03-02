@@ -137,6 +137,10 @@ const CommandShortcut = ({
 }
 CommandShortcut.displayName = "CommandShortcut"
 
+interface CommandProps extends BaseCommandProps {
+  // Add specific properties if needed
+}
+
 export {
   Command,
   CommandDialog,

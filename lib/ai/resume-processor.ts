@@ -1,10 +1,10 @@
 'use server'
 import { OpenAI } from 'openai';
-import { adminDb, adminStorage } from '@/firebase-admin';
+import { adminStorage } from '@/firebase-admin';
 import { createClient } from '@supabase/supabase-js';
-import mammoth from 'mammoth';
 import { Resume } from '@/app/types/resume';
-const crypto = require('crypto');
+import { CreditAction, creditService } from '../services/credits.service';
+import crypto from 'crypto';
 const openai = new OpenAI();
 
 // Create a server-side Supabase client
@@ -12,6 +12,7 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
+
 
 // Add RESPONSE_FORMAT constant
 const RESPONSE_FORMAT = {
@@ -140,12 +141,14 @@ const RESPONSE_FORMAT = {
   }
 } as const;
 
-export async function processResume(fileBuffer: Buffer, jobId: string, userId: string): Promise<{ parsedData: Resume['parsed_content'], hash: string, id: number }> {
+export async function processResume(fileBuffer: Buffer, jobId: string, userId: string, companyId: string): Promise<{ parsedData: Resume['parsed_content'], hash: string, id: number }> {
   try {
+    const hasEnoughCredits = await creditService.hasEnoughCredits(companyId, CreditAction.SUBMIT_RESUME);
+    if (!hasEnoughCredits) {
+      throw new Error('Insufficient credits');
+    }
+
     const fileType = await detectFileType(fileBuffer);
-    // const resumeText = extractResumeText(fileBuffer, fileType);
-    
-    // Send the file buffer and type to the parsing service
     const formData = new FormData();
     formData.append('fileBuffer', new Blob([fileBuffer]), `file.${fileType}`);
     formData.append('fileType', fileType);
@@ -165,7 +168,6 @@ export async function processResume(fileBuffer: Buffer, jobId: string, userId: s
     const parsedText = await responseFromParser.json();
     const resumeText = parsedText.text;
 
-    console.log({ resumeText });
     // resumeText = await extractTextFromFile(fileBuffer, fileType, 'file.pdf');
     // console.log('resumeText', resumeText);
     // Generate document ID
@@ -193,6 +195,9 @@ export async function processResume(fileBuffer: Buffer, jobId: string, userId: s
       .eq('hash', hash)
       .single();
 
+    
+    await creditService.useCredits(companyId, CreditAction.SUBMIT_RESUME);
+
     if (cachedResume) {
       console.log('Found cached resume data');
       return {
@@ -216,7 +221,7 @@ export async function processResume(fileBuffer: Buffer, jobId: string, userId: s
           content: resumeText
         }
       ],
-      temperature: 0.3,
+      temperature: 0.1,
       response_format: { type: "json_schema", json_schema: RESPONSE_FORMAT }
     });
 
@@ -269,6 +274,8 @@ export async function processResume(fileBuffer: Buffer, jobId: string, userId: s
       console.error('Error saving to Supabase:', error);
       throw error;
     }
+
+   
 
     return {
       parsedData,

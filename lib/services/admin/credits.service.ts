@@ -1,3 +1,4 @@
+import { CreditPackage } from '@/app/types/credits';
 import { supabase } from '@/lib/supabase/client';
 
 export class AdminCreditService {
@@ -21,7 +22,7 @@ export class AdminCreditService {
     return data || [];
   }
 
-  async createPackage(packageData: any) {
+  async createPackage(packageData: CreditPackage) {
     const { data, error } = await supabase
       .from('credit_packages')
       .insert(packageData)
@@ -32,7 +33,7 @@ export class AdminCreditService {
     return data;
   }
 
-  async updatePackage(id: string, packageData: any) {
+  async updatePackage(id: string, packageData: CreditPackage) {
     const { data, error } = await supabase
       .from('credit_packages')
       .update(packageData)

@@ -70,7 +70,7 @@ export class AdminUserService {
     };
   }
 
-  async updateUser(id: string, data: any) {
+  async updateUser(id: string, data: User) {
     const { data: user, error } = await supabase
       .from('users')
       .update(data)
@@ -96,30 +96,31 @@ export class AdminUserService {
     return activities || [];
   }
 
-  async resetPassword(userId: string) {
-    // Implement password reset logic
-    // This might involve sending a reset email or generating a temporary password
-    try {
-      // Example implementation
-      const tempPassword = Math.random().toString(36).slice(-8);
-      await this.updateUser(userId, {
-        password_reset_required: true,
-        // You might want to hash the temporary password before storing
-        temporary_password: tempPassword
-      });
+  // async resetPassword(userId: string) {
+  //   // Implement password reset logic
+  //   // This might involve sending a reset email or generating a temporary password
+  //   try {
+  //     // Example implementation
+  //     const tempPassword = Math.random().toString(36).slice(-8);
+  //     await this.updateUser(userId, {
+  //       password_reset_required: true,
+  //       // You might want to hash the temporary password before storing
+  //       temporary_password: tempPassword
+  //     });
 
-      // You might want to send an email with the temporary password
-      return {
-        success: true,
-        message: 'Password reset initiated successfully'
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: 'Failed to reset password'
-      };
-    }
-  }
+  //     // You might want to send an email with the temporary password
+  //     return {
+  //       success: true,
+  //       message: 'Password reset initiated successfully'
+  //     };
+  //   } catch (e) {
+  //     console.error(e);
+  //     return {
+  //       success: false,
+  //       message: 'Failed to reset password'
+  //     };
+  //   }
+  // }
 
   async getUserStats(id: string) {
     const { data: stats } = await supabase

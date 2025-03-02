@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -15,12 +15,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { listService } from "@/lib/services/list.service";
 import { toast } from "@/hooks/use-toast";
 import { Plus, ListPlus } from "lucide-react";
+import { useUser } from "@clerk/nextjs";
 
 interface AddToListDialogProps {
   resumeId: string;
   userId: string;
   companyId: string;
   onSuccess?: () => void;
+  jobId: string;
 }
 
 interface List {
@@ -40,15 +42,21 @@ export function AddToListDialog({ resumeId, userId, companyId, jobId, onSuccess 
   const [newList, setNewList] = useState({ name: '', description: '' });
   const [selectedList, setSelectedList] = useState('');
   const [notes, setNotes] = useState('');
+  const { user } = useUser();
 
-  const loadLists = async () => {
+  const loadLists = useCallback(async () => {
     try {
       const lists = await listService.getLists(jobId);
       setLists(lists);
-    } catch (error) {
-      console.error('Error loading lists:', error);
+    } catch (err) {
+      console.error('Error loading lists:', err);
+      toast({
+        title: "Error",
+        description: "Failed to load lists",
+        variant: "destructive"
+      });
     }
-  };
+  }, [jobId]);
 
   const handleCreateList = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,7 +80,8 @@ export function AddToListDialog({ resumeId, userId, companyId, jobId, onSuccess 
         title: "List created",
         description: "New list has been created successfully."
       });
-    } catch (error) {
+    } catch (err) {
+      console.error('Error creating list:', err);
       toast({
         title: "Error",
         description: "Failed to create list.",
@@ -102,10 +111,10 @@ export function AddToListDialog({ resumeId, userId, companyId, jobId, onSuccess 
 
       setOpen(false);
       onSuccess?.();
-    } catch (error) {
+    } catch (err) {
       toast({
         title: "Error",
-        description: "Failed to add candidate to list:" + error,
+        description: "Failed to add candidate to list:" + err,
         variant: "destructive"
       });
     } finally {
@@ -114,8 +123,14 @@ export function AddToListDialog({ resumeId, userId, companyId, jobId, onSuccess 
   };
 
   useEffect(() => {
-    loadLists();
-  }, []);
+    if (open) {
+      loadLists();
+    }
+  }, [open, loadLists]);
+
+  if (!user) {
+    return null;
+  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

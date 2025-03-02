@@ -129,9 +129,7 @@ const fetchMessagesFromDB = async (docId) => {
 }
 
 const generateLangChainCompletion = async (docId: string, question: string) => {
-    let pineconeVectorStore;
-
-    pineconeVectorStore = await generateEmbeddingsInPineconeVectorStore(docId);
+    const pineconeVectorStore = await generateEmbeddingsInPineconeVectorStore(docId);
 
     if (!pineconeVectorStore) {
         throw new Error("Pinecone vector store not found")

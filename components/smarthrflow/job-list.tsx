@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getRelativeTimeString } from "@/lib/utils";
 import Link from "next/link";
-import { Eye, MapPin, Upload, Pause, Play } from "lucide-react";
+import { Eye, MapPin, Upload, Pause, Play, Copy } from "lucide-react";
 import { Job } from "@/app/types/job";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -14,11 +14,6 @@ import { cn } from "@/lib/utils";
 
 interface JobListProps {
   jobs: Job[];
-}
-
-function stripHtml(html: string) {
-  const doc = new DOMParser().parseFromString(html, 'text/html');
-  return doc.body.textContent?.replace(/\s+/g, ' ').trim() || '';
 }
 
 export function JobList({ jobs: initialJobs }: JobListProps) {
@@ -72,9 +67,9 @@ export function JobList({ jobs: initialJobs }: JobListProps) {
                     {job.title}
                     <Badge className={cn(
                       "hidden sm:inline-flex",
-                      job.status === 'active' ? "bg-violet-500" :
+                      job.status === 'active' ? "bg-blue-500 text-white" :
                       job.status === 'draft' ? "bg-yellow-500" :
-                      "text-white"
+                      "color-white"
                     )}>
                       {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
                     </Badge>
@@ -102,13 +97,21 @@ export function JobList({ jobs: initialJobs }: JobListProps) {
               <Badge variant="secondary" className="self-start sm:hidden">
                 {job.status}
               </Badge>
+              {/** Job link copy button */}
+              <Button variant="outline" size="sm" onClick={() => {
+                navigator.clipboard.writeText(`${window.location.origin}/jobs/apply/${job.id}`);
+                toast({
+                  title: " 📢 Link copied to clipboard, share it with candidates to let them apply.",
+                });
+              }}>
+                <Copy className="h-4 w-4 mr-2" />
+                Share Job
+              </Button>
             </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <p className="text-sm text-muted-foreground line-clamp-2">
-                {stripHtml(job.description)}
-              </p>
+              <p className="text-sm text-muted-foreground line-clamp-2" dangerouslySetInnerHTML={{ __html: job.description }} />
 
               {/* {job.salary_min && job.salary_max && (
                 <p className="text-sm">
@@ -131,7 +134,7 @@ export function JobList({ jobs: initialJobs }: JobListProps) {
                   Posted {getRelativeTimeString(job.created_at)}
                     {job.experience && ` • ${job.experience}+ years experience`} required
                 </p>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <Button
                     variant="outline"
                     size="sm"

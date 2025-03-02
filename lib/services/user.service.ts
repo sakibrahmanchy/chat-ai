@@ -8,7 +8,7 @@ export class UserService {
     firstName?: string;
     lastName?: string;
     imageUrl?: string;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, string | number | boolean | Date>;
   }): Promise<User> {
     try {
       // Insert or update user
@@ -91,7 +91,7 @@ export class UserService {
     }
   }
 
-  async updateUserMetadata(userId: string, metadata: Record<string, any>): Promise<void> {
+  async updateUserMetadata(userId: string, metadata: Record<string, string | number | boolean | Date>): Promise<void> {
     try {
       const { error } = await supabase
         .from('users')

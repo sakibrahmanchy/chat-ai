@@ -37,7 +37,7 @@ interface UserData {
 
 function getBrowserInfo(): { name: string; version: string; os: string; mobile: boolean } {
   const ua = navigator.userAgent;
-  let browser = { name: 'unknown', version: 'unknown', os: 'unknown', mobile: false };
+  const browser = { name: 'unknown', version: 'unknown', os: 'unknown', mobile: false };
 
   // Detect mobile
   browser.mobile = /Mobile|Android|iP(hone|od|ad)/.test(ua);

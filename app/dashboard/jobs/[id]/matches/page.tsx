@@ -43,6 +43,8 @@ export default async function JobPage({
         title,
         description,
         requirements,
+        responsibilities,
+        required_skills,
         company_id,
         created_at,
         updated_at
@@ -90,8 +92,9 @@ export default async function JobPage({
         userId={userId}
         companyId={user.company_id}
         jobDescription={job.description}
-        requiredSkills={job.skills || []}
+        requiredSkills={job.required_skills || []}
         requirements={job.requirements}
+        responsibilities={job.responsibilities}
       />
     );
   } catch (error) {

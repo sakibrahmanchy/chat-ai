@@ -75,7 +75,7 @@ export default function JobPostingForm() {
     }
 
     fetchCompanyId();
-  }, [user?.id]);
+  }, [user?.id, supabase]);
 
   const [job, setJob] = useState<JobFormData>({
     title: '',

@@ -1,14 +1,13 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from "react";
-import { Resume } from "@/app/types/resume";
+import { useState, useEffect, useMemo } from "react";
+import { Resume, SkillsWithYoe } from "@/app/types/resume";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { CandidateFilters } from "./candidate-filters";
 import {
   Star,
-  Eye,
   Download,
   Filter,
   X,
@@ -20,31 +19,22 @@ import {
   Search,
   Loader2,
   Upload,
-  RefreshCw,
   Sparkles,
   Info
 } from "lucide-react";
 import Link from "next/link";
-import { cn, getRelativeTimeString } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { useInView } from 'react-intersection-observer';
-import { collection, query as firestoreQuery, orderBy, limit, getDocs, startAfter, doc, updateDoc, where, Query } from "firebase/firestore";
-import { db } from "@/firebase";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { scoreResume } from "@/lib/ai/resume-scorer";
-import { toast } from "@/hooks/use-toast";
-import { Job } from "@/app/types/job";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
 import { resumeSearch } from '@/lib/services/resume-search.service';
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { useRouter } from "next/navigation";
 import { AddToListDialog } from "./add-to-list-dialog";
 import { useCompany } from "@/hooks/use-company";
 import { exportData } from '@/lib/utils/export';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-
-const CANDIDATES_PER_PAGE = 20;
 
 interface CandidateListViewProps {
   initialResumes: Resume[];
@@ -54,6 +44,7 @@ interface CandidateListViewProps {
   jobDescription: string;
   requiredSkills: string[];
   requirements: string;
+  responsibilities: string;
   showFiltersDefault: boolean;
   initialFilters?: {
     search?: string;
@@ -64,25 +55,8 @@ interface CandidateListViewProps {
   skipDataFetch?: boolean;
 }
 
-// Update the helper functions to use the new types
-const getEducation = (resume: Resume) => {
-  const education = resume.parsed_content?.education;
-  if (!education) return [];
-  return Array.isArray(education) ? education : [education];
-};
-
 const getMatchScore = (resume: Resume) => {
   return resume?.overall_score || 0;
-};
-
-const getSkills = (resume: Resume) => {
-  return resume.searchable_skills || [];
-};
-
-const getLocation = (resume: Resume) => {
-  const { city, state, country } = resume.location || {};
-  const parts = [city, state, country].filter(Boolean);
-  return parts.join(', ') || 'No location';
 };
 
 export function CandidateListView({
@@ -93,19 +67,19 @@ export function CandidateListView({
   jobDescription,
   requiredSkills,
   requirements,
+  responsibilities,
   showFiltersDefault = false,
   initialFilters,
   skipDataFetch = false
 }: CandidateListViewProps) {
   const [resumes, setResumes] = useState<Resume[]>(initialResumes);
-  const [lastVisible, setLastVisible] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [loadingScores, setLoadingScores] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
-  const router = useRouter();
+
   const { companyId } = useCompany();
 
   // Filter states
@@ -140,7 +114,7 @@ export function CandidateListView({
     location: "all"
   });
 
-  const { ref, inView } = useInView({
+  const { inView } = useInView({
     threshold: 0,
   });
 
@@ -168,7 +142,6 @@ export function CandidateListView({
       );
       console.log('result', result);
       setResumes(result.resumes);
-      setLastVisible(result.lastDoc);
       setHasMore(result.hasMore);
     } catch (error) {
       console.error('Error loading resumes:', error);
@@ -189,7 +162,7 @@ export function CandidateListView({
       setLoadingScores(prev => ({ ...prev, [resume.id]: true }));
 
       // Only pass IDs to scoring function
-      await scoreResume(resume.id, jobId);
+      await scoreResume(resume.id, jobId, companyId);
 
       loadInitialData();
 
@@ -201,7 +174,7 @@ export function CandidateListView({
       console.error('Error calculating score:', error);
       toast({
         title: "Error",
-        description: "Failed to update match score",
+        description: "Failed to update match score: " + error,
         variant: "destructive"
       });
     } finally {
@@ -236,7 +209,6 @@ export function CandidateListView({
       );
 
       setResumes(prev => [...prev, ...result.resumes]);
-      setLastVisible(result.lastDoc);
       setHasMore(result.hasMore);
     } catch (error) {
       console.error('Error loading more resumes:', error);
@@ -262,7 +234,7 @@ export function CandidateListView({
     if (inView && !loading) {
       loadMore();
     }
-  }, [inView]);
+  }, [inView, loading]);
 
   // Client-side search filter
   const filteredResumes = useMemo(() => {
@@ -277,14 +249,13 @@ export function CandidateListView({
       ).join(' ') || '';
 
       return name.includes(searchLower) ||
-        skills.some(skill => skill.includes(searchLower)) ||
+        skills.some(skill => (skill || '').includes(searchLower)) ||
         content.includes(searchLower);
     });
   }, [resumes, searchTerm]);
 
   // UI state
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [isCalculating, setIsCalculating] = useState<string | null>(null);
   const [showJobDescription, setShowJobDescription] = useState(false);
   const [showCheckMatch, setShowCheckMatch] = useState(false);
 
@@ -567,6 +538,7 @@ export function CandidateListView({
                                   variant="ghost"
                                   size="icon"
                                   className="h-7 w-7"
+                                  title="Check Match Score (Requires 1 credit)"
                                   onClick={(e) => {
                                     e.stopPropagation(); // Prevent row expansion
                                     handleCalculateScore(resume);
@@ -632,15 +604,18 @@ export function CandidateListView({
 
                                 {/* Skills with Experience */}
                                 <div>
-                                  <div className="text-sm font-medium mb-2">Skills & Experience</div>
-                                  <div className="flex space-y-2 gap-2">
-                                    {Object.values(resume.parsed_content?.skills_with_yoe || {}).map((skill: any) => (
+                                  <div className="text-sm font-medium mb-2 ">Skills & Experience</div>
+                                  <div className="flex flex-wrap gap-2">
+                                    {Object.values(resume.parsed_content?.skills_with_yoe || {}).map((skill: SkillsWithYoe) => (
                                       <div
                                         key={skill.name}
-                                        className="flex items-center justify-between text-sm p-2 bg-white rounded border"
+                                        className="flex text-sm gap-2"
                                       >
-                                        <span>{skill.name}</span>
-                                        {skill.years && <span className="text-xs text-muted-foreground">{skill.years}y</span>}
+                                        <Badge className="flex gap-1">
+                                          <span>{skill.name}</span> |
+                                          {skill.yoe && <span >{skill.yoe}y</span>}
+                                          </Badge>
+                                        {/* {skill.yoe && <span >| {skill.yoe}y</span>} */}
                                       </div>
                                     ))}
                                   </div>
@@ -805,7 +780,7 @@ export function CandidateListView({
                                   <div className="grid grid-cols-2 gap-4">
                                     {/* strengthAreas */}
                                     <div>
-                                      <div className="text-sm font-medium text-green-600 mb-1">Key strengthAreas</div>
+                                      <div className="text-sm font-medium text-green-600 mb-1">Key strength areas</div>
                                       <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
                                         {resume.scores?.analysis?.strengths?.map((strength: string, index: number) => (
                                           <li key={index}>{strength}</li>
@@ -910,8 +885,7 @@ export function CandidateListView({
           <div className="space-y-4">
             <div className="space-y-2">
               <h4 className="text-sm font-medium">Description</h4>
-              <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                {jobDescription}
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: jobDescription }}>
               </p>
             </div>
             {requiredSkills?.length > 0 && (
@@ -929,8 +903,14 @@ export function CandidateListView({
             {requirements && (
               <div className="space-y-2">
                 <h4 className="text-sm font-medium">Requirements</h4>
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                  {requirements}
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: requirements }}>
+                </p>
+              </div>
+            )}
+            {responsibilities && (
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium">Responsibilities</h4>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: responsibilities }}>
                 </p>
               </div>
             )}

@@ -59,7 +59,7 @@ function Chat({ id }) {
         })
 
         setMessages(newMessages);
-    }, [snapshot])
+    }, [messages, snapshot])
 
     const handleSubmit = (e) => {
         e.preventDefault();

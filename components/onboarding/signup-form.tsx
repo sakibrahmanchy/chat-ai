@@ -17,6 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
+import { creditService } from "@/lib/services/credits.service";
 
 const signupFormSchema = z.object({
   // User Details
@@ -46,7 +47,7 @@ export function SignupForm({ userId, userEmail }: { userId: string; userEmail: s
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
-
+  
   const form = useForm<SignupFormValues>({
     resolver: zodResolver(signupFormSchema),
     defaultValues: {
@@ -82,9 +83,14 @@ export function SignupForm({ userId, userEmail }: { userId: string; userEmail: s
         }),
       });
 
+      const responseData = await response.json();
+
       if (!response.ok) {
         throw new Error("Failed to complete signup");
       }
+
+      const freeTierPackage = await creditService.getCreditPackageByIdentifier('free_tier');
+      await creditService.addCreditPackageToCompany(responseData.companyId, freeTierPackage.id, true);
 
       toast({
         title: "Welcome aboard! 🎉",

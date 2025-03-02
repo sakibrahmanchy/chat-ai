@@ -74,7 +74,7 @@ export class AdminCompanyService {
     };
   }
 
-  async updateCompany(id: string, data: any) {
+  async updateCompany(id: string, data: Company) {
     const { data: company, error } = await supabase
       .from('companies')
       .update(data)

@@ -1,5 +1,11 @@
+import { CompanyCredits, CreditPackage } from '@/app/types/credits';
 import { supabase } from '@/lib/supabase/client';
-import { createClient } from '@supabase/supabase-js';
+import { PostgrestSingleResponse } from '@supabase/supabase-js';
+
+export enum CreditAction {
+  SUBMIT_RESUME = 'submit_resume',
+  MATCH_RESUME = 'match_resume',
+}
 
 export class CreditService {
   private static instance: CreditService;
@@ -13,7 +19,19 @@ export class CreditService {
     return CreditService.instance;
   }
 
-  async getCreditsRequired(actionType: string): Promise<number> {
+  async getCreditPackageByIdentifier(packageIdentifier: string): Promise<CreditPackage> {
+    const { data: creditPackage, error }: PostgrestSingleResponse<CreditPackage> = await supabase
+      .from('credit_packages')
+      .select('*')
+      .eq('package_identifier', packageIdentifier)
+      .single();
+
+    if (error) throw error;
+
+    return creditPackage;
+  }
+
+  async getCreditsRequired(actionType: CreditAction): Promise<number> {
     const { data: action } = await supabase
       .from('credit_actions')
       .select('credits_required')
@@ -24,7 +42,7 @@ export class CreditService {
     return action?.credits_required || 0;
   }
 
-  async hasEnoughCredits(companyId: string, actionType: string): Promise<boolean> {
+  async hasEnoughCredits(companyId: string, actionType: CreditAction): Promise<boolean> {
     const creditsRequired = await this.getCreditsRequired(actionType);
     const { data: balance } = await supabase
       .from('company_credits')
@@ -32,17 +50,19 @@ export class CreditService {
       .eq('company_id', companyId)
       .single();
 
+    console.log({ balance, creditsRequired, companyId })
+
     return (balance?.credits_balance || 0) >= creditsRequired;
   }
 
   async useCredits(
     companyId: string, 
-    actionType: string, 
+    actionType: CreditAction, 
     entityType?: string,
     entityId?: string
   ): Promise<boolean> {
     const creditsRequired = await this.getCreditsRequired(actionType);
-    
+    console.log({ creditsRequired, companyId, actionType })
     // Start transaction
     const { data: company, error: balanceError } = await supabase
       .from('company_credits')
@@ -92,7 +112,14 @@ export class CreditService {
     return !error;
   }
 
-  async addCreditPackageToCompany(companyId: string, packageId: string) {
+  async addCreditPackageToCompany(companyId: string, packageId: string, freeTier: boolean = false) {
+    const { data: companyCredits }: PostgrestSingleResponse<CompanyCredits> = await supabase.from('company_credits')
+    .select('*')
+    .eq('company_id', companyId)
+    .single();
+
+    console.log({ companyCredits })
+    
     const { error, data: creditPackage } = await supabase
       .from('credit_packages')
       .select('*')
@@ -100,6 +127,12 @@ export class CreditService {
       .single();
 
     if (error) throw error;
+
+    if (companyCredits && companyCredits.trial_given) {
+      if (freeTier || creditPackage.type === 'free_tier') { 
+        throw new Error('Trial already given');
+      }
+    }
       
     if (!creditPackage) throw new Error('Credit package not found');
     const { error: insertError } = await supabase
@@ -115,18 +148,26 @@ export class CreditService {
       
 
     if (insertError) throw insertError;
-    
-    const { error: companyCreditsError, data: companyCredits } = await supabase.from('company_credits')
-    .select('*')
-    .eq('company_id', companyId)
-    .single();
-
    
-    await supabase.from('company_credits').upsert({
-      company_id: companyId,
-      credits_balance: companyCredits?.credits_balance || 0 + creditPackage.credits,
-      last_topped_up: new Date().toISOString()
-    }).eq('company_id', companyId);
+    if (companyCredits) {
+      await supabase.from('company_credits').update({
+        credits_balance: companyCredits.credits_balance + creditPackage.credits,
+        last_topped_up: new Date().toISOString(),
+        credits_used: 0,
+      }).eq('company_id', companyId);
+    } else {
+      await supabase.from('company_credits').insert({
+        company_id: companyId,
+        credits_balance: creditPackage.credits,
+        last_topped_up: new Date().toISOString(),
+        credits_used: 0,
+      });
+    }
+
+
+    await supabase.from('companies').update({
+      trial_given: freeTier ? true : false
+    }).eq('id', companyId);
 
     // Update credit_transactions table
     const { error: transactionError } = await supabase.from('credit_transactions').insert({

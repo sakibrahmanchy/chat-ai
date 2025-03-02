@@ -3,6 +3,7 @@ import './globals.css'
 import InstallPrompt from '@/components/install-prompt'
 import { Roboto } from "next/font/google";
 import { Toaster } from "@/components/ui/toaster"
+import { Footer } from '@/components/layout/footer';
 
 const roboto = Roboto({
   weight: ['300', '400', '500', '700'],

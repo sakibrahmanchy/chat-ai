@@ -9,6 +9,7 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { createClient } from '@supabase/supabase-js';
 import { formatDistanceToNow } from 'date-fns';
+import { WelcomeDialog } from "@/components/welcome-dialog";
 
 // Create Supabase client
 const supabase = createClient(
@@ -22,8 +23,6 @@ interface DashboardStats {
     totalCandidates: number;
     averageMatchRate: number;
     totalViews: number;
-    interviewsScheduled: number;
-    hiringRate: number;
   };
   recentJobs: {
     id: string;
@@ -75,18 +74,38 @@ async function getJobStats(userId: string) {
 
     if (!user?.company_id) return null;
 
-    // Get active jobs count
-    const { count: activeJobs } = await supabase
+    const { data: jobs } = await supabase
       .from('jobs')
-      .select('*', { count: 'exact', head: true })
+      .select('id')
       .eq('company_id', user.company_id)
       .eq('status', 'active');
 
-    // Get total candidates count
-    const { count: totalCandidates } = await supabase
-      .from('jobs')
-      .select('resumes(*)', { count: 'exact', head: true })
-      .eq('company_id', user.company_id);
+    const activeJobs = jobs?.length || 0;
+    // Get total candidates and their match scores
+    const { data: resumes } = await supabase
+    .from('resumes')
+    .select(`
+      id,
+      overall_score
+    `)
+    .in('job_id', jobs?.map(job => job.id) || []);
+
+    console.log({ resumes});
+
+    // Calculate total candidates, average match rate and total views
+    let totalCandidates = 0;
+    let totalScore = 0;
+    let totalViews = 0;
+
+    resumes?.forEach(resume => {
+      totalCandidates++;
+      totalScore += resume.overall_score || 0;
+      // totalViews += resume.view_count || 0
+    });
+
+    const averageMatchRate = totalCandidates > 0 
+      ? Math.round((totalScore / (totalCandidates * 10)) * 100) 
+      : 0;
 
     // Get recent jobs with candidate count using join
     const { data: recentJobs } = await supabase
@@ -101,7 +120,7 @@ async function getJobStats(userId: string) {
       .order('created_at', { ascending: false })
       .limit(5);
 
-    // Get recent activities with proper ordering and limit
+    // Get recent activities
     const { data: recentActivities } = await supabase
       .from('activities')
       .select(`
@@ -115,7 +134,7 @@ async function getJobStats(userId: string) {
       .order('created_at', { ascending: false })
       .limit(5);
 
-    // Get top performing jobs with proper joins and scoring
+    // Get top performing jobs
     const { data: topJobs } = await supabase
       .from('jobs')
       .select(`
@@ -135,11 +154,9 @@ async function getJobStats(userId: string) {
     return {
       metrics: {
         activeJobs: activeJobs || 0,
-        totalCandidates: totalCandidates || 0,
-        averageMatchRate: 0,
-        totalViews: 0,
-        interviewsScheduled: 0,
-        hiringRate: 0
+        totalCandidates,
+        averageMatchRate,
+        totalViews,
       },
       recentJobs: recentJobs?.map(job => ({
         id: job.id,
@@ -185,6 +202,7 @@ export default async function Dashboard() {
 
   return (
     <div className="mx-auto space-y-8">
+      <WelcomeDialog />
       {/* Quick Actions */}
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start">
         <div>
@@ -231,22 +249,22 @@ export default async function Dashboard() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Interviews Scheduled</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Average Match Rate</CardTitle>
+            <Star className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.metrics.interviewsScheduled}</div>
-            <p className="text-xs text-muted-foreground">Upcoming interviews</p>
+            <div className="text-2xl font-bold">{stats.metrics.averageMatchRate}%</div>
+            <p className="text-xs text-muted-foreground">Across all candidates</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Hiring Rate</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Views</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.metrics.hiringRate}%</div>
-            <p className="text-xs text-muted-foreground">Average hiring rate</p>
+            <div className="text-2xl font-bold">{stats.metrics.totalViews}</div>
+            <p className="text-xs text-muted-foreground">Profile views</p>
           </CardContent>
         </Card>
       </div>
@@ -350,7 +368,7 @@ export default async function Dashboard() {
                     <div>
                       <p className="text-sm font-medium text-slate-900">{job.title}</p>
                       <p className="text-xs text-muted-foreground">
-                        Match rate: {job.matchRate}%
+                        Match rate: {(job.matchRate /10) * 100 }%
                       </p>
                     </div>
                     <div className="flex items-center gap-2">

@@ -4,13 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { getRelativeTimeString } from "@/lib/utils";
 
-function stripHtml(html: string) {
-  // Create a temporary element
-  const doc = new DOMParser().parseFromString(html, 'text/html');
-  // Get text content and normalize whitespace
-  return doc.body.textContent?.replace(/\s+/g, ' ').trim() || '';
-}
-
 interface JobCardProps {
   job: {
     id: string;
@@ -40,9 +33,7 @@ export function JobCard({ job }: JobCardProps) {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          <p className="text-sm text-muted-foreground line-clamp-3">
-            {stripHtml(job.description)}
-          </p>
+          <p className="text-sm text-muted-foreground line-clamp-3" dangerouslySetInnerHTML={{ __html: job.description }} />
           
           {job.requiredSkills && job.requiredSkills.length > 0 && (
             <div className="flex flex-wrap gap-2">

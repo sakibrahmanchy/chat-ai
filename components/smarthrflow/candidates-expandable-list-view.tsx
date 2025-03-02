@@ -1,9 +1,10 @@
 'use client'
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import CandidateSingleView from "./candidate-single-view";
+import { listService } from "@/lib/services/list.service";
 
-interface Candidate {
-    id: string;
+export interface Candidate {
+    id: number;
     name: string;
     role: string;
     email: string;
@@ -29,11 +30,16 @@ interface Candidate {
 export const CandidatesExpandableListView = ({
     candidates,
     initialExpandedCandidateId,
+    jobId,
+    companyId
 }: {
     candidates: Candidate[];
     initialExpandedCandidateId?: string;
+    jobId: string;
+    companyId: string;
 }) => {
     const [expandedCandidateId, setExpandedCandidateId] = useState<string>(initialExpandedCandidateId || "");
+    const [candidateLists, setCandidateLists] = useState<{ [key: string]: string[] }>({});
 
     const handleExpandCandidate = (id: string) => {
         if (expandedCandidateId === id) {   
@@ -47,6 +53,22 @@ export const CandidatesExpandableListView = ({
         return <div>No candidates found</div>
     }
 
+    const getListNamesByCandidateIds = async (candidateIds: number[]) => {
+        const lists = await listService.getListNamesByCandidateIds(candidateIds);
+        return lists;
+    }   
+
+    useEffect(() => {
+        const candidateIds = candidates.map(candidate => candidate.id);
+        getListNamesByCandidateIds(candidateIds).then(lists => {
+            const candidateLists = lists.reduce((acc: { [key: string]: string[] }, list: { resume_id: string, lists: string[] }) => {
+                acc[list.resume_id] = list.lists;
+                return acc;
+            }, {});
+            setCandidateLists(candidateLists);
+        });
+    }, [candidates]);
+
     return (
         <div className="grid gap-4">
             {candidates.map((candidate) => (
@@ -55,6 +77,9 @@ export const CandidatesExpandableListView = ({
                     candidate={candidate}
                     expandedCandidateId={expandedCandidateId}
                     handleExpandCandidate={handleExpandCandidate}
+                    lists={candidateLists[candidate.id]}
+                    jobId={jobId}
+                    companyId={companyId}
                 />
             ))}
         </div>

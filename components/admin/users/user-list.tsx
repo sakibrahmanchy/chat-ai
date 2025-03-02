@@ -37,7 +37,7 @@ interface UserListProps {
 }
 
 export function UserList({ users }: UserListProps) {
-  const [userList, setUserList] = useState(users);
+  const userList = useState([])[0];
 
   const getStatusColor = (status: string) => {
     switch (status) {

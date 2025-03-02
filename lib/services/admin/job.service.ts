@@ -87,7 +87,7 @@ export class AdminJobService {
     };
   }
 
-  async updateJob(id: string, data: any) {
+  async updateJob(id: string, data: Job) {
     // Map 'paused' to 'draft' since paused isn't a valid database status
     if (data.status === 'paused') {
       data.status = 'draft';

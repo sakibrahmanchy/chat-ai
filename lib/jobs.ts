@@ -1,5 +1,4 @@
 import { supabase } from '@/lib/supabase/client';
-import { Job } from '@/app/types/job';
 
 export async function getJobs() {
   const { data: jobs, error } = await supabase

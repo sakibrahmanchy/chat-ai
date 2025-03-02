@@ -35,9 +35,9 @@ export function PricingCard({ pkg, onSelect, isSelected, index }: PricingCardPro
 
       <div className="mt-2">
         <h3 className="text-lg font-semibold text-gray-900">{pkg.name}</h3>
-        <div className="mt-1.5 text-xs text-gray-600 overflow-y-auto max-h-64"
+        {/* <div className="mt-1.5 text-xs text-gray-600 overflow-y-auto max-h-64"
           dangerouslySetInnerHTML={{ __html: pkg.description }}>
-        </div>
+        </div> */}
       </div>
 
       <div className="mt-auto">

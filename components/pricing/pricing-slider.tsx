@@ -12,12 +12,14 @@ interface Package {
   price: number;
   credits: number;
   description: string;
+  stripePriceId?: string;
+  is_popular?: boolean;
 }
 
 interface PricingSliderProps {
   packages: Package[];
   selectedPackage: string | null;
-  onSelect: (id: string) => void;
+  onSelect: (packageId: string) => void;
 }
 
 export function PricingSlider({ packages, selectedPackage, onSelect }: PricingSliderProps) {

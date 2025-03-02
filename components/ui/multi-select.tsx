@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Check, ChevronsUpDown, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import {
   Popover,

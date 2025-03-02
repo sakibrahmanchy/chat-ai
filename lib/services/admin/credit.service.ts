@@ -83,9 +83,9 @@ export class AdminCreditService {
     return pkg;
   }
 
-  async assignCreditsToCompany(companyId: string, credits: number, notes?: string) {
+  async assignCreditsToCompany(companyId: string, credits: number) {
 
-    const { data: companyCredits, error: companyCreditsError } = await supabase
+    const { data: companyCredits } = await supabase
       .from('company_credits')
       .select('credits_balance, credits_used')
       .eq('company_id', companyId)

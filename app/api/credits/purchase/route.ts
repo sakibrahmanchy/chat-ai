@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs';
+import { auth } from '@clerk/nextjs/server';
 import { pricingService } from '@/lib/services/pricing.service';
+import { supabase } from '@/lib/supabase/client';
 
 export async function POST(req: Request) {
   try {

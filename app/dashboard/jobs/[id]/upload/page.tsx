@@ -48,10 +48,9 @@ export default async function UploadResumePage({
     .from('company_credits')
     .select('credits_balance')
     .eq('company_id', job.company_id)
-    .single();
-  
+    .single();  
 
-  if (userCreditsError || !userCredits) {
+  if (userCreditsError || !userCredits || !userCredits.credits_balance) {
     // prompt user to buy credits with a beautiful UX
     return (
       <Card className="relative overflow-hidden">
@@ -105,8 +104,6 @@ export default async function UploadResumePage({
       </Card>
     );
   }
-
-  console.log({ job })
 
   return (
     <div className="container max-w-4xl mx-auto py-8">

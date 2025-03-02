@@ -1,16 +1,25 @@
 import { Button } from "../ui/button";
-import { Mail, Phone, MapPin, Briefcase, Building2, GraduationCap, Star, ChevronUp, ChevronDown, CheckCircle2, Calendar } from "lucide-react";
+import { Mail, Phone, MapPin, Briefcase, Building2, GraduationCap, Star, ChevronUp, ChevronDown, CheckCircle2, Calendar, CheckCircle, Download } from "lucide-react";
 import { Progress } from "../ui/progress";
 import { Badge } from "../ui/badge";
+import { Candidate } from "./candidates-expandable-list-view";
+import { List } from "postcss/lib/list";
+import { AddToListDialog } from "./add-to-list-dialog";
 
 const CandidateSingleView = ({
     candidate,
     expandedCandidateId,
-    handleExpandCandidate
+    handleExpandCandidate,
+    lists = [],
+    jobId,
+    companyId
 }: {
-    candidate: any;
+    candidate: Candidate;
     expandedCandidateId: string;
     handleExpandCandidate: (id: string) => void;
+    lists: string[];
+    jobId: string;
+    companyId: string;
 }) => {
     return (
         <div
@@ -140,11 +149,12 @@ const CandidateSingleView = ({
 
                             <div className="grid grid-cols-2 gap-2">
                                 <button className="text-xs sm:text-sm text-indigo-600 hover:text-indigo-700 transition-colors inline-flex items-center justify-center py-2">
-                                    Shortlist For Interview
+                                    {lists && lists.length > 0 ? <span className="text-muted-foreground font-medium text-slate-600 flex items-center italic"><CheckCircle className="h-4 w-4 text-emerald-500 shrink-0" /> Shortlisted for {lists.join(', ')}</span> : <AddToListDialog candidateId={candidate.id} jobId={jobId} companyId={companyId} />}
                                 </button>
-                                <button className="text-xs sm:text-sm text-slate-600 hover:text-slate-900 transition-colors inline-flex items-center justify-center py-2">
+                                <Button className="flex gap-2 text-xs sm:text-sm transition-colors inline-flex items-center justify-center py-2">
+                                    <Download className="h-4 w-4 text-slate-600 shrink-0" color="white" />
                                     Download CV
-                                </button>
+                                </Button>
                             </div>
                         </div>
                     </div>

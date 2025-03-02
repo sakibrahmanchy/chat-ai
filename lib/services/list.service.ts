@@ -54,6 +54,15 @@ export class ListService {
     }));
   }
 
+  async getListNamesByCandidateIds( candidateIds: number[]) {
+    const { data: groupedLists, error } = await supabase
+      .rpc('group_resume_lists', { candidate_ids: candidateIds });
+
+    if (error) throw error;
+
+    return groupedLists;
+  }
+
   async addToList(data: {
     listId: string;
     resumeId: string;

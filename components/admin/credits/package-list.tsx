@@ -197,7 +197,7 @@ export function PackageList({ packages }: PackageListProps) {
               
               <Button onClick={async () => {
                     console.log('assigning package', assigningPackage);
-                    await creditService.addCreditPackageToCompany(selectedCompany, assigningPackage.id);
+                    await creditService.addCreditPackageToCompany(selectedCompany as string, assigningPackage.id);
                     toast({
                       title: "Package assigned",
                       description: "Package has been assigned to the company.",

@@ -4,7 +4,6 @@ import { adminCreditService } from "@/lib/services/admin/credit.service";
 import { adminCreditActionService } from "@/lib/services/admin/credit-actions.service";
 import { adminCompanyService } from "@/lib/services/admin/company.service";
 import { PackageList } from "@/components/admin/credits/package-list";
-import { PackageForm } from "@/components/admin/credits/package-form";
 import { ActionList } from "@/components/admin/credits/action-list";
 import { ActionForm } from "@/components/admin/credits/action-form";
 import { CreditAssignment } from "@/components/admin/credits/credit-assignment";

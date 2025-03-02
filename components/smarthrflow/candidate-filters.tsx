@@ -36,6 +36,17 @@ const EXPERIENCE_RANGES = {
   lead: [96, 999]  // 8+ years
 } as const;
 
+interface FilterProps {
+  onFilter: (filters: FilterCriteria) => void;
+}
+
+interface FilterCriteria {
+  status?: string;
+  skills?: string[];
+  experience?: number;
+  // ... other filter criteria
+}
+
 export function CandidateFilters({ 
   filters, 
   onFilterChange,

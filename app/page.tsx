@@ -11,6 +11,7 @@ import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { DemoCandidateList } from "@/components/demo-candidate-list";
 import { Logo } from "@/components/preview/logo";
+import { Footer } from "@/components/layout/footer";
 export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
@@ -54,13 +55,43 @@ export default function Home() {
 
       {/* Hero Section */}
       <section className="pt-32 pb-24 px-4 relative overflow-hidden">
-        {/* Gradient Background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 via-white to-white -z-10" />
-        
-        {/* Grid Pattern */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] -z-10" />
-        
-        <div className="max-w-screen-xl mx-auto">
+        {/* Animated background elements */}
+        <div className="absolute inset-0">
+          {/* Base gradient */}
+          <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/80 via-white to-blue-50/50" />
+          
+          {/* Animated floating orbs */}
+          <div className="absolute top-20 -left-20 w-96 h-96 rounded-full bg-gradient-to-br from-indigo-200/20 to-purple-200/20 blur-3xl animate-float-slow" />
+          <div className="absolute bottom-40 -right-20 w-96 h-96 rounded-full bg-gradient-to-br from-blue-200/20 to-indigo-200/20 blur-3xl animate-float" />
+          
+          {/* Animated grid */}
+          <div 
+            className="absolute inset-0 bg-[linear-gradient(to_right,#4f46e508_1px,transparent_1px),linear-gradient(to_bottom,#4f46e508_1px,transparent_1px)] bg-[size:64px_64px]"
+            style={{
+              maskImage: 'radial-gradient(ellipse 80% 50% at 50% -20%, black 40%, transparent 72%)',
+              animation: 'gridMove 20s linear infinite'
+            }}
+          />
+          
+          {/* Animated particles */}
+          <div className="absolute inset-0">
+            {Array.from({ length: 20 }).map((_, i) => (
+              <div
+                key={i}
+                className="absolute rounded-full bg-indigo-500/10"
+                style={{
+                  width: Math.random() * 4 + 2 + 'px',
+                  height: Math.random() * 4 + 2 + 'px',
+                  top: Math.random() * 100 + '%',
+                  left: Math.random() * 100 + '%',
+                  animation: `float ${Math.random() * 6 + 4}s linear infinite`
+                }}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div className="max-w-screen-xl mx-auto relative">
           <MotionDiv 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -72,57 +103,63 @@ export default function Home() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="inline-flex items-center gap-2 bg-indigo-50 text-indigo-600 px-4 py-1.5 rounded-full text-sm font-medium mb-6"
+              className="inline-flex items-center gap-2 bg-white/90 backdrop-blur-sm border border-indigo-100 text-indigo-600 px-4 py-1.5 rounded-full text-sm font-medium mb-6 shadow-sm"
             >
-              <Sparkles className="h-4 w-4" />
-              <span>AI-Powered Recruitment Platform</span>
+              <Sparkles className="h-4 w-4 animate-pulse" />
+              <span>AI-powered hiring with next-gen technology</span>
             </MotionDiv>
 
             {/* Main Heading */}
-            <h1 className="text-4xl md:text-6xl font-bold tracking-tight bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 bg-clip-text text-transparent">
-              Hire Smarter, Not Harder
+            <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-gray-900 pb-4">
+              Streamline your hiring process with next-gen AI
             </h1>
             
             {/* Subheading */}
-            <p className="mt-6 text-xl text-muted-foreground max-w-2xl mx-auto">
+            <p className="mt-6 text-xl text-gray-600 max-w-2xl mx-auto">
               Transform your hiring process with AI-powered candidate screening, automated resume parsing, 
-              and intelligent matching technology.
+              and intelligent matching technology. Hire smarter, not harder.
             </p>
 
             {/* CTA Buttons */}
             <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
               <AuthButton 
-                className="bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-600 text-white shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/50 transition-all duration-200 h-12 px-8"
+                className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-lg shadow-indigo-500/25 hover:shadow-purple-500/50 transition-all duration-300 h-12 px-8"
               >
                 Get Started Free
                 <ArrowRight className="ml-2 h-4 w-4" />
               </AuthButton>
-              <Button variant="outline" className="h-12 px-8">
+              <Button variant="outline" className="h-12 px-8 bg-white/80 backdrop-blur-sm border-indigo-100">
                 Watch Demo
               </Button>
             </div>
 
             {/* Feature List */}
-            <div className="mt-12 grid sm:grid-cols-3 gap-4 max-w-2xl mx-auto text-sm">
-              {[
-                "AI Resume Scoring",
+            <div className="mt-12 flex flex-wrap justify-center gap-x-8 gap-y-4 max-w-4xl mx-auto">
+              {[               
+                "Job Post Management", 
+                "Complex Resume Parsing",
                 "Smart Candidate Matching",
-                "Automated Processing"
-              ].map((feature) => (
-                <div key={feature} className="flex items-center justify-center gap-2 text-muted-foreground">
-                  <CheckCircle2 className="h-4 w-4 text-indigo-600" />
-                  <span>{feature}</span>
-                </div>
+                "Detailed Candidate Profiles",
+                "Sorting and filtering",
+                "Analytics Dashboard",
+                "Candidate list management"
+              ].map((feature, index) => (
+                <MotionDiv 
+                  key={feature}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full border border-indigo-50 shadow-sm hover:shadow-md transition-all duration-200"
+                >
+                  <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                  <span className="text-sm font-medium text-gray-700">{feature}</span>
+                </MotionDiv>
               ))}
             </div>
           </MotionDiv>
 
           {/* Product Preview Section */}
           <section className="py-24 px-4 relative overflow-hidden">
-            {/* Background with subtle gradient and pattern */}
-            {/* <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-white to-slate-50/50 -z-10" />
-            <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] -z-10" /> */}
-
             <div className="max-w-screen-xl mx-auto">
               <MotionDiv
                 initial={{ opacity: 0, y: 20 }}
@@ -134,7 +171,7 @@ export default function Home() {
                 <h2 className="text-3xl font-bold tracking-tight">
                   Try Our Interactive Demo
                 </h2>
-                <p className="mt-4 text-lg text-muted-foreground">
+                <p className="mt-4 text-lg text-gray-600">
                   Click on candidates below to see their detailed profiles, skills, and match scores. 
                   Use the search and filters to find specific candidates.
                 </p>
@@ -148,10 +185,6 @@ export default function Home() {
               >
                 <div className="relative">
                   <DemoCandidateList />
-                  
-                  {/* Decorative elements */}
-                  {/* <div className="absolute -top-12 -right-12 w-64 h-64 bg-indigo-100/50 rounded-full blur-3xl -z-10" />
-                  <div className="absolute -bottom-12 -left-12 w-64 h-64 bg-blue-100/50 rounded-full blur-3xl -z-10" /> */}
                 </div>
               </MotionDiv>
             </div>
@@ -293,26 +326,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t py-12 px-4">
-        <div className="max-w-screen-xl mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="flex items-center space-x-3">
-              <div className="bg-gradient-to-r from-indigo-500 to-indigo-600 p-1.5 rounded-lg shadow-md">
-                <BrainCircuit className="h-6 w-6 text-white" />
-              </div>
-              <span className="text-xl tracking-tight">
-                <span className="font-light">Smart</span>
-                <span className="font-bold text-indigo-600">HR</span>
-                <span className="font-medium">Flow</span>
-              </span>
-            </div>
-            <div className="mt-4 md:mt-0 text-sm text-muted-foreground">
-              © 2024 SmartHRFlow. All rights reserved.
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
@@ -418,7 +432,7 @@ function FeatureCard({ icon: Icon, title, description, index }: any) {
           <p className="mt-2 text-sm text-muted-foreground">
             {description}
           </p>
-        </div>
+              </div>
       </Card>
     </MotionDiv>
   );

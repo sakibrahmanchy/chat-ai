@@ -2,12 +2,19 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { SignupForm } from "@/components/onboarding/signup-form";
 import Header from "@/components/header";
+import { supabase } from "@/lib/supabase/client";
 
 export default async function OnboardingPage() {
   const { userId } = await auth();
   
   if (!userId) {
     redirect("/sign-in");
+  }
+
+  const { data: user, error: userError } = await supabase.from('users').select('*').eq('id', userId).single();
+
+  if (user?.onboarding_completed) {
+    redirect("/dashboard");
   }
 
   return (

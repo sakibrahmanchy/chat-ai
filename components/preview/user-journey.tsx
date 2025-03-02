@@ -73,7 +73,7 @@ export function UserJourney() {
               Find Your Ideal Candidates
             </h2>
             <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-              A streamlined process powered by SmartHRFlow's intelligent matching technology
+              A streamlined process powered by SmartHRFlow&apos;s intelligent matching technology
             </p>
           </motion.div>
 

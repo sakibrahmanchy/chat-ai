@@ -4,6 +4,7 @@ import { Resume } from '@/app/types/resume';
 import { Job } from '@/app/types/job';
 import { createClient } from '@supabase/supabase-js';
 import { ResumeScore } from '@/app/types/resume-score';
+import { CreditAction, creditService } from '../services/credits.service';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -90,8 +91,13 @@ const RESPONSE_FORMAT = {
   }
 } as const;
 
-export async function scoreResume(resumeId: number, jobId: string): Promise<ScoreResult> {
+export async function scoreResume(resumeId: number, jobId: string, companyId: string): Promise<ScoreResult> {
   try {
+    const hasEnoughCredits = await creditService.hasEnoughCredits(companyId, CreditAction.MATCH_RESUME);
+    if (!hasEnoughCredits) {
+      throw new Error('Insufficient credits, please upgrade your plan.');
+    }
+
     const startTime = Date.now();
     const { data: resume, error: resumeError } = await supabase.from('resumes').select('*').eq('id', resumeId).single();
     if (resumeError) throw resumeError;
@@ -105,9 +111,6 @@ export async function scoreResume(resumeId: number, jobId: string): Promise<Scor
     // Get initial score calculation
     const initialScore = calculateInitialScore(resume.parsed_content, job);
 
-    console.log({ initialScore })
-
-    console.log({ aiAnalysis })
 
     // Combine scores with weights (70% AI, 30% calculated)
     const combinedScores = {
@@ -208,10 +211,28 @@ export async function scoreResume(resumeId: number, jobId: string): Promise<Scor
         updated_at: new Date().toISOString()
       })
       .eq('id', resume.id);
+      
+    await creditService.useCredits(companyId, CreditAction.MATCH_RESUME);
+    
+    // first get the average match score for the job from resumes table
+    const { data: resumes } = await supabase
+      .from('resumes')
+      .select('overall_score')
+      .eq('job_id', jobId);
 
-    if (error) {
-      console.error('Error updating scores in Supabase:', error);
-      throw error;
+    const averageMatchScore = (resumes || [])?.reduce((acc, curr) => acc + curr.overall_score, 0) / (resumes?.length || 1) || 0;
+
+    // update average match score for job
+    const { error: jobUpdateError } = await supabase
+      .from('jobs')
+      .update({
+        average_match_score: averageMatchScore
+      })
+      .eq('id', jobId);
+
+    if (jobUpdateError) {
+      console.error('Error updating scores in Supabase:', jobUpdateError);
+      throw jobUpdateError;
     }
 
     return finalScores;
@@ -224,7 +245,6 @@ export async function scoreResume(resumeId: number, jobId: string): Promise<Scor
 // Helper function to calculate initial score (moved from resume-processor.ts)
 function calculateInitialScore(parsedContent: Resume['parsed_content'], job: Job) {
   let score = 0;
-  const maxScore = 10;
 
   // Skills match (40% weight)
   const requiredSkills = new Set(job.required_skills?.map((s: string) => s.toLowerCase()) || []);
@@ -237,7 +257,7 @@ function calculateInitialScore(parsedContent: Resume['parsed_content'], job: Job
     // If skills are in skills_with_yoe format
     candidateSkills = new Set(
       Object.values(parsedContent.skills_with_yoe)
-        .map((skill: any) => skill.name.toLowerCase())
+        .map((skill: { name: string }) => skill.name.toLowerCase())
     );
   } else {
     candidateSkills = new Set();

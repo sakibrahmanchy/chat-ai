@@ -1,11 +1,12 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { ListView } from "@/components/smarthrflow/list-view";
 import { supabase } from "@/lib/supabase/client";
 import { Metadata } from "next";
 import { listService } from "@/lib/services/list.service";
 import CandidatesExpandableListView from "@/components/smarthrflow/candidates-expandable-list-view";
 import Link from "next/link";
+import { Resume } from "@/app/types/resume";
+import { PostgrestResponse } from "@supabase/supabase-js";
 
 function formatLocation(location: any) {
   if (!location) return '';
@@ -29,6 +30,10 @@ export const metadata: Metadata = {
   title: "List Details",
   description: "View and manage your candidate list",
 };
+
+export interface ListItem {
+  resume: Resume | null
+}
 
 export default async function ListPage({
   params: { id: jobId, listId },
@@ -61,7 +66,7 @@ export default async function ListPage({
   }
 
   // Get resumes in this list
-  const { data: resumes } = await supabase
+  const { data: listItems }: PostgrestResponse<ListItem> = await supabase
     .from('list_items')
     .select(`
         resume:resume_id (
@@ -76,27 +81,32 @@ export default async function ListPage({
           metadata
         )
       `)
-    .eq('list_id', listId);
+    .eq('list_id', listId) as PostgrestResponse<ListItem>;
 
-  const candidates = resumes?.map(candidate => ({
-    id: candidate.resume.id,
-    name: candidate.resume.parsed_content?.full_name || '',
-    role: candidate.resume.current_position || '',
-    email: candidate.resume.parsed_content?.personal_emails?.length ? candidate.resume.parsed_content?.personal_emails[0] : '',
-    phone: candidate.resume.parsed_content?.personal_numbers?.length ? candidate.resume.parsed_content?.personal_numbers[0] : ''  ,
-    location: formatLocation(candidate.resume.location),
-    experience: formatExperience(candidate.resume.experience_months),
-    company: candidate.resume.parsed_content?.experiences?.[0]?.company || '',
-    education: candidate.resume.parsed_content?.education?.[0]?.degree_name || '',
+  if (!listItems || !listItems.length) {
+    return <div>No resumes found</div>;
+  }
+
+  console.log(listItems)
+  const candidates = listItems?.map((listItem: ListItem) => ({
+    id: listItem.resume?.id || 0,
+    name: listItem.resume?.parsed_content?.full_name || '',
+    role: listItem.resume?.current_position || '',
+    email: listItem.resume?.parsed_content?.personal_emails?.length ? listItem.resume?.parsed_content?.personal_emails[0] : '',
+    phone: listItem.resume?.parsed_content?.personal_numbers?.length ? listItem.resume?.parsed_content?.personal_numbers[0] : ''  ,
+    location: formatLocation(listItem.resume?.location),
+    experience: formatExperience(listItem.resume?.experience_months || 0),
+    company: listItem.resume?.parsed_content?.experiences?.[0]?.company || '',
+    education: listItem.resume?.parsed_content?.education?.[0]?.degree_name || '',
     availability: 'Immediate',
-    score: candidate.resume.overall_score || 0,
-    skills: candidate.resume.searchable_skills || [],
+    score: listItem.resume?.overall_score || 0,
+    skills: listItem.resume?.searchable_skills || [],
     scores: {
-      skillsScore: candidate.resume.scores?.skills_score || 0,
-      experienceScore: candidate.resume.scores?.experience_score || 0,
-      educationScore: candidate.resume.scores?.education_score || 0,
+      skillsScore: listItem.resume?.scores?.skills_score || 0,
+      experienceScore: listItem.resume?.scores?.experience_score || 0,
+      educationScore: listItem.resume?.scores?.education_score || 0,
       analysis: {
-        strengths: candidate.resume.scores?.analysis?.strengths || []
+        strengths: listItem.resume?.scores?.analysis?.strengths || []
       }
     }
   })) || [];
@@ -121,6 +131,8 @@ export default async function ListPage({
       </div>
       <CandidatesExpandableListView
         candidates={candidates}
+        jobId={jobId}
+        companyId={user.company_id}
       />
     </div>
   );

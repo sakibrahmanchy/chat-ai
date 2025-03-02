@@ -11,7 +11,11 @@ interface ExportOptions {
   }[];
 }
 
-export async function exportData(data: any[], options: ExportOptions) {
+interface Data {
+  [key: string]: string | number | boolean | Date;
+}
+
+export async function exportData(data: Data[], options: ExportOptions) {
   const { filename, format, columns } = options;
 
   if (format === 'csv') {

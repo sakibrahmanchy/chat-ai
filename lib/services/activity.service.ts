@@ -1,69 +1,150 @@
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase/client';
+import { Sentry } from '@/lib/sentry';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+export enum ActivityType {
+  // User actions
+  USER_LOGIN = 'user_login',
+  USER_LOGOUT = 'user_logout',
+  USER_SETTINGS_UPDATED = 'user_settings_updated',
+  
+  // Job related
+  JOB_CREATED = 'job_created',
+  JOB_UPDATED = 'job_updated',
+  JOB_DELETED = 'job_deleted',
+  JOB_STATUS_CHANGED = 'job_status_changed',
+  
+  // Candidate related
+  RESUME_UPLOADED = 'resume_uploaded',
+  RESUME_PARSED = 'resume_parsed',
+  CANDIDATE_MATCHED = 'candidate_matched',
+  CANDIDATE_STATUS_UPDATED = 'candidate_status_updated',
+  CANDIDATE_SHORTLISTED = 'candidate_shortlisted',
+  
+  // Credit related
+  CREDITS_ADDED = 'credits_added',
+  CREDITS_USED = 'credits_used',
+  
+  // Error events
+  ERROR_OCCURRED = 'error_occurred',
+  API_ERROR = 'api_error'
+}
 
-export type ActivityType = 
-  | 'job_created'
-  | 'job_updated'
-  | 'resume_uploaded'
-  | 'candidate_scored'
-  | 'candidate_shortlisted'
-  | 'candidate_rejected';
-
-interface ActivityData {
-  userId: string;
-  companyId: string;
+export interface ActivityLog {
+  id?: string;
+  user_id: string;
+  company_id: string;
   type: ActivityType;
   description: string;
   metadata?: Record<string, any>;
-  entityType?: string;
-  entityId?: string;
+  created_at?: string;
+  ip_address?: string;
+  user_agent?: string;
 }
 
-export class ActivityService {
-  async logActivity(data: ActivityData) {
+class ActivityService {
+  private static instance: ActivityService;
+  
+  private constructor() {}
+
+  public static getInstance(): ActivityService {
+    if (!ActivityService.instance) {
+      ActivityService.instance = new ActivityService();
+    }
+    return ActivityService.instance;
+  }
+
+  /**
+   * Log an activity
+   */
+  async logActivity(activity: Omit<ActivityLog, 'id' | 'created_at'>) {
     try {
       const { error } = await supabase
         .from('activities')
         .insert({
-          user_id: data.userId,
-          company_id: data.companyId,
-          type: data.type,
-          description: data.description,
-          metadata: data.metadata || {},
-          entity_type: data.entityType,
-          entity_id: data.entityId,
+          ...activity,
           created_at: new Date().toISOString()
         });
 
       if (error) throw error;
+
+      // For error events, also log to Sentry
+      // if (activity.type === ActivityType.ERROR_OCCURRED || activity.type === ActivityType.API_ERROR) {
+      //   Sentry.captureEvent({
+      //     message: activity.description,
+      //     level: "error",
+      //     extra: activity.metadata
+      //   });
+      // }
     } catch (error) {
       console.error('Error logging activity:', error);
-      throw error;
+      // Log to Sentry if activity logging fails
+      // Sentry.captureException(error);
     }
   }
 
-  getActivityDescription(type: ActivityType, metadata: Record<string, any> = {}): string {
-    switch (type) {
-      case 'job_created':
-        return `Posted a new job: ${metadata.jobTitle}`;
-      case 'job_updated':
-        return `Updated job: ${metadata.jobTitle}`;
-      case 'resume_uploaded':
-        return `New resume uploaded for ${metadata.jobTitle}`;
-      case 'candidate_scored':
-        return `Candidate scored ${metadata.score}% match for ${metadata.jobTitle}`;
-      case 'candidate_shortlisted':
-        return `Shortlisted candidate for ${metadata.jobTitle}`;
-      case 'candidate_rejected':
-        return `Rejected candidate for ${metadata.jobTitle}`;
-      default:
-        return 'Unknown activity';
+  /**
+   * Get activities for a company
+   */
+  async getCompanyActivities(companyId: string, limit: number = 50) {
+    try {
+      const { data, error } = await supabase
+        .from('activities')
+        .select('*')
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error fetching activities:', error);
+      // Sentry.captureException(error);
+      return [];
+    }
+  }
+
+  /**
+   * Get activities for a user
+   */
+  async getUserActivities(userId: string, limit: number = 50) {
+    try {
+      const { data, error } = await supabase
+        .from('activities')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error fetching user activities:', error);
+      // Sentry.captureException(error);
+      return [];
+    }
+  }
+
+  /**
+   * Get activities related to a specific entity (job, candidate, etc.)
+   */
+  async getEntityActivities(entityType: string, entityId: string, limit: number = 50) {
+    try {
+      const { data, error } = await supabase
+        .from('activities')
+        .select('*')
+        .eq('metadata->entity_type', entityType)
+        .eq('metadata->entity_id', entityId)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error fetching entity activities:', error);
+      // Sentry.captureException(error);
+      return [];
     }
   }
 }
 
-export const activityService = new ActivityService(); 
+export const activityService = ActivityService.getInstance(); 

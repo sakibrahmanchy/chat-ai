@@ -1,7 +1,6 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase/client";
-import { useUser } from "@clerk/nextjs";
 
 export async function POST(req: Request) {
   try {
@@ -59,7 +58,8 @@ export async function POST(req: Request) {
     if (userError) throw userError;
 
     return NextResponse.json({
-      message: "Onboarding completed successfully"
+      message: "Onboarding completed successfully",
+      companyId: company.id
     });
   } catch (error) {
     console.error('Onboarding error:', error);

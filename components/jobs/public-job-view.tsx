@@ -29,9 +29,10 @@ interface Job {
 interface PublicJobViewProps {
   job: Job;
   userId?: string;
+  disabledApplication?: boolean;
 }
 
-export function PublicJobView({ job, userId }: PublicJobViewProps) {
+export function PublicJobView({ job, userId, disabledApplication }: PublicJobViewProps) {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -182,7 +183,13 @@ export function PublicJobView({ job, userId }: PublicJobViewProps) {
             </TabsContent>
 
             <TabsContent value="apply" className="mt-6">
-              <ResumeUploader jobId={job.id} />
+              {disabledApplication ? (
+                <div className="text-center text-slate-600 p-4">
+                  <div className="text-lg font-semibold mb-3">Sorry, this job is not accepting applications right now.</div>
+                </div>
+              ) : (
+                <ResumeUploader jobId={job.id} />
+              )}
             </TabsContent>
           </Tabs>
         </div>

@@ -6,9 +6,10 @@ interface LogoProps {
   className?: string;
   size?: number;
   animated?: boolean;
+  style?: React.CSSProperties;
 }
 
-export function Logo({ className = "", size = 40, animated = true }: LogoProps) {
+export function Logo({ className = "", size = 40, animated = true, style = {} }: LogoProps) {
   return (
     <svg
       width={size * 5}
@@ -17,6 +18,7 @@ export function Logo({ className = "", size = 40, animated = true }: LogoProps) 
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
+      style={style}
     >
       {/* Circle with S */}
       <motion.circle
