@@ -23,7 +23,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 import { useState } from "react"
-import { Logo } from "./preview/logo";
+import { Logo } from "./smarthrflow/logo";
 
 const navigationItems = [
   {

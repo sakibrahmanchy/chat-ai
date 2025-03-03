@@ -111,5 +111,10 @@ export interface Resume {
   job_id?: string;
   user_id?: string;
   overall_score: number;
-  scores: ResumeScore;
+  scores: ResumeScore; 
+  job_resume_matches?: JobResumeMatch[];
 } 
+
+export interface JobResumeMatch {
+  status: string;
+}

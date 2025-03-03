@@ -49,16 +49,8 @@ export const CandidatesExpandableListView = ({
         }
     }
 
-    if (candidates.length === 0) {
-        return <div>No candidates found</div>
-    }
-
-    const getListNamesByCandidateIds = async (candidateIds: number[]) => {
-        const lists = await listService.getListNamesByCandidateIds(candidateIds);
-        return lists;
-    }   
-
     useEffect(() => {
+       if (candidates.length > 0) {
         const candidateIds = candidates.map(candidate => candidate.id);
         getListNamesByCandidateIds(candidateIds).then(lists => {
             const candidateLists = lists.reduce((acc: { [key: string]: string[] }, list: { resume_id: string, lists: string[] }) => {
@@ -67,7 +59,17 @@ export const CandidatesExpandableListView = ({
             }, {});
             setCandidateLists(candidateLists);
         });
+       }
     }, [candidates]);
+
+    if (candidates.length === 0) {
+        return <div>No candidates found</div>
+    }
+
+    const getListNamesByCandidateIds = async (candidateIds: number[]) => {
+        const lists = await listService.getListNamesByCandidateIds(candidateIds);
+        return lists;
+    }
 
     return (
         <div className="grid gap-4">

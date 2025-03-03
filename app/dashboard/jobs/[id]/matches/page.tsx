@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { Resume } from "@/app/types/resume";
+import { listService } from "@/lib/services/list.service";
 
 // Create a server-side Supabase client
 const supabase = createClient(
@@ -35,6 +36,11 @@ export default async function JobPage({
       redirect("/dashboard");
     }
 
+    const { shortlistedCandidates, rejectedCandidates } = await listService.getShortlistedAndRejectedLists(jobId);
+
+    console.log(shortlistedCandidates);
+    console.log(rejectedCandidates);
+
     // Get job details
     const { data: job, error: jobError } = await supabase
       .from('jobs')
@@ -58,6 +64,7 @@ export default async function JobPage({
     }
 
     // Get resumes for this job
+    // join with job_resume_matches to get the status, we will always have one row per resume
     const { data: resumes = [], error: resumesError } = await supabase
       .from('resumes')
       .select(`
@@ -72,13 +79,16 @@ export default async function JobPage({
         metadata,
         location,
         created_at,
-        updated_at
+        updated_at,
+        job_resume_matches (
+          status
+        )
       `)
       .eq('job_id', jobId)
       .order('overall_score', { ascending: false })
       .order('created_at', { ascending: false })
       .limit(CANDIDATES_PER_PAGE);
-
+    console.log({ resumes });
     if (resumesError) {
       console.error('Error fetching resumes:', resumesError);
       return null;

@@ -38,7 +38,7 @@ interface SettingsFormProps {
 
 export function SettingsForm({ initialData }: SettingsFormProps) {
   const { credits, purchases, transactions } = initialData.company;
-  const { credits_balance, credits_used } = credits[0];
+  const { credits_balance, credits_used } = credits[0] || { credits_balance: 0, credits_used: 0 };
 
   const creditBalance = Number(credits_balance);
   const creditsUsed = Number(credits_used);

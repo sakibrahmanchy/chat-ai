@@ -9,21 +9,8 @@ import {
   Users,
   Clock,
   ChevronUp,
-  Star,
-  FileText,
-  Mail,
-  ChevronDown,
-  Building2,
-  GraduationCap,
-  Briefcase,
-  MapPin,
-  Phone,
-  Calendar,
-  CheckCircle2,
-  Search,
   Share2,
   Check,
-  Copy,
   Loader2,
   Pencil,
   PlusCircle,
@@ -43,10 +30,10 @@ import {
 } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import CandidatesExpandableListView from "../smarthrflow/candidates-expandable-list-view";
-import { listService } from "@/lib/services/list.service";
+import { Job } from "@/app/types/job";
 
 interface JobDetailsPreviewProps {
-  job: any;
+  job: Job;
   metrics: {
     totalCandidates: number;
     timeToHire: string | number;

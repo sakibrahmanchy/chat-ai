@@ -14,6 +14,7 @@ interface SearchFilters {
   sortBy?: 'score' | 'date';
   matchType?: 'AND' | 'OR';
   location?: string;
+  status?: string;
 }
 
 export class ResumeSearchService {
@@ -39,9 +40,19 @@ export class ResumeSearchService {
           metadata,
           location,
           created_at,
-          updated_at
+          updated_at,
+          job_resume_matches (
+            status
+          )
         `, { count: 'exact' })
         .eq('job_id', jobId);
+
+      // Apply status filter
+      if (filters.status) {
+        query = query.eq('job_resume_matches.status', filters.status);
+      } else if (filters.status === '') {
+        query = query.is('job_resume_matches.status', null);
+      }
 
       // Apply filters
       if (filters.skills?.length) {
@@ -126,7 +137,7 @@ export class ResumeSearchService {
 
       return Array.from(locations).sort();
     } catch (error) {
-      console.error('Error getting unique locations:', error);
+      // console.error('Error getting unique locations:', error);
       return [];
     }
   }

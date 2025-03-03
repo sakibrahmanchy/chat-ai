@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase/client';
-import { Sentry } from '@/lib/sentry';
+// import { Sentry } from '@/lib/sentry';
 
 export enum ActivityType {
   // User actions
@@ -35,7 +35,7 @@ export interface ActivityLog {
   company_id: string;
   type: ActivityType;
   description: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean>;
   created_at?: string;
   ip_address?: string;
   user_agent?: string;

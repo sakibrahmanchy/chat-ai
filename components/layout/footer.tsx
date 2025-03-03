@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Github, Twitter, Linkedin } from "lucide-react";
-import { Logo } from "../preview/logo";
+import { Logo } from "../smarthrflow/logo";
 
 export function Footer() {
   return (

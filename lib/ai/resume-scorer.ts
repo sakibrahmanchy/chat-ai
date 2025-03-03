@@ -211,7 +211,9 @@ export async function scoreResume(resumeId: number, jobId: string, companyId: st
         updated_at: new Date().toISOString()
       })
       .eq('id', resume.id);
-      
+    
+
+    if (error ) throw error;
     await creditService.useCredits(companyId, CreditAction.MATCH_RESUME);
     
     // first get the average match score for the job from resumes table
@@ -291,7 +293,7 @@ function calculateInitialScore(parsedContent: Resume['parsed_content'], job: Job
 // Helper function to analyze resume using AI
 async function analyzeResume(resume: Resume, job: Job) {
   try {
-    const { parsed_content: parsedContent } = resume;
+    const { parsed_content: parsedContent, availability_weeks } = resume;
 
 
     const aiPrompt = ` You are an expert HR professional and resume analyzer. You frequently analyze resumes and provide 
@@ -315,7 +317,9 @@ async function analyzeResume(resume: Resume, job: Job) {
       Current Role: ${parsedContent?.occupation || ''}
       Experience: ${JSON.stringify(parsedContent?.experiences || [])}
       Education: ${JSON.stringify(parsedContent?.education || [])}
-      Skills: ${JSON.stringify(parsedContent?.skills || [])}`;
+      Skills: ${JSON.stringify(parsedContent?.skills || [])}
+      Availability: ${JSON.stringify(availability_weeks || [])}
+      Skills with YOE: ${JSON.stringify(parsedContent?.skills_with_yoe || [])}`;
 
     const finalPrompt = job.scoring_instructions ? 
     `${job.scoring_instructions} ${taskPrompt} ${jobPromptSpecial} ${resumePrompt} ${job.scoring_instructions}` 

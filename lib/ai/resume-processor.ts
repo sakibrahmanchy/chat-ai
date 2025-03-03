@@ -141,19 +141,22 @@ const RESPONSE_FORMAT = {
   }
 } as const;
 
-export async function processResume(fileBuffer: Buffer, jobId: string, userId: string, companyId: string): Promise<{ parsedData: Resume['parsed_content'], hash: string, id: number }> {
+export async function processResume(resumeFile: File, jobId: string, userId: string, companyId: string): Promise<{ parsedData: Resume['parsed_content'], hash: string, id: number }> {
   try {
     const hasEnoughCredits = await creditService.hasEnoughCredits(companyId, CreditAction.SUBMIT_RESUME);
     if (!hasEnoughCredits) {
       throw new Error('Insufficient credits');
     }
 
-    const fileType = await detectFileType(fileBuffer);
+    const fileType = resumeFile.type;
+    const fileBuffer = Buffer.from(await resumeFile.arrayBuffer());
+    console.log({ fileType })
     const formData = new FormData();
-    formData.append('fileBuffer', new Blob([fileBuffer]), `file.${fileType}`);
+    formData.append('fileBuffer', resumeFile, `file.${fileType}`);
     formData.append('fileType', fileType);
+    formData.append('filename', resumeFile.name);
 
-    const responseFromParser = await fetch(`https://textract-cloud-run-568768904673.us-central1.run.app/extract-text`, {
+    const responseFromParser = await fetch(`http://localhost:8080/extract-text`, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
@@ -251,6 +254,10 @@ export async function processResume(fileBuffer: Buffer, jobId: string, userId: s
         state: parsedData.state,
         country: parsedData.country
       },
+      first_name: parsedData.first_name,
+      last_name: parsedData.last_name,
+      full_name: parsedData.full_name,
+      email: parsedData.personal_emails[0],
       current_position: parsedData.occupation,
       metadata: {
         file_name: `resume.${fileType === 'pdf' ? 'pdf' : 'docx'}`,

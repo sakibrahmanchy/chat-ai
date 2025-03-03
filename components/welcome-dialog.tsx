@@ -196,7 +196,7 @@ export function WelcomeDialog() {
                   <h3 className="font-medium text-indigo-900">Welcome Gift: 10 Free Credits!</h3>
                 </div>
                 <p className="text-sm text-indigo-700">
-                  We're giving you 10 credits to get started. Use them to try out our AI-powered features
+                  We are giving you 10 credits to get started. Use them to try out our AI-powered features
                   and experience the full potential of SmartHR Flow.
                 </p>
               </div>
@@ -209,7 +209,7 @@ export function WelcomeDialog() {
             <DialogHeader>
               <DialogTitle className="text-2xl">Ready to Start?</DialogTitle>
               <DialogDescription className="pt-2">
-                You're all set to start using SmartHR Flow.
+                You are all set to start using SmartHR Flow.
               </DialogDescription>
             </DialogHeader>
             <div className="py-6">

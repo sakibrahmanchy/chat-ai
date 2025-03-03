@@ -4,7 +4,6 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 
 interface CandidateFiltersProps {
@@ -12,13 +11,13 @@ interface CandidateFiltersProps {
     showFilters: boolean;
     skills: string[];
     scoreRange: [number, number];
-    status: string[];
+    status: string;
     experienceMonths: [number, number];
     matchType: 'AND' | 'OR';
     sortBy: 'score' | 'date';
     location: string;
   };
-  onFilterChange: (filters: any) => void;
+  onFilterChange: (filters: FilterCriteria) => void;
   availableLocations: string[];
 }
 
@@ -36,15 +35,13 @@ const EXPERIENCE_RANGES = {
   lead: [96, 999]  // 8+ years
 } as const;
 
-interface FilterProps {
-  onFilter: (filters: FilterCriteria) => void;
-}
-
 interface FilterCriteria {
   status?: string;
   skills?: string[];
   experience?: number;
-  // ... other filter criteria
+  location?: string;
+  scoreRange?: number[];
+  experienceMonths?: [number, number] | undefined;
 }
 
 export function CandidateFilters({ 
@@ -86,6 +83,25 @@ export function CandidateFilters({
             onValueChange={(value) => onFilterChange({ ...filters, scoreRange: value })}
           />
         </div>
+
+        {/* Status */}
+        <div className="space-y-3">
+          <Label className="font-medium text-sm">Status</Label>
+          <Select
+            value={filters.status || "all"}
+            onValueChange={(value) => onFilterChange({ ...filters, status: value === "all" ? "" : value })} 
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select status" />
+            </SelectTrigger>
+            <SelectContent className="bg-white">
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="accepted">Shortlisted</SelectItem>
+              <SelectItem value="rejected">Rejected</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        
 
         <div className="space-y-3">
           <Label className="font-medium text-sm">Experience Level</Label>

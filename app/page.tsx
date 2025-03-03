@@ -1,17 +1,17 @@
 import { Button } from "@/components/ui/button";
 import { SignInButton } from "@clerk/nextjs";
-import { ArrowRight, BrainCircuit, Briefcase, CheckCircle2, LineChart, Rocket, Users, Sparkles, Shield, Lock, Server, Star, Mail, Phone, MapPin, Calendar, FileText } from "lucide-react";
+import { ArrowRight, BrainCircuit, Briefcase, CheckCircle2, LineChart, Rocket, Users, Sparkles, Shield, Lock, Server, Star, Mail, Phone, MapPin, Calendar, FileText, Download, Share } from "lucide-react";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { MotionDiv } from "@/components/motion";
 import { AuthButton } from "@/components/auth-button";
 import { FeaturesSection } from "@/components/features-section";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { cn } from "@/lib/utils";
-import { DemoCandidateList } from "@/components/demo-candidate-list";
-import { Logo } from "@/components/preview/logo";
+import { DEMO_RESUMES, DemoCandidateList } from "@/components/demo-candidate-list";
+import { Logo } from "@/components/smarthrflow/logo";
 import { Footer } from "@/components/layout/footer";
+import CandidateSingleView from "@/components/smarthrflow/candidate-single-view";
+import { DashboardPreview } from "@/components/smarthrflow/dashboard-preview";
+import { TargetBenefits } from "@/components/smarthrflow/target-benefits";
 export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
@@ -19,7 +19,7 @@ export default function Home() {
       <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-sm border-b">
         <div className="max-w-screen-xl mx-auto flex items-center justify-between p-4">
           <Link href="/" className="flex items-center space-x-3">
-              <Logo size={40} animated />
+            <Logo size={40} animated />
 
             {/* <span className="text-xl tracking-tight">
               <span className="font-light">Smart</span>
@@ -28,8 +28,8 @@ export default function Home() {
             </span> */}
           </Link>
           <div className="flex items-center gap-4">
-            <AuthButton 
-              variant="ghost" 
+            <AuthButton
+              variant="ghost"
               size="sm"
               signInText="Sign In"
               loadingText="Loading..."
@@ -42,7 +42,7 @@ export default function Home() {
             >
               Sign In
             </AuthButton>
-            <AuthButton 
+            <AuthButton
               className="bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-600 text-white shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/50 transition-all duration-200"
               size="sm"
             >
@@ -59,20 +59,20 @@ export default function Home() {
         <div className="absolute inset-0">
           {/* Base gradient */}
           <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/80 via-white to-blue-50/50" />
-          
+
           {/* Animated floating orbs */}
           <div className="absolute top-20 -left-20 w-96 h-96 rounded-full bg-gradient-to-br from-indigo-200/20 to-purple-200/20 blur-3xl animate-float-slow" />
           <div className="absolute bottom-40 -right-20 w-96 h-96 rounded-full bg-gradient-to-br from-blue-200/20 to-indigo-200/20 blur-3xl animate-float" />
-          
+
           {/* Animated grid */}
-          <div 
-            className="absolute inset-0 bg-[linear-gradient(to_right,#4f46e508_1px,transparent_1px),linear-gradient(to_bottom,#4f46e508_1px,transparent_1px)] bg-[size:64px_64px]"
+          <div
+            className="absolute inset-0 bg-[linear-gradient(to_right,#4f46e508_1px,transparent_1px),linear-gradient(to_bottom,#4f46e508_1px,transparent_1px)] bg-[size:400px_64px]"
             style={{
               maskImage: 'radial-gradient(ellipse 80% 50% at 50% -20%, black 40%, transparent 72%)',
               animation: 'gridMove 20s linear infinite'
             }}
           />
-          
+
           {/* Animated particles */}
           <div className="absolute inset-0">
             {Array.from({ length: 20 }).map((_, i) => (
@@ -92,7 +92,7 @@ export default function Home() {
         </div>
 
         <div className="max-w-screen-xl mx-auto relative">
-          <MotionDiv 
+          <MotionDiv
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
@@ -106,23 +106,23 @@ export default function Home() {
               className="inline-flex items-center gap-2 bg-white/90 backdrop-blur-sm border border-indigo-100 text-indigo-600 px-4 py-1.5 rounded-full text-sm font-medium mb-6 shadow-sm"
             >
               <Sparkles className="h-4 w-4 animate-pulse" />
-              <span>AI-powered hiring with next-gen technology</span>
+              <span>AI-powered recruitment platform for modern hiring teams.</span>
             </MotionDiv>
 
             {/* Main Heading */}
             <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-gray-900 pb-4">
               Streamline your hiring process with next-gen AI
             </h1>
-            
+
             {/* Subheading */}
             <p className="mt-6 text-xl text-gray-600 max-w-2xl mx-auto">
-              Transform your hiring process with AI-powered candidate screening, automated resume parsing, 
+              Transform your hiring process with AI-powered candidate screening, automated resume parsing,
               and intelligent matching technology. Hire smarter, not harder.
             </p>
 
             {/* CTA Buttons */}
             <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
-              <AuthButton 
+              <AuthButton
                 className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow-lg shadow-indigo-500/25 hover:shadow-purple-500/50 transition-all duration-300 h-12 px-8"
               >
                 Get Started Free
@@ -132,34 +132,19 @@ export default function Home() {
                 Watch Demo
               </Button>
             </div>
+          </MotionDiv>
 
-            {/* Feature List */}
-            <div className="mt-12 flex flex-wrap justify-center gap-x-8 gap-y-4 max-w-4xl mx-auto">
-              {[               
-                "Job Post Management", 
-                "Complex Resume Parsing",
-                "Smart Candidate Matching",
-                "Detailed Candidate Profiles",
-                "Sorting and filtering",
-                "Analytics Dashboard",
-                "Candidate list management"
-              ].map((feature, index) => (
-                <MotionDiv 
-                  key={feature}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full border border-indigo-50 shadow-sm hover:shadow-md transition-all duration-200"
-                >
-                  <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                  <span className="text-sm font-medium text-gray-700">{feature}</span>
-                </MotionDiv>
-              ))}
-            </div>
+          <MotionDiv
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="text-center mx-auto mt-20"
+          >
+            <DashboardPreview />
           </MotionDiv>
 
           {/* Product Preview Section */}
-          <section className="py-24 px-4 relative overflow-hidden">
+          <section className="pt-24 px-4 relative overflow-hidden">
             <div className="max-w-screen-xl mx-auto">
               <MotionDiv
                 initial={{ opacity: 0, y: 20 }}
@@ -169,30 +154,60 @@ export default function Home() {
                 className="text-center max-w-3xl mx-auto mb-16"
               >
                 <h2 className="text-3xl font-bold tracking-tight">
-                  Try Our Interactive Demo
+                  Intelligence that works for you
                 </h2>
                 <p className="mt-4 text-lg text-gray-600">
-                  Click on candidates below to see their detailed profiles, skills, and match scores. 
-                  Use the search and filters to find specific candidates.
+                  A streamlined hiring process that saves you time and money, with a focus on quality and efficiency.
                 </p>
               </MotionDiv>
 
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
+            {steps.map((step, index) => (
               <MotionDiv
+                key={index}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: 0.2 }}
+                className="relative"
               >
-                <div className="relative">
-                  <DemoCandidateList />
+                {/* Connection Line */}
+                {index !== steps.length - 1 && (
+                  <div className="hidden lg:block absolute top-8 left-full w-full h-px bg-gradient-to-r from-slate-200 to-transparent -translate-y-1/2 z-0" />
+                )}
+                
+                <div className="relative bg-white rounded-xl border p-6 hover:shadow-lg transition-shadow">
+                  {/* Step Number */}
+                  <div className="absolute -top-3 -left-3 w-6 h-6 rounded-full bg-white border border-slate-200 text-xs font-medium flex items-center justify-center">
+                    {index + 1}
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className={`p-3 ${step.bgColor} rounded-lg w-fit`}>
+                      <div className={step.textColor}>
+                        {step.icon}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <h3 className="font-semibold text-lg">
+                        {step.title}
+                      </h3>
+                      <p className="text-slate-600">
+                        {step.description}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </MotionDiv>
+            ))}
+          </div>
             </div>
           </section>
         </div>
       </section>
 
-      <FeaturesSection />
+      <TargetBenefits />
 
       {/* Enhanced About Section */}
       <section className="py-24 bg-slate-50/50 relative">
@@ -209,9 +224,9 @@ export default function Home() {
                 The Future of Recruitment is Here
               </h2>
               <p className="mt-4 text-lg text-muted-foreground">
-                SmartHRFlow combines cutting-edge AI technology with intuitive design to 
-                help businesses find and hire the best talent efficiently. Our platform 
-                automates time-consuming tasks, provides deep insights, and ensures you 
+                We combine cutting-edge AI technology with intuitive design to
+                help businesses find and hire the best talent efficiently. Our platform
+                automates time-consuming tasks, provides deep insights, and ensures you
                 never miss out on the perfect candidate.
               </p>
             </MotionDiv>
@@ -232,7 +247,7 @@ export default function Home() {
               Built with Security in Mind
             </h2>
             <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-              We prioritize the security and privacy of your data with industry-standard 
+              We prioritize the security and privacy of your data with industry-standard
               security measures and best practices.
             </p>
           </div>
@@ -269,37 +284,16 @@ export default function Home() {
             className="text-center"
           >
             <h2 className="text-3xl font-bold tracking-tight">
-              Why Choose SmartHRFlow?
+              The power of AI in your hands
             </h2>
+            <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
+              Streamline your hiring process with our AI-powered platform.
+            </p>
           </MotionDiv>
           <div className="mt-16 grid md:grid-cols-3 gap-8">
             {benefits.map((benefit, index) => (
               <BenefitCard key={index} {...benefit} index={index} />
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* How it Works */}
-      <section className="py-24 px-4 bg-slate-50">
-        <div className="max-w-screen-xl mx-auto">
-          <h2 className="text-3xl font-bold tracking-tight text-center">
-            How It Works
-          </h2>
-          <div className="mt-16">
-            <div className="grid md:grid-cols-4 gap-8">
-              {steps.map((step, index) => (
-                <div key={index} className="relative">
-                  <div className="flex flex-col items-center text-center">
-                    <div className="h-12 w-12 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-lg">
-                      {index + 1}
-                    </div>
-                    <h3 className="mt-4 text-xl font-semibold">{step.title}</h3>
-                    <p className="mt-2 text-muted-foreground">{step.description}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
         </div>
       </section>
@@ -311,10 +305,10 @@ export default function Home() {
             Ready to Transform Your Hiring Process?
           </h2>
           <p className="mt-4 text-xl text-muted-foreground max-w-2xl mx-auto">
-            Join thousands of companies using SmartHRFlow to hire better, faster, and smarter.
+            Get started with SmartHRFlow today and see the difference for yourself.
           </p>
           <div className="mt-10">
-            <AuthButton 
+            <AuthButton
               size="lg"
               className="group relative bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-600 text-white shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/50 transition-all duration-200"
             >
@@ -375,21 +369,47 @@ const benefits = [
 
 const steps = [
   {
-    title: "Post a Job",
-    description: "Create detailed job listings with custom requirements and skills."
+    icon: <FileText className="h-6 w-6" />,
+    title: "Define Your Requirements",
+    description: "Specify your ideal candidate profile and job requirements",
+    bgColor: "bg-indigo-50",
+    textColor: "text-indigo-600"
   },
   {
-    title: "Upload Resumes",
-    description: "Bulk upload resumes or receive applications directly."
+    title: "Share Job Postings",
+    description: "Share your job postings with your team and candidates",
+    bgColor: "bg-indigo-50",
+    textColor: "text-indigo-600",
+    icon: <Share className="h-6 w-6" />
   },
   {
-    title: "AI Analysis",
-    description: "Our AI analyzes and matches candidates to your requirements."
+    icon: <FileText className="h-6 w-6" />,
+    title: "AI-Powered Resume Processing",
+    description: "Our AI instantly processes resumes and extracts the most relevant information",
+    bgColor: "bg-violet-50",
+    textColor: "text-violet-600"
   },
   {
-    title: "Hire the Best",
-    description: "Review matches, schedule interviews, and make great hires."
-  }
+    icon: <Sparkles className="h-6 w-6" />,
+    title: "Smart Candidate Matching",
+    description: "Our AI matches candidates based on their skills and experience",
+    bgColor: "bg-blue-50",
+    textColor: "text-blue-600"
+  },
+  {
+    icon: <Star className="h-6 w-6" />,
+    title: "Filter & Shortlist",
+    description: "Save and organize your preferred candidates, and filter them based on your criteria",
+    bgColor: "bg-amber-50",
+    textColor: "text-amber-600"
+  },
+  {
+    icon: <Download className="h-6 w-6" />,
+    title: "Export Details",
+    description: "Download candidate profiles, details and reach them out",
+    bgColor: "bg-emerald-50",
+    textColor: "text-emerald-600"
+  },
 ];
 
 // Update security features with more appropriate messaging
@@ -432,7 +452,7 @@ function FeatureCard({ icon: Icon, title, description, index }: any) {
           <p className="mt-2 text-sm text-muted-foreground">
             {description}
           </p>
-              </div>
+        </div>
       </Card>
     </MotionDiv>
   );

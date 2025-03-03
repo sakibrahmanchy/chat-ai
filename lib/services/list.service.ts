@@ -18,6 +18,7 @@ export class ListService {
     companyId: string;
     jobId?: string;
     createdBy: string;
+    isSystem?: boolean;
   }) {
     const { data: list, error } = await supabase
       .from('candidate_lists')
@@ -26,7 +27,8 @@ export class ListService {
         description: data.description,
         company_id: data.companyId,
         created_by: data.createdBy,
-        job_id: data.jobId
+        job_id: data.jobId,
+        is_system: data.isSystem
       })
       .select()
       .single();
@@ -139,6 +141,114 @@ export class ListService {
 
     if (error) throw error;
     return list;
+  }
+
+  async getShortlistedAndRejectedLists(jobId: string) {
+    const { data: shortlistedCandidates, error: shortlistedError } = await supabase
+    .from('job_resume_matches')
+    .select('resume_id')
+    .eq('job_id', jobId)
+    .eq('status', 'approved')
+
+    const { data: rejectedCandidates, error: rejectedError } = await supabase
+    .from('job_resume_matches')
+    .select('resume_id')
+    .eq('job_id', jobId)
+    .eq('status', 'rejected')
+
+    return {
+      shortlistedCandidates,
+      rejectedCandidates
+    };
+  }
+
+  async approveCandidate(resumeId: string, jobId: string) {  
+    const { data: shortlistedCandidate, error: shortlistedError } = await supabase
+      .from('job_resume_matches')
+      .select('*')
+      .eq('resume_id', resumeId)
+      .eq('job_id', jobId)
+      .maybeSingle()
+
+    console.log({ shortlistedCandidate, shortlistedError });
+
+    if (shortlistedCandidate) { 
+      const { error } = await supabase
+      .from('job_resume_matches')
+      .update({ status: 'accepted' })
+      .eq('resume_id', resumeId)
+      .eq('job_id', jobId);
+
+      if (error) throw error;
+      return true;
+    } else {
+      const { error } = await supabase
+      .from('job_resume_matches')
+      .insert({ resume_id: resumeId, job_id: jobId, status: 'accepted' });
+      console.log({ error });
+      if (error) throw error;
+      return true;
+    }
+  }
+
+  async rejectCandidate(resumeId: string, jobId: string) {
+    const { data: candidate, error: rejectedError } = await supabase
+      .from('job_resume_matches')
+      .select('*')
+      .eq('resume_id', resumeId)
+      .eq('job_id', jobId)
+      .maybeSingle();
+
+    if (rejectedError) { 
+      throw rejectedError;
+    }
+
+    if (candidate) { 
+      const { error } = await supabase
+      .from('job_resume_matches')
+      .update({ status: 'rejected' })
+      .eq('resume_id', resumeId)
+      .eq('job_id', jobId);
+
+      if (error) throw error;
+      return true;
+    } else {
+      const { error } = await supabase
+      .from('job_resume_matches')
+      .insert({ resume_id: resumeId, job_id: jobId, status: 'rejected' });
+
+      if (error) throw error;
+      return true;
+    }
+  }
+
+  async moveToList(candidateId: string, listName: string, jobId: string, companyId: string) {
+    // First get or create the list
+    const { data: list } = await supabase
+      .from('candidate_lists')
+      .select('id')
+      .eq('name', listName)
+      .eq('job_id', jobId)
+      .single();
+
+    if (!list) {
+      throw new Error(`List ${listName} not found`);
+    }
+
+    // Remove from other system lists if needed
+    await supabase
+      .from('list_items')
+      .delete()
+      .eq('resume_id', candidateId)
+      .eq('list_id', list.id);
+
+    // Add to new list
+    await this.addToList({
+      listId: list.id,
+      resumeId: candidateId,
+      notes: `Moved to ${listName}`,
+      userId: '', // Add user ID here
+    });
   }
 }
 

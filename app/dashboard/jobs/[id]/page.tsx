@@ -2,6 +2,7 @@ import { JobDetailsPreview } from "@/components/jobs/details-preview";
 import { notFound } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { createClient } from '@supabase/supabase-js';
+import { listService } from "@/lib/services/list.service";
 
 // Create a server-side Supabase client
 const supabase = createClient(
@@ -43,7 +44,7 @@ export default async function JobPage({
     if (jobError || !job) {
       notFound();
     }
-    console.log(jobId)
+
     // Get top candidates with their scores
     const { data: topCandidates } = await supabase
       .from('resumes')

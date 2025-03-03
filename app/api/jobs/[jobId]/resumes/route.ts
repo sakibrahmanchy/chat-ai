@@ -47,8 +47,8 @@ export async function POST(
     }
 
     // Process resume and get parsed data
-    const fileBuffer = Buffer.from(await file.arrayBuffer());
-    const { parsedData, hash, id } = await processResume(fileBuffer, params.jobId, userId, companyId);
+    // const fileBuffer = Buffer.from(await file.arrayBuffer());
+    const { parsedData, hash, id } = await processResume(file, params.jobId, userId, companyId);
 
     const { data: job, error: jobError } = await supabase.from('jobs').select('*').eq('id', params.jobId).single(); 
     if (jobError) throw jobError;
@@ -64,22 +64,22 @@ export async function POST(
     const activityId = uuidv4();
 
     // Log activity with UUID instead of hash
-    await activityService.logActivity({
-      userId,
-      companyId: job.company_id,
-      type: 'resume_uploaded',
-      description: activityService.getActivityDescription('resume_uploaded', {
-        jobTitle: job.title
-      }),
-      entityType: 'resume',
-      entityId: activityId,
-      metadata: {
-        jobTitle: job.title,
-        jobId: job.id,
-        resumeId: hash,
-        candidateName: parsedData.full_name
-      }
-    });
+    // await activityService.logActivity({
+    //   userId,
+    //   companyId: job.company_id,
+    //   type: 'resume_uploaded',
+    //   description: activityService.getActivityDescription('resume_uploaded', {
+    //     jobTitle: job.title
+    //   }),
+    //   entityType: 'resume',
+    //   entityId: activityId,
+    //   metadata: {
+    //     jobTitle: job.title,
+    //     jobId: job.id,
+    //     resumeId: hash,
+    //     candidateName: parsedData.full_name
+    //   }
+    // });
 
     return NextResponse.json({ success: true, data: parsedData, id: hash });
   } catch (error) {

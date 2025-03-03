@@ -10,6 +10,7 @@ import { toast } from '@/hooks/use-toast';
 import { FileText, Brain, Sparkles } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface ResumeData {
   full_name: string;
@@ -113,6 +114,16 @@ const loadingDetails = [
   'Matching with job requirements'
 ];
 
+// Add availability options
+const AVAILABILITY_OPTIONS = [
+  { value: '1', label: 'Immediate (1 week)' },
+  { value: '2', label: '2 weeks' },
+  { value: '4', label: '1 month' },
+  { value: '8', label: '2 months' },
+  { value: '12', label: '3 months' },
+  { value: '24', label: 'More than 3 months' }
+];
+
 export function ResumeUploader({ jobId }: { jobId: string }) {
   const [file, setFile] = useState<File | null>(null);
   const [parsing, setParsing] = useState(false);
@@ -122,6 +133,7 @@ export function ResumeUploader({ jobId }: { jobId: string }) {
   const [progress, setProgress] = useState(0);
   const [loadingStateIndex, setLoadingStateIndex] = useState(0);
   const [detailIndex, setDetailIndex] = useState(0);
+  const [availability, setAvailability] = useState<string>('');
 
   // Add this effect to handle loading state rotation
   useEffect(() => {
@@ -207,7 +219,8 @@ export function ResumeUploader({ jobId }: { jobId: string }) {
           parsed_content: resumeData,
           job_id: jobId,
           searchable_skills: resumeData.skills,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
+          availability_weeks: availability
         })
         .eq('hash', hash);
 
@@ -255,12 +268,23 @@ export function ResumeUploader({ jobId }: { jobId: string }) {
             <p className="text-sm text-slate-500">Accepted formats: PDF, DOC, DOCX</p>
           </div>
 
-          {/* {submitting && (
-            <div className="flex items-center justify-center py-4">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <span className="ml-2">Upl resume...</span>
+          <div className="space-y-4">
+            <div className="grid w-full max-w-sm items-center gap-1.5">
+              <Label htmlFor="availability">Notice Period</Label>
+              <Select value={availability} onValueChange={setAvailability}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select availability" />
+                </SelectTrigger>
+                <SelectContent>
+                  {AVAILABILITY_OPTIONS.map(option => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          )} */}
+          </div>
 
           {resumeData && (
             <>
@@ -464,7 +488,7 @@ export function ResumeUploader({ jobId }: { jobId: string }) {
                     <span className="w-2 h-2 bg-gray-400 rounded-full" />
                     <span className="w-2 h-2 bg-gray-400 rounded-full" />
                   </motion.div>
-        </div>
+                </div>
               </motion.div>
             </motion.div>
           )}

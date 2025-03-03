@@ -2,7 +2,7 @@
 
 import { CandidateListView } from "./smarthrflow/candidate-list-view";
 
-const DEMO_RESUMES = [
+export const DEMO_RESUMES = [
   {
     id: '1',
     fileName: 'john-doe-resume.pdf',
@@ -14,7 +14,7 @@ const DEMO_RESUMES = [
     updatedAt: new Date().toISOString(),
     userId: 'demo',
     jobId: 'demo',
-    parsedContent: {
+    parsed_content: {
       first_name: 'John',
       middle_name: '',
       last_name: 'Doe',
@@ -45,14 +45,14 @@ const DEMO_RESUMES = [
       personal_emails: ['john@example.com'],
       personal_numbers: ['+1234567890'],
       languages: ['English'],
-      total_experience_in_months: 60,
+      experience_months: 60,
       rawText: ''
     },
     scores: {
-      skillsScore: 8,
-      experienceScore: 7,
-      overallScore: 8,
-      averageScore: 7.5,
+      skills_score: 8,
+      experience_score: 7,
+      overall_score: 8,
+      average_score: 7.5,
       educationScore: 7,
       technicalScore: 8,
       roleAlignmentScore: 8,
@@ -78,7 +78,7 @@ const DEMO_RESUMES = [
     updatedAt: new Date(Date.now() - 86400000).toISOString(),
     userId: 'demo',
     jobId: 'demo',
-    parsedContent: {
+    parsed_content: {
       first_name: 'Sarah',
       last_name: 'Smith',
       full_name: 'Sarah Smith',
@@ -103,14 +103,14 @@ const DEMO_RESUMES = [
       skills: ['Node.js', 'React', 'MongoDB', 'TypeScript', 'Express'],
       personal_emails: ['sarah@example.com'],
       personal_numbers: ['+1234567891'],
-      total_experience_in_months: 36,
+      experience_months: 36,
       rawText: ''
     },
     scores: {
-      skillsScore: 7,
-      experienceScore: 6,
-      overallScore: 7,
-      averageScore: 6.5,
+      skills_score: 7,
+      experience_score: 6,
+      overall_score: 7,
+      average_score: 6.5,
       technicalScore: 7,
       roleAlignmentScore: 6,
       analysis: {
@@ -134,7 +134,7 @@ const DEMO_RESUMES = [
     updatedAt: new Date(Date.now() - 172800000).toISOString(),
     userId: 'demo',
     jobId: 'demo',
-    parsedContent: {
+    parsed_content: {
       first_name: 'Mike',
       last_name: 'Johnson',
       full_name: 'Mike Johnson',
@@ -158,14 +158,14 @@ const DEMO_RESUMES = [
       skills: ['Node.js', 'AWS', 'Docker', 'Microservices', 'TypeScript'],
       personal_emails: ['mike@example.com'],
       personal_numbers: ['+1234567892'],
-      total_experience_in_months: 48,
+      experience_months: 48,
       rawText: ''
     },
     scores: {
-      skillsScore: 9,
-      experienceScore: 8,
-      overallScore: 9,
-      averageScore: 8.5,
+      skills_score: 9,
+      experience_score: 8,
+      overall_score: 9,
+      average_score: 8.5,
       technicalScore: 9,
       roleAlignmentScore: 9,
       analysis: {
@@ -189,7 +189,7 @@ const DEMO_RESUMES = [
     updatedAt: new Date(Date.now() - 259200000).toISOString(),
     userId: 'demo',
     jobId: 'demo',
-    parsedContent: {
+    parsed_content: {
       first_name: 'Alex',
       last_name: 'Chen',
       full_name: 'Alex Chen',
@@ -213,14 +213,14 @@ const DEMO_RESUMES = [
       skills: ['Node.js', 'AWS', 'Docker', 'Kubernetes', 'GraphQL', 'TypeScript'],
       personal_emails: ['alex@example.com'],
       personal_numbers: ['+1234567893'],
-      total_experience_in_months: 72,
+      experience_months: 72,
       rawText: ''
     },
     scores: {
-      skillsScore: 10,
-      experienceScore: 9,
-      overallScore: 9.5,
-      averageScore: 9.5,
+      skills_score: 10,
+      experience_score: 9,
+      overall_score: 9.5,
+      average_score: 9.5,
       technicalScore: 10,
       roleAlignmentScore: 9,
       analysis: {
@@ -244,7 +244,7 @@ const DEMO_RESUMES = [
     updatedAt: new Date(Date.now() - 345600000).toISOString(),
     userId: 'demo',
     jobId: 'demo',
-    parsedContent: {
+    parsed_content: {
       first_name: 'Emma',
       last_name: 'Wilson',
       full_name: 'Emma Wilson',
@@ -268,14 +268,14 @@ const DEMO_RESUMES = [
       skills: ['Node.js', 'TypeScript', 'GraphQL', 'MongoDB', 'Express'],
       personal_emails: ['emma@example.com'],
       personal_numbers: ['+1234567894'],
-      total_experience_in_months: 24,
+      experience_months: 24,
       rawText: ''
     },
     scores: {
-      skillsScore: 7,
-      experienceScore: 5,
-      overallScore: 6,
-      averageScore: 6,
+      skills_score: 7,
+      experience_score: 5,
+      overall_score: 6,
+      average_score: 6,
       technicalScore: 7,
       roleAlignmentScore: 6,
       analysis: {
@@ -299,7 +299,7 @@ const DEMO_RESUMES = [
     updatedAt: new Date(Date.now() - 432000000).toISOString(),
     userId: 'demo',
     jobId: 'demo',
-    parsedContent: {
+    parsed_content: {
       first_name: 'Raj',
       last_name: 'Patel',
       full_name: 'Raj Patel',
@@ -323,14 +323,14 @@ const DEMO_RESUMES = [
       skills: ['AWS', 'Docker', 'Kubernetes', 'Node.js', 'TypeScript'],
       personal_emails: ['raj@example.com'],
       personal_numbers: ['+1234567895'],
-      total_experience_in_months: 42,
+      experience_months: 42,
       rawText: ''
     },
     scores: {
-      skillsScore: 8,
-      experienceScore: 7,
-      overallScore: 8,
-      averageScore: 7.5,
+      skills_score: 8,
+      experience_score: 7,
+      overall_score: 8,
+      average_score: 7.5,
       technicalScore: 8,
       roleAlignmentScore: 7,
       analysis: {
@@ -354,7 +354,7 @@ const DEMO_RESUMES = [
     updatedAt: new Date(Date.now() - 518400000).toISOString(),
     userId: 'demo',
     jobId: 'demo',
-    parsedContent: {
+    parsed_content: {
       first_name: 'Maria',
       last_name: 'Garcia',
       full_name: 'Maria Garcia',
@@ -378,14 +378,14 @@ const DEMO_RESUMES = [
       skills: ['Node.js', 'TypeScript', 'GraphQL', 'React', 'PostgreSQL'],
       personal_emails: ['maria@example.com'],
       personal_numbers: ['+1234567896'],
-      total_experience_in_months: 54,
+      experience_months: 54,
       rawText: ''
     },
     scores: {
-      skillsScore: 8,
-      experienceScore: 8,
-      overallScore: 7.5,
-      averageScore: 7.5,
+      skills_score: 8,
+      experience_score: 8,
+      overall_score: 7.5,
+      average_score: 7.5,
       technicalScore: 8,
       roleAlignmentScore: 7,
       analysis: {
