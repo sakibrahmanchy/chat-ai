@@ -146,20 +146,18 @@ const CandidateSingleView = ({
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-2">
-                                <div className="text-xs sm:text-sm text-indigo-600 hover:text-indigo-700 transition-colors inline-flex items-center justify-center py-2">
-                                    {lists && lists.length > 0 ? (
-                                        <span className="text-muted-foreground font-medium text-slate-600 flex items-center italic">
-                                            <CheckCircle className="h-4 w-4 text-emerald-500 shrink-0" /> 
-                                            Shortlisted for {lists.join(', ')}
-                                        </span>
+                            <div className="flex justify-start items-center gap-4">
+                                <div >
+                                    {candidate.status === 'pending' ? (
+                                            <Button variant="outline">
+                                                <CheckCircle className="h-4 w-4 text-emerald-500 shrink-0" /> 
+                                                Shortlist
+                                            </Button>
                                     ) : (
-                                        <AddToListDialog 
-                                            resumeId={candidate.id} 
-                                            userId={candidate.userId} 
-                                            jobId={jobId} 
-                                            companyId={companyId} 
-                                        />
+                                        <Button className="flex items-center gap-2 text-emerald-500 border border-indigo-600 rounded-md px-2 py-1">
+                                            <Star className="h-4 w-4 text-yellow-500 shrink-0" />
+                                            Shortlisted
+                                        </Button>
                                     )}
                                 </div>
                                 <Button 

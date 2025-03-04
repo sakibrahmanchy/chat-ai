@@ -56,7 +56,17 @@ const RESPONSE_FORMAT = {
             company: { type: "string" },
             title: { type: "string" },
             description: { type: "string" },
-            location: { type: "string" },
+            location: { 
+              type: "object",
+              description: `Location of the candidate. Make sure that location names are standardized. 
+              For example USA is not standardized, it should be United States of America. Same, CA is not standardized, 
+              it should be California and so on. This applies to all cities, states and countries.`,
+              properties: {
+                city: { type: "string" },
+                state: { type: "string" },
+                country: { type: "string" }
+              }
+            },
             technologies: { type: "array", items: { type: "string" } },
             achievements: { type: "array", items: { type: "string" } }
           }
@@ -156,7 +166,7 @@ export async function processResume(resumeFile: File, jobId: string, userId: str
     formData.append('fileType', fileType);
     formData.append('filename', resumeFile.name);
 
-    const responseFromParser = await fetch(`http://localhost:8080/extract-text`, {
+    const responseFromParser = await fetch(`${process.env.NEXT_PUBLIC_PARSER_API_URL}/extract-text`, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
@@ -202,7 +212,6 @@ export async function processResume(resumeFile: File, jobId: string, userId: str
     await creditService.useCredits(companyId, CreditAction.SUBMIT_RESUME);
 
     if (cachedResume) {
-      console.log('Found cached resume data');
       return {
         parsedData: cachedResume.parsed_content as Resume['parsed_content'],
         hash,
@@ -238,9 +247,9 @@ export async function processResume(resumeFile: File, jobId: string, userId: str
     parsedData.rawText = resumeText;
   
     // Validate required fields
-    if (!parsedData.full_name || !parsedData.experiences || !parsedData.education || !parsedData.skills) {
-      throw new Error('Missing required fields in parsed data');
-    }
+    // if (!parsedData.full_name || !parsedData.experiences || !parsedData.education || !parsedData.skills) {
+    //   throw new Error('Missing required fields in parsed data');
+    // }
 
     // Structure data for storage
     const resumeDoc = {
@@ -258,6 +267,7 @@ export async function processResume(resumeFile: File, jobId: string, userId: str
       last_name: parsedData.last_name,
       full_name: parsedData.full_name,
       email: parsedData.personal_emails[0],
+      phone: parsedData.personal_numbers[0],
       current_position: parsedData.occupation,
       metadata: {
         file_name: `resume.${fileType === 'pdf' ? 'pdf' : 'docx'}`,
@@ -270,6 +280,29 @@ export async function processResume(resumeFile: File, jobId: string, userId: str
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
+
+    if (resumeDoc.email) {
+      const { data: existingResume } = await supabase
+        .from('resumes')
+        .select('id')
+        .eq('email', resumeDoc.email)
+        .single();
+
+      if (existingResume) {
+        await supabase
+          .from('resumes')
+          .update({
+            ...resumeDoc
+          })
+          .eq('id', existingResume.id);
+
+        return {
+          parsedData,
+          hash,
+          id: existingResume.id
+        };
+      }
+    }
 
     // Save to Supabase
     const { error, data } = await supabase

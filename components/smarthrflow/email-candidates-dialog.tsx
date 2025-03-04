@@ -84,8 +84,8 @@ export function EmailCandidatesDialog({ candidates, jobTitle, companyName, compa
     let parsed = text;
     const allVariables = {
       ...variables,
-      CANDIDATE_NAME: candidateData.parsed_content?.full_name || "",
-      CANDIDATE_EMAIL: candidateData.parsed_content?.email || "",
+      CANDIDATE_NAME: candidateData.full_name || "",
+      CANDIDATE_EMAIL: candidateData.email || "",
       JOB_TITLE: jobTitle,
       COMPANY_NAME: companyName,
     };
@@ -106,7 +106,7 @@ export function EmailCandidatesDialog({ candidates, jobTitle, companyName, compa
         const parsedBody = parseTemplate(body, candidate);
         
         await emailService.sendEmail({
-          to: candidate.parsed_content?.personal_emails[0] || '',
+          to: candidate.email || '',
           subject: parsedSubject,
           body: parsedBody,
           jobId: jobId,
@@ -141,7 +141,7 @@ export function EmailCandidatesDialog({ candidates, jobTitle, companyName, compa
           Email {candidates.length} Candidates
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Send Email to Candidates</DialogTitle>
         </DialogHeader>
@@ -153,7 +153,7 @@ export function EmailCandidatesDialog({ candidates, jobTitle, companyName, compa
               <SelectTrigger>
                 <SelectValue placeholder="Select a template" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white">
                 {SAMPLE_TEMPLATES.map(template => (
                   <SelectItem key={template.id} value={template.id}>
                     {template.name}

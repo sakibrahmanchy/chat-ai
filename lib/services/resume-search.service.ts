@@ -1,5 +1,6 @@
 import { Resume } from '@/app/types/resume';
 import { createClient } from '@supabase/supabase-js';
+import { PostgrestFilterBuilder } from '@supabase/supabase-js';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -15,10 +16,97 @@ interface SearchFilters {
   matchType?: 'AND' | 'OR';
   location?: string;
   status?: string;
+  availability?: number;
 }
 
 export class ResumeSearchService {
   private ITEMS_PER_PAGE = 20;
+
+  private getBaseFilterQuery(query:  PostgrestFilterBuilder<any, any>, jobId: string, filters: SearchFilters) {
+     // Apply additional filters
+     if (filters.skills?.length) {
+      if (filters.matchType === 'AND') {
+        filters.skills.forEach(skill => {
+          query = query.contains('searchable_skills', [skill.toLowerCase()]);
+        });
+      } else {
+        query = query.overlaps('searchable_skills', filters.skills.map(s => s.toLowerCase()));
+      }
+    }
+
+    if (filters.scoreRange) {
+      query = query
+        .gte('overall_score', filters.scoreRange[0])
+        .lte('overall_score', filters.scoreRange[1]);
+    }
+
+    if (filters.experienceMonths) {
+      query = query
+        .gte('experience_months', filters.experienceMonths[0])
+        .lte('experience_months', filters.experienceMonths[1]);
+    }
+
+    if (filters.location && filters.location !== 'all') {
+      query = query.or(
+        `location->>city.ilike.%${filters.location}%,` +
+        `location->>state.ilike.%${filters.location}%,` +
+        `location->>country.ilike.%${filters.location}%`
+      );
+    }
+
+    if (filters.searchTerm) {
+      query = query.or(
+        `parsed_content->>full_name.ilike.%${filters.searchTerm}%,` +
+        `current_position.ilike.%${filters.searchTerm}%,` +
+        `searchable_skills.cs.{${filters.searchTerm.toLowerCase()}}`
+      );
+    }
+
+    if (filters.availability) {
+      query = query.eq('availability_weeks', filters.availability);
+    }
+
+    return query;
+  }
+
+  async getFilteredResumeCountsByStatus(jobId: string, filters: SearchFilters) {
+    try {
+      // Step 1: Fetch resumes based on filters
+      let query = supabase
+        .from('resumes')
+        .select('id, searchable_skills, overall_score, experience_months, location, parsed_content, job_resume_matches(status)')
+        .eq('job_resume_matches.job_id', jobId);
+
+      query = this.getBaseFilterQuery(query, jobId, filters);
+  
+      // Execute the query to fetch resumes
+      const { data, error } = await query;
+  
+      if (error) throw error;
+  
+      // Step 2: Group by status and count
+      const statusCounts: Record<string, number> = {};
+      const statuses = ['pending', 'accepted', 'rejected'];
+
+      statusCounts.all = data.length;
+      statuses.forEach(status => {
+        statusCounts[status] = 0;
+      });
+      // Group resumes by status
+      data?.forEach(resume => {
+        const status = resume.job_resume_matches?.[0]?.status;
+        if (status) {
+          statusCounts[status]++;
+        }
+      });
+  
+      return statusCounts;
+    } catch (error) {
+      console.error('Error fetching filtered resume counts by status:', error);
+      throw error;
+    }
+  }
+
 
   async searchResumes(
     jobId: string,
@@ -26,10 +114,38 @@ export class ResumeSearchService {
     page = 1
   ) {
     try {
+      const statusCounts = await this.getFilteredResumeCountsByStatus(jobId, filters); 
+
+      let matchingResumeItems: { resume_id: string }[] = [];
+      if (filters.status) {
+        const { data: matchingResumes, error: matchError } = await supabase
+          .from('job_resume_matches')
+          .select('resume_id')
+          .eq('job_id', jobId)
+          .eq('status', filters.status);
+
+        if (matchError) throw matchError;
+
+        if (!matchingResumes.length) {
+          return {
+            resumes: [],
+            hasMore: false,
+            total: 0,
+            statusCounts
+          };
+        }
+        matchingResumeItems = matchingResumes.map(match => match.resume_id);
+      }
+
       let query = supabase
         .from('resumes')
         .select(`
           id,
+          email,
+          phone,
+          first_name,
+          last_name,
+          full_name,
           hash,
           parsed_content,
           scores,
@@ -43,55 +159,16 @@ export class ResumeSearchService {
           updated_at,
           job_resume_matches (
             status
-          )
+          ),
+          availability_weeks
         `, { count: 'exact' })
-        .eq('job_id', jobId);
+        .eq('job_id', jobId)
 
-      // Apply status filter
-      if (filters.status) {
-        query = query.eq('job_resume_matches.status', filters.status);
-      } else if (filters.status === '') {
-        query = query.is('job_resume_matches.status', null);
+      if (matchingResumeItems.length) {
+        query = query.in('id', matchingResumeItems);
       }
 
-      // Apply filters
-      if (filters.skills?.length) {
-        if (filters.matchType === 'AND') {
-          filters.skills.forEach(skill => {
-            query = query.contains('searchable_skills', [skill.toLowerCase()]);
-          });
-        } else {
-          query = query.overlaps('searchable_skills', filters.skills.map(s => s.toLowerCase()));
-        }
-      }
-
-      if (filters.scoreRange) {
-        query = query
-          .gte('overall_score', filters.scoreRange[0])
-          .lte('overall_score', filters.scoreRange[1]);
-      }
-
-      if (filters.experienceMonths) {
-        query = query
-          .gte('experience_months', filters.experienceMonths[0])
-          .lte('experience_months', filters.experienceMonths[1]);
-      }
-
-      if (filters.location && filters.location !== 'all') {
-        query = query.or(
-          `location->>city.ilike.%${filters.location}%,` +
-          `location->>state.ilike.%${filters.location}%,` +
-          `location->>country.ilike.%${filters.location}%`
-        );
-      }
-
-      if (filters.searchTerm) {
-        query = query.or(
-          `parsed_content->>full_name.ilike.%${filters.searchTerm}%,` +
-          `current_position.ilike.%${filters.searchTerm}%,` +
-          `searchable_skills.cs.{${filters.searchTerm.toLowerCase()}}`
-        );
-      }
+      query = this.getBaseFilterQuery(query, jobId, filters);
 
       // Always sort by score first, then by date
       query = query.order('overall_score', { ascending: false });
@@ -101,13 +178,14 @@ export class ResumeSearchService {
       query = query.range(start, start + this.ITEMS_PER_PAGE - 1);
 
       const { data, error, count } = await query;
-      console.log({ data })
-      if (error) throw error;
+
+      if (error) throw error; 
 
       return {
         resumes: data as Resume[],
         hasMore: count ? (start + this.ITEMS_PER_PAGE) < count : false,
-        total: count || 0
+        total: count || 0,
+        statusCounts
       };
     } catch (error) {
       console.error('Error searching resumes:', error);

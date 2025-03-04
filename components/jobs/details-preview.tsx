@@ -60,6 +60,7 @@ interface JobDetailsPreviewProps {
         strengths: string[];
       };
     };
+    status: string;
   }>;
   skillsAnalysis: Array<{
     skill: string;
@@ -345,7 +346,8 @@ export function JobDetailsPreview({
             {candidates.length > 0 ? (
               <div className="grid gap-4">
                 <CandidatesExpandableListView 
-                  candidates={candidates} initialExpandedCandidateId={candidates[0]?.id }
+                  candidates={candidates} 
+                  initialExpandedCandidateId={candidates[0]?.id }
                   jobId={job.id}
                   companyId={job.company_id}
                 />

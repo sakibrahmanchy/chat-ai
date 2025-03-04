@@ -16,6 +16,7 @@ export interface Candidate {
     availability: string;
     score: number;
     skills: string[];
+    status: string;
     scores: {
         skillsScore: number;
         experienceScore: number;

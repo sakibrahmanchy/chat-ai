@@ -52,11 +52,13 @@ export default async function JobPage({
         id,
         parsed_content,
         scores,
+        availability_weeks,
         searchable_skills,
         experience_months,
         current_position,
         overall_score,
-        location
+        location,
+        job_resume_matches(status)
       `)
       .eq('job_id', jobId)
       .order('overall_score', { ascending: false })
@@ -144,7 +146,7 @@ export default async function JobPage({
         experience: formatExperience(candidate.experience_months),
         company: candidate.parsed_content?.experiences?.[0]?.company || '',
         education: candidate.parsed_content?.education?.[0]?.degree_name || '',
-        availability: 'Immediate',
+        availability: candidate.availability_weeks ? `${candidate.availability_weeks} weeks` : 'Immediate',
         score: candidate.overall_score || 0,
         skills: candidate.searchable_skills || [],
         scores: {
@@ -154,7 +156,8 @@ export default async function JobPage({
           analysis: {
             strengths: candidate.scores?.analysis?.strengths || []
           }
-        }
+        },
+        status: candidate.job_resume_matches?.[0]?.status || 'pending'
       })) || [],
       skillsAnalysis,
       distribution,

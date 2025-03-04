@@ -127,7 +127,12 @@
   outline: none;
 }
 
-
+/* Required field indicator */
+label.required::after {
+  content: "*";
+  color: #ef4444;
+  margin-left: 4px;
+}
 
 /* @layer base {
   * {
@@ -137,11 +142,6 @@
     @apply bg-background text-foreground;
   }
 } */
-
-
-
-
-
 
 /* 
 @layer base {
@@ -153,19 +153,8 @@
   }
 } */
 
-
-
-
-
-
-
-
-
-
-
-
-
-/* @layer base {
+/* 
+@layer base {
   * {
     color: white;
   }

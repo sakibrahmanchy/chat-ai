@@ -16,6 +16,7 @@ interface CandidateFiltersProps {
     matchType: 'AND' | 'OR';
     sortBy: 'score' | 'date';
     location: string;
+    availability: [number, number];
   };
   onFilterChange: (filters: FilterCriteria) => void;
   availableLocations: string[];
@@ -28,11 +29,11 @@ const SKILL_OPTIONS = [
 ].map(skill => ({ label: skill, value: skill }));
 
 const EXPERIENCE_RANGES = {
-  any: [0, 999],
-  entry: [0, 24], // 0-2 years
-  mid: [24, 60],  // 2-5 years
-  senior: [60, 96], // 5-8 years
-  lead: [96, 999]  // 8+ years
+  any: [0, 999] as [number, number],
+  entry: [0, 24] as [number, number], // 0-2 years
+  mid: [24, 60] as [number, number],  // 2-5 years
+  senior: [60, 96] as [number, number], // 5-8 years
+  lead: [96, 999] as [number, number]  // 8+ years
 } as const;
 
 interface FilterCriteria {
@@ -42,7 +43,10 @@ interface FilterCriteria {
   location?: string;
   scoreRange?: number[];
   experienceMonths?: [number, number] | undefined;
+  availability?: [number, number];
 }
+
+const AVAILABILITY_WEEKS = [1, 2, 4, 8, 12, 24] as const;
 
 export function CandidateFilters({ 
   filters, 
@@ -64,6 +68,12 @@ export function CandidateFilters({
     return 'custom';
   };
 
+  const formatAvailability = (weeks: number) => {
+    if (weeks === 1) return '1 week';
+    if (weeks === 24) return 'More than 3 months';
+    return `${weeks} weeks`;
+  };
+
   return (
     <div className="flex-1 overflow-auto">
       <div className="p-4 space-y-6">
@@ -82,26 +92,7 @@ export function CandidateFilters({
             value={filters.scoreRange}
             onValueChange={(value) => onFilterChange({ ...filters, scoreRange: value })}
           />
-        </div>
-
-        {/* Status */}
-        <div className="space-y-3">
-          <Label className="font-medium text-sm">Status</Label>
-          <Select
-            value={filters.status || "all"}
-            onValueChange={(value) => onFilterChange({ ...filters, status: value === "all" ? "" : value })} 
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select status" />
-            </SelectTrigger>
-            <SelectContent className="bg-white">
-              <SelectItem value="all">All</SelectItem>
-              <SelectItem value="accepted">Shortlisted</SelectItem>
-              <SelectItem value="rejected">Rejected</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        
+        </div>        
 
         <div className="space-y-3">
           <Label className="font-medium text-sm">Experience Level</Label>
@@ -165,6 +156,29 @@ export function CandidateFilters({
               ))}
             </SelectContent>
           </Select>
+        </div>
+
+        {/* Availability Filter */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <Label className="font-medium text-sm">Notice Period</Label>
+            <span className="text-sm text-muted-foreground">
+              {formatAvailability(filters.availability[0])} - {formatAvailability(filters.availability[1])}
+            </span>
+          </div>
+          <Slider 
+            min={1}
+            max={24}
+            step={1}
+            value={filters.availability}
+            onValueChange={(value: number[]) => onFilterChange({ ...filters, availability: value as [number, number] })}
+            className="py-4"
+          />
+          <div className="flex justify-between text-xs text-muted-foreground">
+            {AVAILABILITY_WEEKS.map(week => (
+              <span key={week}>{formatAvailability(week)}</span>
+            ))}
+          </div>
         </div>
 
         {/* Required Skills */}

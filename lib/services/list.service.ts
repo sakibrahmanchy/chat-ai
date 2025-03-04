@@ -162,7 +162,34 @@ export class ListService {
     };
   }
 
-  async approveCandidate(resumeId: string, jobId: string) {  
+  async addCandidateToJobMatch(resumeId: number, jobId: string, status: string) {
+
+    const { data: existingMatch, error: existingMatchError } = await supabase
+    .from('job_resume_matches')
+    .select('*')
+    .eq('resume_id', resumeId)
+    .eq('job_id', jobId)
+    .maybeSingle();
+
+    if (existingMatch) {
+      const { error } = await supabase
+      .from('job_resume_matches')
+      .update({ status: status })
+      .eq('resume_id', resumeId)
+      .eq('job_id', jobId);
+
+      if (error) throw error;
+    } else {
+      const { error } = await supabase
+      .from('job_resume_matches')
+      .insert({ resume_id: resumeId, job_id: jobId, status: status });
+  
+      if (error) throw error;
+    }
+
+  }
+
+  async approveCandidate(resumeId: number, jobId: string) {  
     const { data: shortlistedCandidate, error: shortlistedError } = await supabase
       .from('job_resume_matches')
       .select('*')
@@ -191,7 +218,7 @@ export class ListService {
     }
   }
 
-  async rejectCandidate(resumeId: string, jobId: string) {
+  async rejectCandidate(resumeId: number, jobId: string) {
     const { data: candidate, error: rejectedError } = await supabase
       .from('job_resume_matches')
       .select('*')

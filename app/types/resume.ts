@@ -113,6 +113,12 @@ export interface Resume {
   overall_score: number;
   scores: ResumeScore; 
   job_resume_matches?: JobResumeMatch[];
+  availability_weeks?: number;
+  email: string;
+  phone: string;
+  first_name: string;
+  last_name: string;
+  full_name: string;
 } 
 
 export interface JobResumeMatch {

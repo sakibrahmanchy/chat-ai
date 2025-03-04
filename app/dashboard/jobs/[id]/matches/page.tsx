@@ -96,7 +96,7 @@ export default async function JobPage({
 
     return (
       <CandidateListView 
-        initialResumes={resumes as Resume[]} 
+        // initialResumes={resumes as Resume[]} 
         jobId={jobId} 
         jobTitle={job.title}
         userId={userId}

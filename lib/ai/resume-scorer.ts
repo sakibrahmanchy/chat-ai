@@ -52,6 +52,14 @@ const RESPONSE_FORMAT = {
         type: "number",
         description: "Average score of the candidate out of 10"
       },
+      educationScore: {
+        type: "number",
+        description: "Score out of 10 for education match"
+      },
+      roleMatchScore: {
+        type: "number",
+        description: "Score out of 10 for role match"
+      },
       analysis: {
         type: "object",
         properties: {
@@ -75,6 +83,19 @@ const RESPONSE_FORMAT = {
             items: { type: "string" },
             description: "Areas where the candidate needs improvement"
           },
+          availabilityAnalysis: {
+            type: "string",
+            description: "Detailed analysis of candidate's availability"
+          },
+          skillsAnalysis: {
+            type: "array",
+            items: { type: "string" },
+            description: "Detailed analysis of candidate's skills"
+          },
+          educationAnalysis: {
+            type: "string",
+            description: "Detailed analysis of candidate's education"
+          },
           experienceAnalysis: {
             type: "string",
             description: "Detailed analysis of candidate's experience"
@@ -84,10 +105,10 @@ const RESPONSE_FORMAT = {
             description: "Overall feedback about the candidate's fit"
           }
         },
-        required: ["matchedSkills", "missingSkills", "strengthAreas", "improvementAreas", "experienceAnalysis", "overallFeedback"]
+        required: ["matchedSkills", "missingSkills", "strengthAreas", "improvementAreas", "availabilityAnalysis", "skillsAnalysis", "educationAnalysis", "experienceAnalysis", "overallFeedback"]
       }
     },
-    required: ["skillsScore", "experienceScore", "overallScore", "analysis"]
+    required: ["skillsScore", "experienceScore", "overallScore", "averageScore", "educationScore", "roleMatchScore", "analysis"]
   }
 } as const;
 
@@ -274,9 +295,6 @@ function calculateInitialScore(parsedContent: Resume['parsed_content'], job: Job
   // Education level (20% weight)
   const educationScore = parsedContent.education?.length ? 2 : 0;
 
-  // Location match (10% weight)
-  // const locationScore = 1; // Default for now
-
   score = skillsScore + experienceScore + educationScore;
 
   return {
@@ -318,7 +336,7 @@ async function analyzeResume(resume: Resume, job: Job) {
       Experience: ${JSON.stringify(parsedContent?.experiences || [])}
       Education: ${JSON.stringify(parsedContent?.education || [])}
       Skills: ${JSON.stringify(parsedContent?.skills || [])}
-      Availability: ${JSON.stringify(availability_weeks || [])}
+      Availability: ${availability_weeks + 'weeks' || 'Not available'}
       Skills with YOE: ${JSON.stringify(parsedContent?.skills_with_yoe || [])}`;
 
     const finalPrompt = job.scoring_instructions ? 

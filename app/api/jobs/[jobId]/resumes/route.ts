@@ -5,6 +5,7 @@ import { processResume } from '../../../../../lib/ai/resume-processor';
 import { scoreResume } from '@/lib/ai/resume-scorer';
 import { supabase } from '@/lib/supabase/client';
 import { activityService } from '@/lib/services/activity.service';
+import { listService } from '@/lib/services/list.service';
 
 // Main POST handler
 export async function POST(
@@ -60,8 +61,10 @@ export async function POST(
       total_applications: job.total_applications + 1
     }).eq('id', params.jobId);
 
+    await listService.addCandidateToJobMatch(id, params.jobId, 'pending');
+
     // Generate a UUID for activity logging
-    const activityId = uuidv4();
+    // const activityId = uuidv4();
 
     // Log activity with UUID instead of hash
     // await activityService.logActivity({
