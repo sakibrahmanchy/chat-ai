@@ -65,7 +65,7 @@ export function JobList({ jobs }: JobListProps) {
               </div>
               <div className="flex items-center gap-1">
                 <DollarSign className="h-4 w-4" />
-                <span>{job.salary_range || 'Not specified'}</span>
+                <span>{job.salary_min + ' - ' + job.salary_max || 'Not specified'}</span>
               </div>
               <div className="flex items-center gap-1">
                 <Calendar className="h-4 w-4" />

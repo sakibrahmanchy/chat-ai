@@ -8,10 +8,11 @@ import { Plus } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 
 export default async function ListsPage({
-    params: { id: jobId },
+    params,
 }: {
-    params: { id: string };
+    params: Promise<{ id: string }>;
 }) {
+  const { id: jobId } = await params;
   const { userId } = await auth();
   if (!userId) {
     redirect("/sign-in");

@@ -10,7 +10,7 @@ export interface ResumeScore {
 export interface Analysis {
     strengths: string[]
     weaknesses: string[]
-    matched_skills: any[]
+    matched_skills: string[]
     missing_skills: string[]
     overall_feedback: string
     education_analysis: string

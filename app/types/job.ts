@@ -1,9 +1,11 @@
+import { Company } from "./company";
+
 export interface Job {
   id: string;
   title: string;
   description: string;
-  requirements: string[];
-  responsibilities: string[];
+  requirements: string;
+  responsibilities: string;
   location: {
     city: string;
     state: string;
@@ -22,4 +24,7 @@ export interface Job {
   scoring_instructions?: string;
   total_applications?: number;
   total_views?: number;
+  application_deadline?: Date | string | null;
+  department?: string;
+  company?: Company;
 } 

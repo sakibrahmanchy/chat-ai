@@ -41,6 +41,7 @@ interface Job {
   views: number;
   createdAt: string;
   updatedAt: string;
+  department?: string;
 }
 
 interface JobListProps {
@@ -95,6 +96,7 @@ export function JobList({ jobs }: JobListProps) {
         description: `Job status has been changed to ${newStatus}.`,
       });
     } catch (error) {
+      console.log(error);
       toast({
         title: "Error",
         description: "Failed to update job status.",

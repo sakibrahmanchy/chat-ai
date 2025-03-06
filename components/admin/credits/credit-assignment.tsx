@@ -52,8 +52,7 @@ export function CreditAssignment({ companies, onSuccess }: CreditAssignmentProps
       
       await adminCreditService.assignCreditsToCompany(
         formData.companyId,
-        credits,
-        formData.notes
+        credits
       );
 
       toast({
@@ -70,6 +69,7 @@ export function CreditAssignment({ companies, onSuccess }: CreditAssignmentProps
         type: 'addition'
       });
     } catch (error) {
+      console.log(error);
       toast({
         title: "Error",
         description: "Failed to assign credits.",

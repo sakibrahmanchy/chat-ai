@@ -14,7 +14,7 @@ export default function PrivacyPage() {
         
         <h2 className="text-2xl font-semibold mt-8 mb-4">1. Introduction</h2>
         <p>
-          SmartHR Flow ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy 
+          SmartHR Flow (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;) is committed to protecting your privacy. This Privacy Policy 
           explains how we collect, use, disclose, and safeguard your information when you use our service.
         </p>
 
@@ -85,7 +85,7 @@ export default function PrivacyPage() {
           how our Service is used. You can control cookie preferences through your browser settings.
         </p>
 
-        <h2 className="text-2xl font-semibold mt-8 mb-4">9. Children's Privacy</h2>
+        <h2 className="text-2xl font-semibold mt-8 mb-4">9. Children Privacy</h2>
         <p>
           Our Service is not intended for children under 13 years of age. We do not knowingly 
           collect personal information from children under 13.
@@ -94,7 +94,7 @@ export default function PrivacyPage() {
         <h2 className="text-2xl font-semibold mt-8 mb-4">10. Changes to Privacy Policy</h2>
         <p>
           We may update this Privacy Policy from time to time. We will notify you of any changes 
-          by posting the new Privacy Policy on this page and updating the "Last updated" date.
+          by posting the new Privacy Policy on this page and updating the &quot;Last updated&quot; date.
         </p>
 
         <h2 className="text-2xl font-semibold mt-8 mb-4">11. Contact Us</h2>

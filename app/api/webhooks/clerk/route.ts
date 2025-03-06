@@ -6,7 +6,7 @@ import { userService } from '@/lib/services/user.service';
 export async function POST(req: Request) {
   // Get the webhook payload
   const payload = await req.json();
-  const headersList = headers();
+  const headersList = await headers();
   const svix_id = headersList.get("svix-id");
   const svix_timestamp = headersList.get("svix-timestamp");
   const svix_signature = headersList.get("svix-signature");
@@ -57,8 +57,8 @@ export async function POST(req: Request) {
       await userService.createOrUpdateUser({
         id,
         email: email_addresses[0].email_address,
-        firstName: first_name,
-        lastName: last_name,
+        firstName: first_name || '',
+        lastName: last_name || '',
         imageUrl: image_url,
         metadata: {
           clerkUpdatedAt: new Date().toISOString()

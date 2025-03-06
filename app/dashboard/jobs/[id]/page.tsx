@@ -2,8 +2,6 @@ import { JobDetailsPreview } from "@/components/jobs/details-preview";
 import { notFound } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { createClient } from '@supabase/supabase-js';
-import { listService } from "@/lib/services/list.service";
-
 // Create a server-side Supabase client
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -25,10 +23,11 @@ interface Distribution {
 }
 
 export default async function JobPage({
-  params: { id: jobId },
+  params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id: jobId } = await params;
   const { userId } = await auth();
   
   if (!userId) return null;
@@ -154,7 +153,9 @@ export default async function JobPage({
           experienceScore: candidate.scores?.experience_score || 0,
           educationScore: candidate.scores?.education_score || 0,
           analysis: {
-            strengths: candidate.scores?.analysis?.strengths || []
+            strengths: candidate.scores?.analysis?.strengths || [],
+            weaknesses: candidate.scores?.analysis?.weaknesses || [],
+            overall_feedback: candidate.scores?.analysis?.overall_feedback || ''
           }
         },
         status: candidate.job_resume_matches?.[0]?.status || 'pending'
@@ -175,7 +176,7 @@ export default async function JobPage({
   }
 }
 
-function formatLocation(location: any) {
+function formatLocation(location: { city: string, state: string, country: string }) {
   if (!location) return '';
   const parts = [];
   if (location.city) parts.push(location.city);

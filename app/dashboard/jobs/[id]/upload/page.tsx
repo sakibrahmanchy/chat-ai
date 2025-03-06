@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { ResumeUploader } from "@/components/smarthrflow/resume-uploader";
 import Link from "next/link";
-import { AlertCircle, ArrowRight, Badge } from "lucide-react";
+import { AlertCircle, ArrowRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,10 +11,11 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 
 export default async function UploadResumePage({
-  params: { id: jobId }
+  params,
 }: {
-  params: { id: string }
+  params: Promise<{ id: string }>;
 }) {
+  const { id: jobId } = await params;
   const { userId } = await auth();
   
   if (!userId) {
@@ -66,7 +67,7 @@ export default async function UploadResumePage({
                 Credits Required
               </h3>
               <p className="text-muted-foreground text-sm max-w-md mx-auto">
-                You'll need credits to process resumes. Each resume processing uses 1 credit.
+                You will need credits to process resumes. Each resume processing uses 2 credits (1 credit for processing and 1 for matching and scoring for the job).
                 Get started with our affordable credit packages.
               </p>
             </div>
@@ -112,6 +113,20 @@ export default async function UploadResumePage({
           <h1 className="text-2xl font-bold">Upload Resume</h1>
           <p className="text-muted-foreground">
             Upload candidate resumes for <a href={`/dashboard/jobs/${jobId}`} className="text-blue-500 hover:underline">{job.title}</a>
+          </p>
+        </div>
+
+        <div className="flex flex-col items-start space-y-2 bg-gray-50 p-4 rounded-lg">
+          <h3 className="text-md font-semibold tracking-tight">
+            This action will use 2 credits.
+          </h3>
+          <p className="text-muted-foreground text-xs flex flex-col gap-2">
+            You will need credits to process resumes. Each resume processing uses 2 credits.
+            <ul className="list-disc list-inside">
+              <li>1 credit for processing.</li>
+              <li>1 credit for matching and scoring for the job.</li>
+            </ul>
+            Both happens together, as we automatically match and score the resume for the job.
           </p>
         </div>
         

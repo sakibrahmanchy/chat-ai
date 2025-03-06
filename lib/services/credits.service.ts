@@ -1,4 +1,4 @@
-import { CompanyCredits, CreditPackage } from '@/app/types/credits';
+import { CompanyCredits, CreditPackage, CreditTransaction } from '@/app/types/credits';
 import { supabase } from '@/lib/supabase/client';
 import { PostgrestSingleResponse } from '@supabase/supabase-js';
 
@@ -100,17 +100,17 @@ export class CreditService {
     return !transactionError;
   }
 
-  async addCredits(companyId: string, credits: number): Promise<boolean> {
-    const { error } = await supabase
-      .from('company_credits')
-      .update({ 
-        credits_balance: supabase.raw(`credits_balance + ${credits}`),
-        last_topped_up: new Date().toISOString()
-      })
-      .eq('company_id', companyId);
+  // async addCredits(companyId: string, credits: number): Promise<boolean> {
+  //   const { error } = await supabase
+  //     .from('company_credits')
+  //     .update({ 
+  //       credits_balance: supabase.raw(`credits_balance + ${credits}`),
+  //       last_topped_up: new Date().toISOString()
+  //     })
+  //     .eq('company_id', companyId);
 
-    return !error;
-  }
+  //   return !error;
+  // }
 
   async addCreditPackageToCompany(companyId: string, packageId: string, freeTier: boolean = false) {
     const { data: companyCredits }: PostgrestSingleResponse<CompanyCredits> = await supabase.from('company_credits')
@@ -180,6 +180,31 @@ export class CreditService {
 
     return creditPackage;
   }
+
+  async getTransactions(companyId: string): Promise<CreditTransaction[]> {
+    const { data: transactions, error } = await supabase
+      .from('credit_transactions')
+      .select('*')
+      .eq('company_id', companyId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    return transactions;
+  }
+
+  async getCurrentBalance(companyId: string): Promise<number> {
+    const { data: balance, error } = await supabase
+      .from('company_credits')
+      .select('credits_balance')
+      .eq('company_id', companyId)
+      .single();
+
+    if (error) throw error;
+
+    return balance?.credits_balance || 0;
+  }
+  
 }
 
 export const creditService = CreditService.getInstance(); 

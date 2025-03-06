@@ -1,8 +1,8 @@
-import { Resume } from "@/types/resume";
+import { Resume } from "@/app/types/resume";
 import { Badge } from "@/components/ui/badge";
 import { Mail, Phone } from "lucide-react";
-import { SkillsWithYoe } from "@/types/resume";
-import { Education } from "@/types/resume";
+import { SkillsWithYoe } from "@/app/types/resume";
+import { Education } from "@/app/types/resume";
 import { Progress } from "@/components/ui/progress";
 
 

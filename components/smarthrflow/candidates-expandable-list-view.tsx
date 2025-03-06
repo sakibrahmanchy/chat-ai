@@ -23,6 +23,8 @@ export interface Candidate {
         educationScore: number;
         analysis: {
             strengths: string[];
+            weaknesses: string[];
+            overall_feedback: string;
         };
     };
 
@@ -35,16 +37,16 @@ export const CandidatesExpandableListView = ({
     companyId
 }: {
     candidates: Candidate[];
-    initialExpandedCandidateId?: string;
+    initialExpandedCandidateId?: number;
     jobId: string;
     companyId: string;
 }) => {
-    const [expandedCandidateId, setExpandedCandidateId] = useState<string>(initialExpandedCandidateId || "");
+    const [expandedCandidateId, setExpandedCandidateId] = useState<number | null>(initialExpandedCandidateId || null);
     const [candidateLists, setCandidateLists] = useState<{ [key: string]: string[] }>({});
 
-    const handleExpandCandidate = (id: string) => {
+    const handleExpandCandidate = (id: number) => {
         if (expandedCandidateId === id) {   
-            setExpandedCandidateId("");
+            setExpandedCandidateId(null);
         } else {
             setExpandedCandidateId(id);
         }

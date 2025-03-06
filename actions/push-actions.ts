@@ -10,6 +10,12 @@ webpush.setVapidDetails(
  
 let subscription: PushSubscription | null = null
  
+// Add type for the subscription keys
+interface PushSubscriptionKeys {
+  p256dh: string;
+  auth: string;
+}
+
 export async function subscribeUser(sub: PushSubscription) {
   subscription = sub
   // In a production environment, you would want to store the subscription in a database
@@ -24,23 +30,36 @@ export async function unsubscribeUser() {
   return { success: true }
 }
  
-export async function sendNotification(message: string) {
-  if (!subscription) {
-    throw new Error('No subscription available')
-  }
- 
+// Transform the browser PushSubscription to web-push compatible format
+const sendNotification = async (subscription: PushSubscription, message: string) => {
   try {
+    // Convert browser PushSubscription to web-push format
+    const webPushSubscription = {
+      endpoint: subscription.endpoint,
+      keys: {
+        p256dh: arrayBufferToBase64(subscription.getKey('p256dh')),
+        auth: arrayBufferToBase64(subscription.getKey('auth'))
+      }
+    };
+
     await webpush.sendNotification(
-      subscription,
+      webPushSubscription,
       JSON.stringify({
         title: 'Test Notification',
         body: message,
-        icon: '/icon.png',
       })
-    )
-    return { success: true }
+    );
+    
+    return { success: true };
   } catch (error) {
-    console.error('Error sending push notification:', error)
-    return { success: false, error: 'Failed to send notification' }
+    console.error('Error sending notification:', error);
+    return { success: false, error };
   }
+};
+
+// Helper function to convert ArrayBuffer to base64 string
+function arrayBufferToBase64(buffer: ArrayBuffer | null): string {
+  if (!buffer) return '';
+  
+  return btoa(String.fromCharCode(...new Uint8Array(buffer)));
 }

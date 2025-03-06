@@ -11,7 +11,7 @@ export default async function OnboardingPage() {
     redirect("/sign-in");
   }
 
-  const { data: user, error: userError } = await supabase.from('users').select('*').eq('id', userId).single();
+  const { data: user } = await supabase.from('users').select('*').eq('id', userId).single();
 
   if (user?.onboarding_completed) {
     redirect("/dashboard");

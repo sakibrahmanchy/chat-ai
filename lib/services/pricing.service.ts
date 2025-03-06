@@ -1,9 +1,9 @@
 import { supabase } from '@/lib/supabase/client';
-// import Stripe from 'stripe';
+import Stripe from 'stripe';
 
-// const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-//   apiVersion: '2023-10-16'
-// });
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2025-02-24.acacia'
+});
 
 export class PricingService {
   private static instance: PricingService;
@@ -103,30 +103,30 @@ export class PricingService {
     return session;
   }
 
-  async handleSuccessfulPayment(paymentIntentId: string) {
-    // Get purchase record
-    const { data: purchase } = await supabase
-      .from('credit_purchases')
-      .select('*')
-      .eq('payment_intent_id', paymentIntentId)
-      .single();
+  // async handleSuccessfulPayment(paymentIntentId: string) {
+  //   // Get purchase record
+  //   const { data: purchase } = await supabase
+  //     .from('credit_purchases')
+  //     .select('*')
+  //     .eq('payment_intent_id', paymentIntentId)
+  //     .single();
 
-    if (!purchase) {
-      throw new Error('Purchase not found');
-    }
+  //   if (!purchase) {
+  //     throw new Error('Purchase not found');
+  //   }
 
-    // Update purchase status
-    await supabase
-      .from('credit_purchases')
-      .update({ payment_status: 'completed' })
-      .eq('id', purchase.id);
+  //   // Update purchase status
+  //   await supabase
+  //     .from('credit_purchases')
+  //     .update({ payment_status: 'completed' })
+  //     .eq('id', purchase.id);
 
-    // Add credits to company balance
-    const creditService = (await import('./credits.service')).creditService;
-    await creditService.addCredits(purchase.company_id, purchase.credits_purchased);
+  //   // Add credits to company balance
+  //   const creditService = (await import('./credits.service')).creditService;
+  //   await creditService.addCredits(purchase.company_id, purchase.credits_purchased);
 
-    return purchase;
-  }
+  //   return purchase;
+  // }
 
   async getPurchaseHistory(companyId: string) {
     const { data: purchases } = await supabase

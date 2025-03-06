@@ -3,12 +3,12 @@ import { redirect } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { Metadata } from "next";
 import { listService } from "@/lib/services/list.service";
-import CandidatesExpandableListView from "@/components/smarthrflow/candidates-expandable-list-view";
+import CandidatesExpandableListView, { Candidate } from "@/components/smarthrflow/candidates-expandable-list-view";
 import Link from "next/link";
 import { Resume } from "@/app/types/resume";
 import { PostgrestResponse } from "@supabase/supabase-js";
 
-function formatLocation(location: any) {
+function formatLocation(location: { city: string, state: string, country: string }) {
   if (!location) return '';
   const parts = [];
   if (location.city) parts.push(location.city);
@@ -36,10 +36,11 @@ export interface ListItem {
 }
 
 export default async function ListPage({
-  params: { id: jobId, listId },
+  params,
 }: {
-  params: { id: string, listId: string };
+  params: Promise<{ id: string, listId: string }>;
 }) {
+  const { id: jobId, listId } = await params;
   const { userId } = await auth();
 
   if (!userId) {
@@ -94,7 +95,7 @@ export default async function ListPage({
     role: listItem.resume?.current_position || '',
     email: listItem.resume?.parsed_content?.personal_emails?.length ? listItem.resume?.parsed_content?.personal_emails[0] : '',
     phone: listItem.resume?.parsed_content?.personal_numbers?.length ? listItem.resume?.parsed_content?.personal_numbers[0] : ''  ,
-    location: formatLocation(listItem.resume?.location),
+    location: formatLocation(listItem?.resume?.location || { city: '', state: '', country: '' }),
     experience: formatExperience(listItem.resume?.experience_months || 0),
     company: listItem.resume?.parsed_content?.experiences?.[0]?.company || '',
     education: listItem.resume?.parsed_content?.education?.[0]?.degree_name || '',
@@ -130,7 +131,7 @@ export default async function ListPage({
         </div>
       </div>
       <CandidatesExpandableListView
-        candidates={candidates}
+        candidates={candidates as Candidate[]}
         jobId={jobId}
         companyId={user.company_id}
       />

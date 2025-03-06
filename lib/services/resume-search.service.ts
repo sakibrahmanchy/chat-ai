@@ -1,6 +1,5 @@
 import { Resume } from '@/app/types/resume';
 import { createClient } from '@supabase/supabase-js';
-import { PostgrestFilterBuilder } from '@supabase/supabase-js';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -22,7 +21,8 @@ interface SearchFilters {
 export class ResumeSearchService {
   private ITEMS_PER_PAGE = 20;
 
-  private getBaseFilterQuery(query:  PostgrestFilterBuilder<any, any>, jobId: string, filters: SearchFilters) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private getBaseFilterQuery(query: any, jobId: string, filters: SearchFilters) {
      // Apply additional filters
      if (filters.skills?.length) {
       if (filters.matchType === 'AND') {
@@ -215,7 +215,7 @@ export class ResumeSearchService {
 
       return Array.from(locations).sort();
     } catch (error) {
-      // console.error('Error getting unique locations:', error);
+      console.log('Error getting unique locations:', error);
       return [];
     }
   }

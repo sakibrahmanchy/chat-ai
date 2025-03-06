@@ -2,8 +2,6 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { SettingsForm } from "@/components/smarthrflow/settings-form";
 import { supabase } from "@/lib/supabase/client";
-import { CreditPackage } from "@/app/types/credits";
-
 
 async function getSettings() {
   const { userId } = await auth();

@@ -13,7 +13,12 @@ import {
 } from '@/components/ui/select';
 
 interface CompanyFiltersProps {
-  onFilterChange?: (filters: any) => void;
+  onFilterChange?: (filters: {
+    search: string;
+    status: string;
+    creditRange: string;
+    dateRange: string;
+  }) => void;
 }
 
 export function CompanyFilters({ onFilterChange }: CompanyFiltersProps) {

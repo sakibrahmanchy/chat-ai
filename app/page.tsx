@@ -1,57 +1,66 @@
 import { Button } from "@/components/ui/button";
-import { SignInButton } from "@clerk/nextjs";
-import { ArrowRight, BrainCircuit, Briefcase, CheckCircle2, LineChart, Rocket, Users, Sparkles, Shield, Lock, Server, Star, Mail, Phone, MapPin, Calendar, FileText, Download, Share } from "lucide-react";
-import Link from "next/link";
+// import { SignInButton } from "@clerk/nextjs";
+import { ArrowRight, Briefcase, CheckCircle2, LineChart, Rocket, Users, Sparkles, Shield, Lock, Server, Star, Mail, FileText, Download, Share, MessageSquare, ListChecks } from "lucide-react";
+// import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { MotionDiv } from "@/components/motion";
 import { AuthButton } from "@/components/auth-button";
-import { FeaturesSection } from "@/components/features-section";
-import { DEMO_RESUMES, DemoCandidateList } from "@/components/demo-candidate-list";
-import { Logo } from "@/components/smarthrflow/logo";
 import { Footer } from "@/components/layout/footer";
-import CandidateSingleView from "@/components/smarthrflow/candidate-single-view";
 import { DashboardPreview } from "@/components/smarthrflow/dashboard-preview";
-import { TargetBenefits } from "@/components/smarthrflow/target-benefits";
+// import { TargetBenefits } from "@/components/smarthrflow/target-benefits";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { DemoCandidateListView } from "@/components/demo-candidate-list-view";
+import { SupportButton } from "@/components/support-button";
+import { Navbar } from "@/components/layout/navbar";
+
+// Add FAQ data
+const faqs = [
+  {
+    question: "How does the AI-powered candidate matching work?",
+    answer: "Our AI system analyzes resumes by comparing candidate skills, experience, and qualifications against your job requirements. It uses natural language processing to understand both explicit and implicit matches, providing a score out of 10 for each candidate. The system considers factors like skill relevance, experience level, and overall profile fit."
+  },
+  {
+    question: "What are credits and how do they work?",
+    answer: "Credits are used for AI-powered resume matching and analysis. Each time you process a resume through our AI matching system, it consumes one credit. You can purchase credits as needed, and they never expire. The system automatically tracks your credit usage and provides detailed transaction history."
+  },
+  {
+    question: "How can I manage my candidate pipeline?",
+    answer: "You can manage candidates through our intuitive pipeline system with three main stages: Pending Review, Shortlisted, and Rejected. You can bulk process candidates, send emails directly through the platform, and track candidate status across all your job postings. The system also provides detailed analytics for each stage."
+  },
+  {
+    question: "Can I customize the matching criteria?",
+    answer: "Yes, you can customize matching in two ways: 'Match All Skills' (AND) or 'Match Any Skills' (OR). You can also set specific requirements for experience levels, location preferences, and adjust the importance of different skills. The system allows filtering by match scores, skills, location, and experience."
+  },
+  {
+    question: "How do I export candidate data?",
+    answer: "You can export candidate data in both CSV and Excel formats. The exports include comprehensive information such as candidate details, match scores, skills, status, and contact information. You can export data for individual jobs or across multiple positions."
+  },
+  {
+    question: "What information is included in the match analysis?",
+    answer: "The match analysis provides detailed insights including: overall match score, skills match score, experience match score, education match score, matching skills, missing skills, key strength areas, and areas for improvement. Each analysis also includes specific recommendations for candidate evaluation."
+  },
+  {
+    question: "How secure is my recruitment data?",
+    answer: "We implement enterprise-grade security measures to protect your data. All information is encrypted both in transit and at rest. We use secure cloud infrastructure, implement role-based access control, and maintain strict data privacy standards in compliance with industry regulations."
+  },
+  {
+    question: "Can I track recruitment metrics and performance?",
+    answer: "Yes, the dashboard provides comprehensive recruitment metrics including: active jobs, total candidates, average match rates, time-to-shortlist, response rates, and detailed pipeline analytics. You can track performance across individual jobs or your entire recruitment process."
+  },
+  {
+    question: "How do I manage multiple job postings?",
+    answer: "The platform allows you to manage multiple job postings simultaneously. Each job has its own candidate pipeline, matching criteria, and analytics. You can easily switch between jobs, compare candidates across positions, and maintain separate shortlists for each role."
+  },
+  {
+    question: "What support options are available?",
+    answer: "We provide multiple support channels including: in-app documentation, email support, and detailed guides for all features. Our team is available to help with technical questions, best practices, and optimization of your recruitment process."
+  }
+];
+
 export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
-      {/* Navigation */}
-      <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-sm border-b">
-        <div className="max-w-screen-xl mx-auto flex items-center justify-between p-4">
-          <Link href="/" className="flex items-center space-x-3">
-            <Logo size={40} animated />
-
-            {/* <span className="text-xl tracking-tight">
-              <span className="font-light">Smart</span>
-              <span className="font-bold text-indigo-600">HR</span>
-              <span className="font-medium">Flow</span>
-            </span> */}
-          </Link>
-          <div className="flex items-center gap-4">
-            <AuthButton
-              variant="ghost"
-              size="sm"
-              signInText="Sign In"
-              loadingText="Loading..."
-              redirectText="Taking you to dashboard..."
-              redirectDelay={500}
-              showLoadingText
-              shouldTrackRedirect
-              trackingEvent="signin_redirect"
-              className="hover:bg-indigo-50"
-            >
-              Sign In
-            </AuthButton>
-            <AuthButton
-              className="bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-600 text-white shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/50 transition-all duration-200"
-              size="sm"
-            >
-              Get Started
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </AuthButton>
-          </div>
-        </div>
-      </nav>
+      <Navbar currentPath="/" />
 
       {/* Hero Section */}
       <section className="pt-32 pb-24 px-4 relative overflow-hidden">
@@ -207,7 +216,55 @@ export default function Home() {
         </div>
       </section>
 
-      <TargetBenefits />
+
+       {/* Add new highlight section */}
+       <section className="py-8 md:py-12 lg:py-24 bg-slate-50">
+        <div className="mx-auto flex max-w-[58rem] flex-col items-center justify-center gap-4 text-center">
+          <h2 className="text-3xl font-bold leading-[1.1] ">
+            Enhanced Workflow
+          </h2>
+          <p className="max-w-[85%] leading-normal text-muted-foreground sm:text-lg sm:leading-7">
+            Revolutionary tools to streamline your recruitment process
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
+            <div className="flex flex-col items-center text-center">
+              <Mail className="h-12 w-12 text-indigo-600 mb-4" />
+              <h3 className="text-xl font-semibold mb-2">Email Integration</h3>
+              <p className="text-muted-foreground">Contact candidates directly through the platform</p>
+            </div>
+            <div className="flex flex-col items-center text-center">
+              <ListChecks className="h-12 w-12 text-indigo-600 mb-4" />
+              <h3 className="text-xl font-semibold mb-2">Bulk Processing</h3>
+              <p className="text-muted-foreground">Manage multiple candidates efficiently</p>
+            </div>
+            <div className="flex flex-col items-center text-center">
+              <MessageSquare className="h-12 w-12 text-indigo-600 mb-4" />
+              <h3 className="text-xl font-semibold mb-2">Instant Support</h3>
+              <p className="text-muted-foreground">Get help when you need it</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Replace or add after the Enhanced Workflow section */}
+      <section className="container py-8 md:py-12 lg:py-24">
+        <div className="mx-auto flex max-w-[58rem] flex-col items-center justify-center gap-4 text-center mb-12">
+          <h2 className="text-3xl font-bold leading-[1.1]">
+            <span className="text-indigo-600">One pipeline,</span> All candidates.
+          </h2>
+          <p className="max-w-[85%] leading-normal text-muted-foreground sm:text-lg sm:leading-7">
+            Process candidates efficiently with bulk actions, and direct communication. All in one place.
+          </p>
+        </div>
+        <div className="flex justify-center px-16 py-4">
+          <DemoCandidateListView />
+        </div>
+      </section>
+
+      {/* <TargetBenefits /> */}
+
+
+      
 
       {/* Enhanced About Section */}
       <section className="py-24 bg-slate-50/50 relative">
@@ -320,6 +377,54 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Add FAQ section */}
+      <section className="py-16 bg-slate-50">
+        <div className="container mx-auto px-4">
+          <div className="max-w-3xl mx-auto">
+            <h2 className="text-3xl font-bold text-center mb-2">Frequently Asked Questions</h2>
+            <p className="text-muted-foreground text-center mb-8">
+              Everything you need to know about SmartHRFlow
+            </p>
+
+            <Accordion type="single" collapsible className="w-full">
+              {faqs.map((faq, index) => (
+                <AccordionItem key={index} value={`item-${index}`}>
+                  <AccordionTrigger className="text-left">
+                    {faq.question}
+                  </AccordionTrigger>
+                  <AccordionContent className="text-muted-foreground">
+                    {faq.answer}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+
+            <div className="mt-12 text-center">
+              <p className="text-sm text-muted-foreground mb-6">
+                Still have questions? We are here to help.
+              </p>
+              <SupportButton>
+                <Button>Contact Support</Button>
+              </SupportButton>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      
+      {/* Update demo candidate list description
+      <section className="container py-8 md:py-12 lg:py-24">
+        <div className="mx-auto flex max-w-[58rem] flex-col items-center justify-center gap-4 text-center mb-8">
+          <h2 className="text-3xl font-bold leading-[1.1] sm:text-3xl md:text-5xl">
+            Powerful Candidate Management
+          </h2>
+          <p className="max-w-[85%] leading-normal text-muted-foreground sm:text-lg sm:leading-7">
+            Process candidates efficiently with bulk actions, direct communication, and instant support
+          </p>
+        </div>
+        <DemoCandidateList candidates={DEMO_RESUMES} />
+      </section> */}
+
       <Footer />
     </div>
   );
@@ -346,7 +451,22 @@ const features = [
     icon: Rocket,
     title: "Automated Screening",
     description: "Save time with AI-powered resume screening and ranking."
-  }
+  },
+  {
+    title: "Bulk Actions",
+    description: "Process multiple candidates simultaneously - shortlist, reject, or export with a single click",
+    icon: ListChecks,
+  },
+  {
+    title: "Email Integration",
+    description: "Contact candidates directly through the platform with seamless email functionality",
+    icon: Mail,
+  },
+  {
+    title: "Instant Support",
+    description: "Get help instantly with our integrated support system including screenshot sharing",
+    icon: MessageSquare,
+  },
 ];
 
 const benefits = [
@@ -432,13 +552,20 @@ const securityFeatures = [
 ];
 
 // Feature Card Component
-function FeatureCard({ icon: Icon, title, description, index }: any) {
+interface FeatureCardProps {
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  description: string;
+  index?: number;
+}
+
+function FeatureCard({ icon: Icon, title, description, index }: FeatureCardProps) {
   return (
     <MotionDiv
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      transition={{ duration: 0.5, delay: index * 0.1 }}
+      transition={{ duration: 0.5, delay: index ? index * 0.1 : 0 }}
     >
       <Card className="group hover:shadow-md transition-all duration-300 border-none shadow-sm">
         <div className="p-6">
@@ -459,13 +586,20 @@ function FeatureCard({ icon: Icon, title, description, index }: any) {
 }
 
 // Benefit Card Component
-function BenefitCard({ icon: Icon, title, description, index }: any) {
+interface BenefitCardProps {
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  description: string;
+  index?: number;
+}
+
+function BenefitCard({ icon: Icon, title, description, index }: BenefitCardProps) {
   return (
     <MotionDiv
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      transition={{ duration: 0.5, delay: index * 0.1 }}
+      transition={{ duration: 0.5, delay: index ? index * 0.1 : 0 }}
       className="group"
     >
       <div className="flex flex-col items-center text-center">

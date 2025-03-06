@@ -46,7 +46,7 @@ export function JobCard({ job }: JobCardProps) {
           )}
 
           <p className="text-xs text-muted-foreground">
-            Posted {getRelativeTimeString(job.createdAt)}
+            Posted {getRelativeTimeString(job.createdAt.toISOString())}
           </p>
         </div>
       </CardContent>

@@ -31,7 +31,7 @@ export default function CookiePolicyPage() {
         <h3 className="text-xl font-semibold mt-6 mb-3">2.2 Performance Cookies</h3>
         <p>
           These cookies help us understand how visitors interact with our website by collecting 
-          and reporting information anonymously. This helps us improve our website's functionality.
+          and reporting information anonymously. This helps us improve our websites functionality.
         </p>
 
         <h3 className="text-xl font-semibold mt-6 mb-3">2.3 Functionality Cookies</h3>

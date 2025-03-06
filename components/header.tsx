@@ -2,17 +2,12 @@
 
 import { SignedIn, UserButton } from "@clerk/nextjs"
 import Link from "next/link"
-import Image from "next/image"
 import { Button } from "./ui/button"
 import { 
   Briefcase, 
-  FileText, 
   LayoutDashboard, 
   Settings, 
-  Users,
   Menu,
-  X,
-  BrainCircuit,
   PlusIcon
 } from "lucide-react"
 import {

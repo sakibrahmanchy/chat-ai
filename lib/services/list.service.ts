@@ -144,13 +144,13 @@ export class ListService {
   }
 
   async getShortlistedAndRejectedLists(jobId: string) {
-    const { data: shortlistedCandidates, error: shortlistedError } = await supabase
+    const { data: shortlistedCandidates } = await supabase
     .from('job_resume_matches')
     .select('resume_id')
     .eq('job_id', jobId)
     .eq('status', 'approved')
 
-    const { data: rejectedCandidates, error: rejectedError } = await supabase
+    const { data: rejectedCandidates } = await supabase
     .from('job_resume_matches')
     .select('resume_id')
     .eq('job_id', jobId)
@@ -164,7 +164,7 @@ export class ListService {
 
   async addCandidateToJobMatch(resumeId: number, jobId: string, status: string) {
 
-    const { data: existingMatch, error: existingMatchError } = await supabase
+    const { data: existingMatch } = await supabase
     .from('job_resume_matches')
     .select('*')
     .eq('resume_id', resumeId)
@@ -249,34 +249,34 @@ export class ListService {
     }
   }
 
-  async moveToList(candidateId: string, listName: string, jobId: string, companyId: string) {
-    // First get or create the list
-    const { data: list } = await supabase
-      .from('candidate_lists')
-      .select('id')
-      .eq('name', listName)
-      .eq('job_id', jobId)
-      .single();
+  // async moveToList(candidateId: string, listName: string, jobId: string) {
+  //   // First get or create the list
+  //   const { data: list } = await supabase
+  //     .from('candidate_lists')
+  //     .select('id')
+  //     .eq('name', listName)
+  //     .eq('job_id', jobId)
+  //     .single();
 
-    if (!list) {
-      throw new Error(`List ${listName} not found`);
-    }
+  //   if (!list) {
+  //     throw new Error(`List ${listName} not found`);
+  //   }
 
-    // Remove from other system lists if needed
-    await supabase
-      .from('list_items')
-      .delete()
-      .eq('resume_id', candidateId)
-      .eq('list_id', list.id);
+  //   // Remove from other system lists if needed
+  //   await supabase
+  //     .from('list_items')
+  //     .delete()
+  //     .eq('resume_id', candidateId)
+  //     .eq('list_id', list.id);
 
-    // Add to new list
-    await this.addToList({
-      listId: list.id,
-      resumeId: candidateId,
-      notes: `Moved to ${listName}`,
-      userId: '', // Add user ID here
-    });
-  }
+  //   // Add to new list
+  //   await this.addToList({
+  //     listId: list.id,
+  //     resumeId: candidateId,
+  //     notes: `Moved to ${listName}`,
+  //     userId: '', // Add user ID here
+  //   });
+  // }
 }
 
 export const listService = ListService.getInstance(); 

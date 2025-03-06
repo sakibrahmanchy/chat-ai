@@ -34,7 +34,7 @@ interface CompanyListProps {
 }
 
 export function CompanyList({ companies }: CompanyListProps) {
-  const [companyList, setCompanyList] = useState(companies);
+  const [companyList] = useState(companies);
 
   const getStatusColor = (status: string) => {
     switch (status) {

@@ -1,3 +1,4 @@
+import { User } from '@/app/types/user';
 import { supabase } from '@/lib/supabase/client';
 
 export class AdminUserService {
@@ -122,25 +123,25 @@ export class AdminUserService {
   //   }
   // }
 
-  async getUserStats(id: string) {
-    const { data: stats } = await supabase
-      .from('users')
-      .select(`
-        jobs_created: jobs(count),
-        active_jobs: jobs(count).eq('status', 'active'),
-        total_candidates: resumes(count),
-        total_interviews: interviews(count)
-      `)
-      .eq('id', id)
-      .single();
+  // async getUserStats(id: string) {
+  //   const { data: stats } = await supabase
+  //     .from('users')
+  //     .select(`
+  //       jobs_created: jobs(count),
+  //       active_jobs: jobs(count).eq('status', 'active'),
+  //       total_candidates: resumes(count),
+  //       total_interviews: interviews(count)
+  //     `)
+  //     .eq('id', id)
+  //     .single();
 
-    return {
-      jobsCreated: stats?.jobs_created[0]?.count || 0,
-      activeJobs: stats?.active_jobs[0]?.count || 0,
-      totalCandidates: stats?.total_candidates[0]?.count || 0,
-      totalInterviews: stats?.total_interviews[0]?.count || 0
-    };
-  }
+  //   return {
+  //     jobsCreated: stats?.jobs_created[0]?.count || 0,
+  //     activeJobs: stats?.active_jobs[0]?.count || 0,
+  //     totalCandidates: stats?.total_candidates[0]?.count || 0,
+  //     totalInterviews: stats?.total_interviews[0]?.count || 0
+  //   };
+  // }
 }
 
 export const adminUserService = AdminUserService.getInstance(); 

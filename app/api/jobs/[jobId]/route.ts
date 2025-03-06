@@ -8,9 +8,10 @@ export async function GET() {
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { jobId: string } }
+  { params }: { params: Promise<{ jobId: string }> }
 ) {
   try {
+    const { jobId } = await params;
     const supabase = createRouteHandlerClient({ cookies });
     const { scoring_instructions } = await req.json();
 
@@ -20,7 +21,7 @@ export async function PATCH(
         scoring_instructions,
         updated_at: new Date().toISOString()
       })
-      .eq('id', params.jobId);
+      .eq('id', jobId);
 
     if (error) throw error;
 

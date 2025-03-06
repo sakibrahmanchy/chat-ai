@@ -11,7 +11,7 @@ export interface ParsedContent {
   headline: string
   education: Education[]
   full_name: string
-  languages: any[]
+  languages: string[]
   last_name: string
   first_name: string
   occupation: string
@@ -25,13 +25,13 @@ export interface ParsedContent {
 }
 
 export interface Education {
-  grade: any
+  grade: number | string
   school: string
   ends_at: EndsAt
   starts_at: StartsAt
   degree_name: string
   description: string
-  achievements: any[]
+  achievements: string[]
   field_of_study: string
 }
 
@@ -54,7 +54,7 @@ export interface Experience {
   location: string
   starts_at: StartsAt2
   description: string
-  achievements: any[]
+  achievements: string[]
   technologies: string[]
 }
 
@@ -71,12 +71,12 @@ export interface StartsAt2 {
 }
 
 export interface Certification {
-  url: any
+  url: string
   name: string
-  ends_at: any
+  ends_at: string
   authority: string
   starts_at: StartsAt3
-  license_number: any
+  license_number: string
 }
 
 export interface StartsAt3 {

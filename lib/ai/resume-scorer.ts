@@ -197,6 +197,7 @@ export async function scoreResume(resumeId: number, jobId: string, companyId: st
     const finalScores = {
       ...combinedScores,
       analysis: combinedAnalysis,
+      averageScore: Number(((combinedScores.skillsScore + combinedScores.experienceScore + combinedScores.overallScore) / 3).toFixed(1)),
       lastUpdated: new Date().toISOString(),
       rawScores: {
         ai: aiAnalysis,

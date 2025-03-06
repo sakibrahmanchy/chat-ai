@@ -27,6 +27,8 @@ interface Transaction {
   type: string;
   notes: string;
   created_at: string;
+  credits_used: number;
+  credits_added: number;
   companies?: {
     name: string;
   };
@@ -37,7 +39,7 @@ interface TransactionsProps {
 }
 
 export function CreditTransactions({ transactions: initialTransactions }: TransactionsProps) {
-  const [transactions, setTransactions] = useState(initialTransactions);
+  const [transactions] = useState(initialTransactions);
   const [filters, setFilters] = useState({
     search: '',
     type: 'all',

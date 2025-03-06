@@ -1,10 +1,10 @@
 'use client';
 
-import { Card } from "@/components/ui/card";
+// import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { Zap, Download, Eye, Upload } from "lucide-react";
+import { Eye, Upload } from "lucide-react";
 
 export function FeaturesSection() {
   return (

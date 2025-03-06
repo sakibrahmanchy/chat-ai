@@ -1,17 +1,18 @@
 import Header from "@/components/header"
 import { Toaster } from "@/components/ui/toaster"
-import { CreditCheck } from "@/components/smarthrflow/credit-check"
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+import { SupportButton } from "@/components/support-button"
 
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     return (
         <>
             <Header />
             <main className="flex-1 overflow-auto">
-                <div className="w-full mx-auto p-4">
+                <div className="w-full mx-auto px-8 py-4">
                     {children}
                 </div>
             </main>
             <Toaster />
+            <SupportButton />
         </>
     )
 }

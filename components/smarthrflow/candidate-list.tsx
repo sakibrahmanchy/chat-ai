@@ -121,7 +121,7 @@ export function CandidateList({ candidates }: CandidateListProps) {
                     </div>
                     <div className="flex items-center gap-1">
                       <Calendar className="h-4 w-4" />
-                      Applied {getRelativeTimeString(new Date(candidate.createdAt))}
+                      Applied {getRelativeTimeString(candidate.createdAt)}
                     </div>
                   </div>
                 </div>

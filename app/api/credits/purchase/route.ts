@@ -12,12 +12,20 @@ export async function POST(req: Request) {
 
     const { packageId } = await req.json();
 
+    if (!packageId || !userId) {
+      return new NextResponse('Invalid request', { status: 400 });
+    }
+
     // Get user's company
     const { data: user } = await supabase
       .from('users')
       .select('company_id')
       .eq('id', userId)
       .single();
+    
+    if (!user) {
+      return new NextResponse('User not found', { status: 404 });
+    }
 
     const session = await pricingService.createCheckoutSession(
       user.company_id,

@@ -327,17 +327,3 @@ export async function processResume(resumeFile: File, jobId: string, userId: str
     throw error;
   }
 }
-
-// Helper function to detect file type from buffer
-async function detectFileType(buffer: Buffer): Promise<'pdf' | 'docx'> {
-  // Check for PDF magic number
-  if (buffer.toString('hex', 0, 4) === '25504446') {
-    return 'pdf';
-  }
-
-  if (buffer.toString('hex', 0, 2) === '504b') {
-    return 'docx';
-  }
-
-  throw new Error('Unsupported file type. Please upload a PDF or DOCX file.');
-}

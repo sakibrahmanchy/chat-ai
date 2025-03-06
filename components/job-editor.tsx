@@ -26,7 +26,7 @@ interface JobEditorProps {
   placeholder?: string;
 }
 
-export function JobEditor({ content, onChange, placeholder }: JobEditorProps) {
+export function JobEditor({ content, onChange }: JobEditorProps) {
   const editor = useEditor({
     extensions: [
       Document,

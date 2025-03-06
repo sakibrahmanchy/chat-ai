@@ -30,7 +30,11 @@ interface SettingsFormProps {
         last_topped_up: Date;
         credits_used: number;
       };
-      purchases: CreditPackage[];
+      purchases: {
+        credit_packages: CreditPackage;
+        credits_purchased: number;
+        created_at: Date;
+      }[];
       transactions: Transaction[];
     };
   };
@@ -38,7 +42,7 @@ interface SettingsFormProps {
 
 export function SettingsForm({ initialData }: SettingsFormProps) {
   const { credits, purchases, transactions } = initialData.company;
-  const { credits_balance, credits_used } = credits[0] || { credits_balance: 0, credits_used: 0 };
+  const { credit_balance: credits_balance, credits_used } = credits || { credit_balance: 0, credits_used: 0 };
 
   const creditBalance = Number(credits_balance);
   const creditsUsed = Number(credits_used);
@@ -132,7 +136,7 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
                     ${creditPackage.price}
                   </span>
                 </div>
-                {creditPackage.features?.map((feature, index) => (
+                {creditPackage.features?.map((feature: string, index: number) => (
                   <div key={index} className="flex items-center gap-2 text-sm text-muted-foreground">
                     <span>✓</span>
                     <span>{feature}</span>

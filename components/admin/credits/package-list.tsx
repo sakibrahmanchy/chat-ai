@@ -28,7 +28,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DialogDescription } from "@radix-ui/react-dialog";
 import { adminCompanyService } from "@/lib/services/admin/company.service";
 import { creditService } from "@/lib/services/credits.service";
-
 interface CreditPackage {
   id: string;
   name: string;
@@ -42,6 +41,11 @@ interface CreditPackage {
 
 interface PackageListProps {
   packages: CreditPackage[];
+}
+
+interface Company {
+  id: string;
+  name: string;
 }
 
 export function PackageList({ packages }: PackageListProps) {
@@ -64,6 +68,7 @@ export function PackageList({ packages }: PackageListProps) {
         description: `Package has been ${isActive ? 'activated' : 'deactivated'}.`,
       });
     } catch (error) {
+      console.log(error);
       toast({
         title: "Error",
         description: "Failed to update package status.",
@@ -164,7 +169,13 @@ export function PackageList({ packages }: PackageListProps) {
       {editingPackage && (
         <PackageForm 
           packageId={editingPackage.id}
-          setPackageId={setEditingPackage}
+          setPackageId={(id: string | null) => {
+            if (id === null) {
+              setEditingPackage(null);
+            } else {
+              setEditingPackage(packageList.find(pkg => pkg.id === id) || null);
+            }
+          }}
           onSuccess={() => {
             setEditingPackage(null);
             // Refresh package list or handle success

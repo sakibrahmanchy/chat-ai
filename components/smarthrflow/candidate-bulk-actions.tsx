@@ -47,7 +47,7 @@ export function CandidateBulkActions({ listName, candidates }: CandidateBulkActi
     } catch (error) {
       toast({
         title: "Export Failed",
-        description: "There was an error exporting the candidates",
+        description: "There was an error exporting the candidates: " + error,
         variant: "destructive",
       });
     } finally {
@@ -66,7 +66,7 @@ export function CandidateBulkActions({ listName, candidates }: CandidateBulkActi
     } catch (error) {
       toast({
         title: "Email Failed",
-        description: "There was an error sending the emails",
+        description: "There was an error sending the emails: " + error,
         variant: "destructive",
       });
     } finally {

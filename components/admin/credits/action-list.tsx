@@ -41,6 +41,7 @@ export function ActionList({ actions }: ActionListProps) {
         description: `Action has been ${isActive ? 'activated' : 'deactivated'}.`,
       });
     } catch (error) {
+      console.log(error);
       toast({
         title: "Error",
         description: "Failed to update action status.",

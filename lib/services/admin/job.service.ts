@@ -1,3 +1,4 @@
+import { Job } from '@/app/types/job';
 import { supabase } from '@/lib/supabase/client';
 
 // These are the exact values allowed by the database constraint
@@ -49,86 +50,73 @@ export class AdminJobService {
     })) || [];
   }
 
-  async getJobById(id: string) {
-    const { data: job } = await supabase
+  // async getJobById(id: string) {
+  //   const { data: job } = await supabase
+  //     .from('jobs')
+  //     .select(`
+  //       *,
+  //       companies (
+  //         name,
+  //         id
+  //       ),
+  //       resumes: resumes(count),
+  //     `)
+  //     .eq('id', id)
+  //     .single();
+
+  //   if (!job) return null;
+
+  //   return {
+  //     id: job.id,
+  //     title: job.title,
+  //     company: job.companies?.name,
+  //     companyId: job.companies?.id,
+  //     status: job.status,
+  //     type: job.type,
+  //     location: job.location,
+  //     salary: {
+  //       min: job.salary_min,
+  //       max: job.salary_max,
+  //       currency: job.salary_currency
+  //     },
+  //     candidates: job.resumes[0]?.count || 0,
+  //     views: job.views[0]?.count || 0,
+  //     createdAt: job.created_at,
+  //     updatedAt: job.updated_at,
+  //     description: job.description,
+  //     requirements: job.requirements
+  //   };
+  // }
+
+  async updateJob(id: string, job: Partial<Job>) {
+    const { data, error } = await supabase
       .from('jobs')
-      .select(`
-        *,
-        companies (
-          name,
-          id
-        ),
-        resumes: resumes(count),
-      `)
-      .eq('id', id)
-      .single();
+      .update(job)
+      .eq('id', id);
 
-    if (!job) return null;
-
-    return {
-      id: job.id,
-      title: job.title,
-      company: job.companies?.name,
-      companyId: job.companies?.id,
-      status: job.status,
-      type: job.type,
-      location: job.location,
-      salary: {
-        min: job.salary_min,
-        max: job.salary_max,
-        currency: job.salary_currency
-      },
-      candidates: job.resumes[0]?.count || 0,
-      views: job.views[0]?.count || 0,
-      createdAt: job.created_at,
-      updatedAt: job.updated_at,
-      description: job.description,
-      requirements: job.requirements
-    };
-  }
-
-  async updateJob(id: string, data: Job) {
-    // Map 'paused' to 'draft' since paused isn't a valid database status
-    if (data.status === 'paused') {
-      data.status = 'draft';
-    }
-
-    // Ensure status is one of the allowed values
-    if (data.status && !['active', 'closed', 'draft'].includes(data.status)) {
-      data.status = 'draft';
-    }
-
-    const { data: job, error } = await supabase
-      .from('jobs')
-      .update(data)
-      .eq('id', id)
-      .select()
-      .single();
-
-    console.log('Update error:', error);
     if (error) throw error;
-    return job;
+    return data;
   }
 
-  async getJobStats(id: string) {
-    const { data: stats } = await supabase
-      .from('jobs')
-      .select(`
-        resumes: job_resumes(count),
-        qualified_resumes: job_resumes(count).gte('match_score', 70),
-        views: job_views(count),
-        interviews: job_interviews(count)
-      `)
-      .eq('id', id)
-      .single();
+  // async getJobStats(id: string) {
+  //   const { data: stats } = await supabase
+  //     .from('jobs')
+  //     .select(`
+  //       resumes: job_resumes(count),
+  //       qualified_resumes: job_resumes(count).gte('match_score', 70),
+  //       views: job_views(count),
+  //       interviews: job_interviews(count)
+  //     `)
+  //     .eq('id', id)
+  //     .single();
 
-    return {
-      totalCandidates: stats?.resumes[0]?.count || 0,
-      qualifiedCandidates: stats?.qualified_resumes[0]?.count || 0,
-      totalViews: stats?.views[0]?.count || 0,
-      totalInterviews: stats?.interviews[0]?.count || 0
-    };
-  }
+  //   return {
+  //     totalCandidates: stats?.resumes[0]?.count || 0,
+  //     qualifiedCandidates: stats?.qualified_resumes[0]?.count || 0,
+  //     totalViews: stats?.views[0]?.count || 0,
+  //     totalInterviews: stats?.interviews[0]?.count || 0
+  //   };
+  // }
 
   async getJobActivity(id: string, days: number = 30) {
     const startDate = new Date();

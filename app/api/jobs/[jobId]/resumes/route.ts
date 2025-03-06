@@ -1,24 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from "@clerk/nextjs/server";
-import { v4 as uuidv4 } from 'uuid';
 import { processResume } from '../../../../../lib/ai/resume-processor';
 import { scoreResume } from '@/lib/ai/resume-scorer';
 import { supabase } from '@/lib/supabase/client';
-import { activityService } from '@/lib/services/activity.service';
 import { listService } from '@/lib/services/list.service';
 
 // Main POST handler
 export async function POST(
   req: NextRequest,
-  { params }: { params: { jobId: string } }
+  { params }: { params: Promise<{ jobId: string }> }
 ) {
   try {
+    const { jobId } = await params;
     let { userId } = await auth();
     let companyId = '';
     if (!userId) {
       const { error: companyIdError, data } = await supabase.from('jobs')
       .select('company_id')
-      .eq('id', params.jobId)
+      .eq('id', jobId)
       .single();
       if (companyIdError) throw companyIdError;
       companyId = data.company_id;
@@ -49,19 +48,19 @@ export async function POST(
 
     // Process resume and get parsed data
     // const fileBuffer = Buffer.from(await file.arrayBuffer());
-    const { parsedData, hash, id } = await processResume(file, params.jobId, userId, companyId);
+    const { parsedData, hash, id } = await processResume(file, jobId, userId, companyId);
 
-    const { data: job, error: jobError } = await supabase.from('jobs').select('*').eq('id', params.jobId).single(); 
+    const { data: job, error: jobError } = await supabase.from('jobs').select('*').eq('id', jobId).single(); 
     if (jobError) throw jobError;
 
     // Score resume using only IDs
-    await scoreResume(id, params.jobId, companyId);
+    await scoreResume(id, jobId, companyId);
 
     await supabase.from('jobs').update({
       total_applications: job.total_applications + 1
-    }).eq('id', params.jobId);
+    }).eq('id', jobId);
 
-    await listService.addCandidateToJobMatch(id, params.jobId, 'pending');
+    await listService.addCandidateToJobMatch(id, jobId, 'pending');
 
     // Generate a UUID for activity logging
     // const activityId = uuidv4();

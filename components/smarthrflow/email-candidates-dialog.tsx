@@ -14,7 +14,7 @@ import { EmailTemplate, EmailVariables } from "@/app/types/email";
 import { emailService } from "@/lib/services/email.service";
 
 interface EmailCandidatesDialogProps {
-  candidates: Resume[];
+  candidates: Resume[] | Partial<Resume>[];
   jobTitle: string;
   companyName: string;
   companyId: string;
@@ -80,12 +80,12 @@ export function EmailCandidatesDialog({ candidates, jobTitle, companyName, compa
     }
   };
 
-  const parseTemplate = (text: string, candidateData: Resume) => {
+  const parseTemplate = (text: string, candidateData: Resume | Partial<Resume>) => {
     let parsed = text;
     const allVariables = {
       ...variables,
-      CANDIDATE_NAME: candidateData.full_name || "",
-      CANDIDATE_EMAIL: candidateData.email || "",
+      CANDIDATE_NAME: candidateData.full_name ?? "",
+      CANDIDATE_EMAIL: candidateData.email ?? "",
       JOB_TITLE: jobTitle,
       COMPANY_NAME: companyName,
     };
@@ -102,11 +102,13 @@ export function EmailCandidatesDialog({ candidates, jobTitle, companyName, compa
       setLoading(true);
       
       for (const candidate of candidates) {
+        if (!candidate.id || !candidate.email) continue;
+        
         const parsedSubject = parseTemplate(subject, candidate);
         const parsedBody = parseTemplate(body, candidate);
         
         await emailService.sendEmail({
-          to: candidate.email || '',
+          to: candidate.email,
           subject: parsedSubject,
           body: parsedBody,
           jobId: jobId,
@@ -138,7 +140,7 @@ export function EmailCandidatesDialog({ candidates, jobTitle, companyName, compa
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
           <Mail className="h-4 w-4 mr-2" />
-          Email {candidates.length} Candidates
+          Contact Selected
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">

@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { EmailTemplate, EmailVariables } from '@/app/types/email';
+// import { EmailTemplate, EmailVariables } from '@/app/types/email';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -28,17 +28,6 @@ export class EmailService {
     templateId?: string;
   }) {
     try {
-      console.log({
-        to_email: data.to,
-        subject: data.subject,
-        body: data.body,
-        job_id: data.jobId,
-        candidate_id: data.candidateId,
-        company_id: data.companyId,
-        template_id: data.templateId,
-        status: 'pending',
-        provider: 'sendgrid'
-      })
       // First log the email to our database
       const { data: emailLog, error: logError } = await supabase
         .from('email_logs')

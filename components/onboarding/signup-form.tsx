@@ -26,9 +26,9 @@ const signupFormSchema = z.object({
   
   // Company Details
   companyName: z.string().min(2, "Company name must be at least 2 characters"),
-  // website: z.string().url("Please enter a valid URL").optional(),
-  // industry: z.string().min(2, "Please select an industry"),
-  // size: z.string().min(2, "Please select company size"),
+  website: z.string().optional(),
+  industry: z.string().optional(),
+  size: z.string().optional(),
   
   // Address
   address: z.object({
@@ -186,7 +186,7 @@ export function SignupForm({ userId, userEmail }: { userId: string; userEmail: s
                     <FormItem>
                       <FormLabel>Website</FormLabel>
                       <FormControl>
-                        <Input placeholder="https://example.com" {...field} />
+                        <Input placeholder="https://example.com" {...field} type="url" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

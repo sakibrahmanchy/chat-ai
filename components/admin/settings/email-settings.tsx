@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { adminSettingsService } from '@/lib/services/admin/settings.service';
-import { toast } from '@/hooks/use-toast';
+// import { adminSettingsService } from '@/lib/services/admin/settings.service';
+// import { toast } from '@/hooks/use-toast';
 
 interface EmailSettingsProps {
   settings: {
@@ -25,54 +25,57 @@ interface EmailSettingsProps {
 
 export function EmailSettings({ settings }: EmailSettingsProps) {
   const [formData, setFormData] = useState(settings);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isTesting, setIsTesting] = useState(false);
+  const [isSaving] = useState(false);
+  const [isTesting] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSaving(true);
-    try {
-      await adminSettingsService.updateSettings('email', formData);
-      toast({
-        title: 'Settings updated',
-        description: 'Email settings have been updated successfully.',
-      });
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to update email settings.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  };
+  // const handleSubmit = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   setIsSaving(true);
+  //   try {
+  //     await adminSettingsService.updateSettings('email', formData);
+  //     toast({
+  //       title: 'Settings updated',
+  //       description: 'Email settings have been updated successfully.',
+  //     });
+  //   } catch (error) {
+  //     console.log(error);
+  //     toast({
+  //       title: 'Error',
+  //       description: 'Failed to update email settings.',
+  //       variant: 'destructive',
+  //     });
+  //   } finally {
+  //     setIsSaving(false);
+  //   }
+  // };
 
-  const handleTestEmail = async () => {
-    setIsTesting(true);
-    try {
-      const result = await adminSettingsService.testEmailSettings(formData);
-      if (result.success) {
-        toast({
-          title: 'Test successful',
-          description: 'Email settings are working correctly.',
-        });
-      } else {
-        throw new Error(result.message);
-      }
-    } catch (error) {
-      toast({
-        title: 'Test failed',
-        description: error.message || 'Failed to test email settings.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsTesting(false);
-    }
-  };
+  // const handleTestEmail = async () => {
+  //   setIsTesting(true);
+  //   try {
+  //     const result = await adminSettingsService.testEmailSettings(formData);
+  //     if (result.success) {
+  //       toast({
+  //         title: 'Test successful',
+  //         description: 'Email settings are working correctly.',
+  //       });
+  //     } else {
+  //       throw new Error(result.message);
+  //     }
+  //   } catch (error) {
+  //     toast({
+  //       title: 'Test failed',
+  //       description: error.message || 'Failed to test email settings.',
+  //       variant: 'destructive',
+  //     });
+  //   } finally {
+  //     setIsTesting(false);
+  //   }
+  // };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form 
+      // onSubmit={handleSubmit} 
+      className="space-y-6">
       <div className="grid gap-4">
         <div className="space-y-2">
           <Label htmlFor="fromEmail">From Email</Label>
@@ -153,7 +156,7 @@ export function EmailSettings({ settings }: EmailSettingsProps) {
         <Button 
           type="button" 
           variant="outline" 
-          onClick={handleTestEmail}
+          // onClick={handleTestEmail}
           disabled={isTesting}
         >
           {isTesting ? 'Testing...' : 'Test Settings'}

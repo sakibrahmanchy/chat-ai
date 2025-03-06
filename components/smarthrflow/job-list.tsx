@@ -79,9 +79,10 @@ export function JobList({ jobs: initialJobs }: JobListProps) {
                   <div className="flex flex-wrap gap-2 text-sm">
                     <MapPin className="h-4 w-4" />
                     <span>
-                      {job.location ? 
-                        `${job.location.city}${job.location.state ? `, ${job.location.state}` : ''}${job.location.country ? `, ${job.location.country}` : ''}` 
-                        : job.location}
+                      {typeof job.location === 'string' 
+                        ? job.location 
+                        : `${job.location.city}${job.location.state ? `, ${job.location.state}` : ''}${job.location.country ? `, ${job.location.country}` : ''}`
+                      }
                     </span>
                     <span>•</span>
                     <span>{job.type}</span>
@@ -131,7 +132,7 @@ export function JobList({ jobs: initialJobs }: JobListProps) {
 
               <div className="flex flex-col sm:flex-row justify-between gap-4 pt-4 border-t">
                 <p className="text-xs text-muted-foreground">
-                  Posted {getRelativeTimeString(job.created_at)}
+                  Posted {getRelativeTimeString(job.created_at.toISOString())}
                     {job.experience && ` • ${job.experience}+ years experience`} required
                 </p>
                 <div className="flex flex-wrap gap-2">

@@ -1,19 +1,19 @@
 'use client';
 
-import { useState, useEffect, useMemo } from "react";
-import { Experience, Resume } from "@/app/types/resume";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import type { Resume } from "@/app/types/resume";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CandidateFilters } from "./candidate-filters";
+import { CandidateFilters, FilterCriteria } from "./candidate-filters";
 import {
   Download,
   Filter,
   X,
-  ArrowLeft,
   Search,
   Info,
   Check,
   Loader2,
+  User2Icon,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -34,7 +34,6 @@ import { EmailCandidatesDialog } from "./email-candidates-dialog";
 import { CandidateListTabContent } from "./candidate-list-tab-content";
 
 interface CandidateListViewProps {
-  initialResumes: Resume[];
   jobId: string;
   jobTitle: string;
   userId: string;
@@ -42,18 +41,18 @@ interface CandidateListViewProps {
   requiredSkills: string[];
   requirements: string;
   responsibilities: string;
-  showFiltersDefault: boolean;
+  showFiltersDefault?: boolean;
   initialFilters?: {
     search?: string;
     skills?: string[];
     experienceLevel?: string;
     matchScore?: [number, number];
+    matchType?: 'AND' | 'OR';
   };
   skipDataFetch?: boolean;
 }
 
 export function CandidateListView({
-  initialResumes,
   jobId,
   jobTitle,
   userId,
@@ -68,7 +67,6 @@ export function CandidateListView({
   const [resumes, setResumes] = useState<Resume[]>([]);
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [statusCounts, setStatusCounts] = useState<Record<string, number>>({
     all: 0,
     pending: 0,
@@ -96,17 +94,16 @@ export function CandidateListView({
   }, [userId, jobId]);
 
 
-  const [filters, setFilters] = useState({
+  const [filters, setFilters] = useState<FilterCriteria>({
     showFilters: showFiltersDefault,
     skills: initialFilters?.skills || [],
     scoreRange: initialFilters?.matchScore || [0, 10],
-    status: [],
     experienceMonths: [0, 999] as [number, number],
     matchType: initialFilters?.matchType || 'OR' as 'AND' | 'OR',
     sortBy: 'score' as 'score' | 'date',
     location: "all",
     searchTerm: initialFilters?.search || '',
-    availability: [1, 24] as [number, number]
+    availability: 1
   });
 
   const { inView } = useInView({
@@ -129,7 +126,7 @@ export function CandidateListView({
     }
   }
 
-  const loadInitialData = async (status?: string) => {
+  const loadInitialData = useCallback(async () => {
     if (skipDataFetch) return;
 
     setLoading(true);
@@ -137,10 +134,10 @@ export function CandidateListView({
       const searchFilters = {
         searchTerm: filters.searchTerm || '',
         skills: filters.skills,
-        status: getStatusNameFromSelectedTab(selectedTab), // Add status to filters
+        status: getStatusNameFromSelectedTab(selectedTab),
         location: filters.location === 'all' ? undefined : filters.location,
         experienceMonths: filters.experienceMonths,
-        scoreRange: filters.scoreRange,
+        scoreRange: filters.scoreRange ? [filters.scoreRange[0], filters.scoreRange[1]] as [number, number] : [0, 10] as [number, number],
         showFilters: filters.showFilters,
         matchType: filters.matchType,
         sortBy: filters.sortBy
@@ -161,12 +158,16 @@ export function CandidateListView({
     } finally {
       setLoading(false);
     }
-  };
+  }, [skipDataFetch, filters, selectedTab, jobId]);
 
   // Modified score calculation function
   const handleCalculateScore = async (resume: Resume) => {
     try {
       setLoadingScores(prev => ({ ...prev, [resume.id]: true }));
+
+      if (!companyId || !jobId) {
+        throw new Error('Company ID or Job ID is missing');
+      }
 
       // Only pass IDs to scoring function
       await scoreResume(resume.id, jobId, companyId);
@@ -191,27 +192,25 @@ export function CandidateListView({
 
 
   // Update loadMore function
-  const loadMore = async () => {
+  const loadMore = useCallback(async () => {
     if (!hasMore || loading) return;
     setLoading(true);
 
     try {
-      setIsLoadingMore(true);
       const searchFilters = {
         ...filters,
         searchTerm: searchTerm,
-        skills: filters.skills.length > 0 ? filters.skills : undefined,
-        status: filters.status.length > 0 ? filters.status : undefined,
+        skills: (filters?.skills || [])?.length > 0 ? filters.skills : [],
         location: filters.location === "all" ? undefined : filters.location,
-        experienceMonths: filters.experienceMonths[0] === 0 && filters.experienceMonths[1] === 999
+        experienceMonths: (filters?.experienceMonths || [0, 999])[0] === 0 && (filters?.experienceMonths || [0, 999])[1] === 999
           ? undefined
           : filters.experienceMonths,
-        scoreRange: filters.scoreRange[0] === 0 && filters.scoreRange[1] === 10 ? undefined : filters.scoreRange
+        scoreRange: (filters?.scoreRange || [0, 10])[0] === 0 && (filters?.scoreRange || [0, 10])[1] === 10 ? undefined : filters.scoreRange
       };
 
       const result = await resumeSearch.searchResumes(
         jobId,
-        searchFilters,
+        searchFilters as unknown as FilterCriteria,
         Math.ceil(resumes.length / 20) + 1
       );
 
@@ -226,21 +225,22 @@ export function CandidateListView({
       });
     } finally {
       setLoading(false);
-      setIsLoadingMore(false);
     }
-  };
+  }, [hasMore, loading, searchTerm, filters, jobId]);
 
   // Update initial data loading
   useEffect(() => {
-    loadInitialData();
-  }, [filters, searchTerm, selectedTab]); // Update dependencies
+    if (!skipDataFetch) {
+      loadInitialData();
+    }
+  }, [skipDataFetch, loadInitialData]);
 
   // Handle infinite scroll
   useEffect(() => {
-    if (inView && !loading) {
+    if (inView && hasMore && !loading) {
       loadMore();
     }
-  }, [inView, loading]);
+  }, [inView, hasMore, loading, loadMore]);
 
   // Client-side search filter
   const filteredResumes = useMemo(() => {
@@ -261,7 +261,7 @@ export function CandidateListView({
   }, [resumes, searchTerm]);
 
   // UI state
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<number | null>(null);
   const [showJobDescription, setShowJobDescription] = useState(false);
 
   // Add a filter toggle component
@@ -290,14 +290,19 @@ export function CandidateListView({
       { header: 'Match Score', key: 'overall_score' },
       { header: 'Skills', key: 'skills' },
       { header: 'Status', key: 'status' },
-      { header: 'Resume', key: 'resume' }
+      { header: 'Resume', key: 'resume_url' }
     ];
 
     const dataToExport = filteredResumes.map(candidate => ({
-      ...candidate,
-      skills: candidate.searchable_skills.join(', '),
-      score: `${Math.round(candidate.scores?.overall_score * 10)}%`,
-      resume: candidate.metadata.file_url,
+      id: candidate.id,
+      full_name: candidate.full_name,
+      email: candidate.email,
+      phone: candidate.phone,
+      location: `${candidate.location.city}, ${candidate.location.state}, ${candidate.location.country}`,
+      experience_months: candidate.experience_months,
+      searchable_skills: candidate.searchable_skills.join(', '),
+      score: candidate.scores?.overall_score?.toString() || '0',
+      resume_url: candidate.metadata.file_url,
       status: candidate?.job_resume_matches?.[0]?.status || 'pending',
       role: jobTitle,
       current_position: `${candidate.parsed_content.experiences[0].title} at ${candidate.parsed_content.experiences[0].company}`,
@@ -322,7 +327,7 @@ export function CandidateListView({
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to shortlist candidate",
+        description: "Failed to shortlist candidate: " + error,
         variant: "destructive",
       });
     }
@@ -340,7 +345,7 @@ export function CandidateListView({
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to reject candidate",
+        description: "Failed to reject candidate: " + error,
         variant: "destructive",
       });
     }
@@ -380,7 +385,7 @@ export function CandidateListView({
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to shortlist candidates",
+        description: "Failed to shortlist candidates: " + error,
         variant: "destructive",
       });
     } finally {
@@ -403,7 +408,7 @@ export function CandidateListView({
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to reject candidates",
+        description: "Failed to reject candidates: " + error,
         variant: "destructive",
       });
     }
@@ -430,15 +435,15 @@ export function CandidateListView({
           value: 'rejected',
           count: statusCounts.rejected
         }].map(tab => (
-          <TabsTrigger 
+          <TabsTrigger
             key={tab.value}
             className={cn(
-              'flex-1 sm:flex-none min-w-[120px] whitespace-nowrap',
+              'flex-1 min-w-[120px] whitespace-nowrap',
               selectedTab === tab.value && 'bg-indigo-600 text-white border-indigo-600',
               selectedTab !== tab.value && 'hover:bg-indigo-50',
               'border'
-            )} 
-            value={tab.value} 
+            )}
+            value={tab.value}
             onClick={() => setSelectedTab(tab.value)}
           >
             <span className="truncate">{tab.label}</span>
@@ -470,7 +475,7 @@ export function CandidateListView({
             <EmailCandidatesDialog
               candidates={resumes.filter(r => selectedCandidates.includes(r.id))}
               jobTitle={jobTitle}
-              companyName={companyName}
+              companyName={companyName || ''}
               companyId={companyId || ''}
               jobId={jobId}
             />
@@ -503,7 +508,7 @@ export function CandidateListView({
   );
 
   return (
-    <div className="h-[calc(100vh-4rem)] flex flex-col lg:flex-row">
+    <div className="h-[calc(100vh-4rem)] flex flex-col lg:flex-row rounded-xl border bg-white shadow-2xl overflow-hidden max-w-[1400px] mx-auto">
       {/* Filters sidebar */}
       {filters.showFilters && (
         <div className="w-full lg:w-[300px] border-r bg-white p-4 overflow-y-auto">
@@ -520,26 +525,25 @@ export function CandidateListView({
           <SkillFilterToggle />
           <CandidateFilters
             filters={filters}
-            onFilterChange={setFilters}
+            onFilterChange={(newFilters) => setFilters({...filters, ...newFilters})}
             availableLocations={availableLocations}
           />
         </div>
       )}
 
       {/* Main content area - flex column to allow proper content scrolling */}
-      <div className="flex-1 flex flex-col min-h-0"> {/* Add min-h-0 to allow proper flex behavior */}
+      <div className="flex-1 flex flex-col min-h-0 p-4"> {/* Add min-h-0 to allow proper flex behavior */}
         {/* Fixed header section */}
         <div className="bg-white p-4">
           <div className="flex flex-col sm:flex-row items-start justify-between sm:items-center gap-4">
             <div className="flex flex-2">
-              <Link href={`/dashboard/jobs/${jobId}`} className={cn(jobId === 'demo' && 'pointer-events-none')}>
-                <Button variant="ghost" size="icon" className="hidden sm:flex">
-                  <ArrowLeft className="h-4 w-4" />
-                </Button>
-              </Link>
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0 flex flex-col gap-2">
                 <div className="flex items-center gap-2">
-                  <h2 className="font-semibold truncate text-wrap">{jobTitle}</h2>
+                  <h2 className="font-semibold truncate text-wrap">
+                    <Link href={`/dashboard/jobs/${jobId}`} className={cn(jobId === 'demo' && 'pointer-events-none')}>
+                      <span className="text-indigo-600">{jobTitle}</span>
+                    </Link>
+                  </h2>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -549,8 +553,9 @@ export function CandidateListView({
                     <Info className="h-4 w-4" />
                   </Button>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  {resumes.length} candidates
+                <p className="flex text-sm text-muted-foreground items-center">
+                  <User2Icon className="h-4 w-4 mr-2" />
+                  Total candidates: {resumes.length} 
                 </p>
               </div>
             </div>
@@ -596,7 +601,7 @@ export function CandidateListView({
         {/* Tabs container - flex column for proper tab content scrolling */}
         <Tabs defaultValue="pending" className="flex-1 flex flex-col min-h-0"> {/* Add min-h-0 */}
           {/* Fixed tabs header */}
-          
+
           {tabsList}
           {selectedCandidates.length > 0 && bulkActionsHeader}
 
@@ -615,7 +620,6 @@ export function CandidateListView({
               <CandidateListTabContent
                 resumes={resumes}
                 selectedCandidates={selectedCandidates}
-                setSelectedCandidates={setSelectedCandidates}
                 expandedId={expandedId}
                 setExpandedId={setExpandedId}
                 handleSelectCandidate={handleSelectCandidate}
@@ -627,7 +631,7 @@ export function CandidateListView({
             </TabsContent>
           ))}
           {/* Scrollable tab content */}
-          
+
         </Tabs>
       </div>
 

@@ -14,7 +14,7 @@ export default function TermsPage() {
         
         <h2 className="text-2xl font-semibold mt-8 mb-4">1. Acceptance of Terms</h2>
         <p>
-          By accessing and using SmartHR Flow ("the Service"), you agree to be bound by these Terms of Service. 
+          By accessing and using SmartHR Flow (&quot;the Service&quot;), you agree to be bound by these Terms of Service. 
           If you do not agree to these terms, please do not use the Service.
         </p>
 
@@ -53,7 +53,7 @@ export default function TermsPage() {
 
         <h2 className="text-2xl font-semibold mt-8 mb-4">7. Limitations of Liability</h2>
         <p>
-          SmartHR Flow provides the Service "as is" without any warranties. We shall not be liable 
+          SmartHR Flow provides the Service &quot;as is&quot; without any warranties. We shall not be liable 
           for any indirect, incidental, special, consequential, or punitive damages.
         </p>
 

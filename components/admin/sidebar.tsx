@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { 
   Users, Settings, CreditCard, BarChart, 
-  Building, FileText, AlertCircle, Database 
+  Building, FileText,
+  LifeBuoy
 } from "lucide-react";
 
 const adminNavItems = [
@@ -39,7 +40,12 @@ const adminNavItems = [
     title: "Settings",
     href: "/admin/settings",
     icon: Settings,
-  }
+  },
+  {
+    title: "Support",
+    href: "/admin/support",
+    icon: LifeBuoy,
+  },
 ];
 
 export function AdminSidebar() {

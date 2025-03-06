@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { useUser } from '@clerk/nextjs';
 import { loadStripe } from '@stripe/stripe-js';
 import {
   Dialog,
@@ -38,8 +37,6 @@ export function BillingPageClient({ packages, currentCredits = 0, currentPlan }:
   const [isProcessing, setIsProcessing] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
   const { toast } = useToast();
-  const { user } = useUser();
-
   const handlePurchase = async (packageId: string) => {
     setIsProcessing(true);
     try {

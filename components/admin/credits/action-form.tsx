@@ -51,6 +51,7 @@ export function ActionForm({ onSuccess }: ActionFormProps) {
         description: ''
       });
     } catch (error) {
+      console.log(error);
       toast({
         title: "Error",
         description: "Failed to create credit action.",

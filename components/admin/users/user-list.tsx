@@ -37,21 +37,8 @@ interface UserListProps {
 }
 
 export function UserList({ users }: UserListProps) {
-  const userList = useState([])[0];
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active':
-        return 'bg-green-100 text-green-800';
-      case 'inactive':
-        return 'bg-gray-100 text-gray-800';
-      case 'suspended':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
+  const [userList] = useState(users);
+  console.log(userList);
   const getRoleColor = (role: string) => {
     switch (role) {
       case 'admin':
@@ -66,7 +53,7 @@ export function UserList({ users }: UserListProps) {
   };
 
   const getInitials = (name: string) => {
-    return name
+    return (name || '')
       .split(' ')
       .map(part => part[0])
       .join('')
@@ -103,7 +90,7 @@ export function UserList({ users }: UserListProps) {
             </TableCell>
             <TableCell>
               <Badge className={getRoleColor(user.role)}>
-                {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                {(user.role || '').charAt(0).toUpperCase() + (user.role || '').slice(1)}
               </Badge>
             </TableCell>
             {/* <TableCell>

@@ -13,7 +13,13 @@ import {
 } from '@/components/ui/select';
 
 interface JobFiltersProps {
-  onFilterChange?: (filters: any) => void;
+  onFilterChange?: (filters: {
+    search: string;
+    status: string;
+    company: string;
+    dateRange: string;
+    type: string;
+  }) => void;
 }
 
 export function JobFilters({ onFilterChange }: JobFiltersProps) {

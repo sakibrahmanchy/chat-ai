@@ -5,17 +5,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from '@/components/ui/card';
 import { Badge } from '../ui/badge';
 import { ResumeUploader } from '../smarthrflow/resume-uploader';
+import { Job } from '@/app/types/job';
 
-interface Job {
-  id: string;
-  title: string;
-  company: { id: string; name: string; logo?: string };
-  location: string;
-  type: string;
-  description: string;
-  requirements: string[];
-  created_at: string;
-}
 
 interface PublicJobViewProps {
   job: Job;
@@ -43,7 +34,7 @@ export function PublicJobView({ job, disabledApplication }: PublicJobViewProps) 
             <div className="mt-4 space-y-2">
               <div className="flex items-center gap-2">
                 <Building2 className="h-4 w-4" />
-                <span>{job.company.name}</span>
+                <span>{job.company?.name}</span>
               </div>
               <div className="flex items-center gap-2">
                 <MapPin className="h-4 w-4" />

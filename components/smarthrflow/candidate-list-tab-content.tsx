@@ -1,15 +1,13 @@
-import { Education, Resume, SkillsWithYoe } from "@/app/types/resume";
+import { Resume } from "@/app/types/resume";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, Check, Sparkles, Star } from "lucide-react";
-import { MapPin, Calendar, Download, Mail, Phone, X } from "lucide-react";
+import { MapPin, Calendar, Download, X } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import ExpandedView from "./candidate-list-view/expanded-view";
 import NoItems from "./candidate-list-view/no-items";
-
-
 
 interface CandidateListTabContentProps {
     resumes: Resume[];

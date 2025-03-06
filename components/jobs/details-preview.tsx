@@ -40,7 +40,7 @@ interface JobDetailsPreviewProps {
     matchRate: number;
   };
   candidates: Array<{
-    id: string;
+    id: number;
     name: string;
     role: string;
     email: string;
@@ -58,6 +58,8 @@ interface JobDetailsPreviewProps {
       educationScore: number;
       analysis: {
         strengths: string[];
+        weaknesses: string[];
+        overall_feedback: string;
       };
     };
     status: string;
@@ -135,7 +137,8 @@ export function JobDetailsPreview({
   };
 
   // Format deadline date
-  const formatDeadlineDate = (date: string) => {
+  const formatDeadlineDate = (date: string | Date | null) => {
+    if (!date) return 'No deadline';
     return format(new Date(date), 'MMM dd, yyyy');
   };
 
@@ -147,7 +150,7 @@ export function JobDetailsPreview({
           <div className="flex flex-wrap items-center gap-2 sm:gap-4">
             <h3 className="font-semibold text-lg text-slate-800">{job.title}</h3>
             <Badge variant="secondary" className="h-6 bg-emerald-50 text-emerald-700 hover:bg-emerald-100">
-              {job.status}
+              {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
             </Badge>
           </div>
           <div className="flex gap-2">
@@ -279,7 +282,7 @@ export function JobDetailsPreview({
                           {v}
                         </TooltipTrigger>
                         <TooltipContent side="top" className="bg-white p-2 text-sm shadow-lg">
-                          <p>Deadline: {formatDeadlineDate(job.application_deadline)}</p>
+                          <p>Deadline: {formatDeadlineDate(job?.application_deadline || null)}</p>
                         </TooltipContent>
                       </Tooltip>
                     </div>
@@ -307,7 +310,7 @@ export function JobDetailsPreview({
                     </div>
                   </div>
                   <div className="text-lg sm:text-2xl font-bold mb-1">
-                    {stat.format(stat.value)}
+                    {stat.format(Number(stat.value || 0))}
                   </div>
                   <div className="text-xs sm:text-sm text-slate-600">{stat.label}</div>
                 </CardContent>

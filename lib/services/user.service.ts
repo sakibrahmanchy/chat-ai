@@ -1,5 +1,20 @@
 import { supabase } from '@/lib/supabase/client';
-import { User } from '@/app/types/entities';
+
+interface User {
+  id: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  imageUrl?: string;
+  metadata?: Record<string, string | number | boolean | Date>;
+  createdAt?: string;
+  updatedAt?: string;
+  preferences?: {
+    theme?: string;
+    notificationsEnabled?: boolean;
+    emailNotifications?: boolean;
+  };
+}
 
 export class UserService {
   async createOrUpdateUser(userData: {

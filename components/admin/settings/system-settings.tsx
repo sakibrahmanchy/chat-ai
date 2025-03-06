@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { adminSettingsService } from '@/lib/services/admin/settings.service';
-import { toast } from '@/hooks/use-toast';
+// import { adminSettingsService } from '@/lib/services/admin/settings.service';
+// import { toast } from '@/hooks/use-toast';
 
 interface SystemSettingsProps {
   settings: {
@@ -21,30 +21,33 @@ interface SystemSettingsProps {
 
 export function SystemSettings({ settings }: SystemSettingsProps) {
   const [formData, setFormData] = useState(settings);
-  const [isSaving, setIsSaving] = useState(false);
+  const [isSaving] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSaving(true);
-    try {
-      await adminSettingsService.updateSettings('system', formData);
-      toast({
-        title: 'Settings updated',
-        description: 'System settings have been updated successfully.',
-      });
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to update settings.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  };
+  // const handleSubmit = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   setIsSaving(true);
+  //   try {
+  //     await adminSettingsService.updateSettings('system', formData);
+  //     toast({
+  //       title: 'Settings updated',
+  //       description: 'System settings have been updated successfully.',
+  //     });
+  //   } catch (error) {
+  //     console.log(error);
+  //     toast({
+  //       title: 'Error',
+  //       description: 'Failed to update settings.',
+  //       variant: 'destructive',
+  //     });
+  //   } finally {
+  //     setIsSaving(false);
+  //   }
+  // };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form 
+    // onSubmit={handleSubmit} 
+    className="space-y-6">
       <div className="grid gap-4">
         <div className="space-y-2">
           <Label htmlFor="siteName">Site Name</Label>

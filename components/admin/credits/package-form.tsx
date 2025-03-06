@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -28,11 +27,10 @@ import { JobEditor } from "@/components/job-editor";
 interface PackageFormProps {
   packageId?: string;
   onSuccess?: () => void;
-  trigger?: React.ReactNode; // Optional custom trigger
   setPackageId?: (id: string | null) => void;
 }
 
-export function PackageForm({ packageId, onSuccess, trigger, setPackageId }: PackageFormProps) {
+export function PackageForm({ packageId, onSuccess, setPackageId }: PackageFormProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [actions, setActions] = useState<CreditAction[]>([]);
@@ -114,6 +112,7 @@ export function PackageForm({ packageId, onSuccess, trigger, setPackageId }: Pac
         });
       }
     } catch (error) {
+      console.log(error);
       toast({
         title: "Error",
         description: `Failed to ${packageId ? 'update' : 'create'} credit package.`,
@@ -209,7 +208,7 @@ export function PackageForm({ packageId, onSuccess, trigger, setPackageId }: Pac
               <Label htmlFor="type">Package Type</Label>
               <Select
                 value={formData.type}
-                onValueChange={(value: 'one_time' | 'subscription') => 
+                onValueChange={(value: 'one_time') => 
                   setFormData(prev => ({ ...prev, type: value }))
                 }
               >

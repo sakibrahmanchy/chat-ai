@@ -2,7 +2,6 @@
 
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-// import { Sentry } from '@/lib/sentry';
 import { activityService, ActivityType } from '@/lib/services/activity.service';
 
 export default function ErrorBoundary({
@@ -13,10 +12,6 @@ export default function ErrorBoundary({
   reset: () => void;
 }) {
   useEffect(() => {
-    // Log to Sentry
-    // Sentry.captureException(error);
-
-    // Log to activity service
     activityService.logActivity({
       user_id: 'unknown', // You'll need to get the actual user ID
       company_id: 'unknown', // You'll need to get the actual company ID
@@ -24,8 +19,8 @@ export default function ErrorBoundary({
       description: 'Frontend error occurred',
       metadata: {
         error: error.message,
-        stack: error.stack,
-        digest: error.digest,
+        stack: error.stack || '',
+        digest: error.digest || '',
       },
     });
   }, [error]);
@@ -35,7 +30,7 @@ export default function ErrorBoundary({
       <div className="text-center space-y-2">
         <h2 className="text-2xl font-semibold">Something went wrong!</h2>
         <p className="text-muted-foreground">
-          We've been notified and will fix this as soon as possible.
+          We have been notified and will fix this as soon as possible.
         </p>
       </div>
       <Button onClick={reset}>Try again</Button>

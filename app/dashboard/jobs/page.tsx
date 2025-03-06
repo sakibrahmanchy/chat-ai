@@ -1,48 +1,13 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { JobList } from "@/components/smarthrflow/job-list";
-import { adminDb } from "@/firebase-admin";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { Suspense } from "react";
 import { supabase } from "@/lib/supabase/client";
-
-interface Job {
-  id: string;
-  // Core job details
-  title: string;
-  company: string;
-  description: string;
-  location: string; // Keep old format
-  type: string; // Keep old format
-  
-  // New structured data
-  location_structured: {
-    city: string;
-    state: string;
-    country: string;
-  };
-  employmentType: string;
-  experienceRequired: number;
-  salaryRange: {
-    min: number;
-    max: number;
-    currency: string;
-  };
-  
-  // Skills and requirements
-  requiredSkills: string[];
-  skills: string[]; // Keep old format
-  
-  // Metadata
-  status: string;
-  createdAt: string;
-  updatedAt: string;
-  totalApplications: number;
-  totalViews: number;
-}
+import { Job } from "@/app/types/job";
 
 async function getJobs(userId: string) {
   
@@ -117,7 +82,7 @@ export default async function JobsPage() {
           <Loader2 className="h-8 w-8 animate-spin" />
         </div>
       }>
-        <JobList jobs={jobs} />
+        <JobList jobs={(jobs || []) as Job[]} />
       </Suspense>
     </div>
   );

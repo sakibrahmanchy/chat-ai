@@ -13,7 +13,13 @@ import {
 } from '@/components/ui/select';
 
 interface UserFiltersProps {
-  onFilterChange?: (filters: any) => void;
+  onFilterChange?: (filters: {
+    search: string;
+    role: string;
+    status: string;
+    company: string;
+    dateRange: string;
+  }) => void;
 }
 
 export function UserFilters({ onFilterChange }: UserFiltersProps) {

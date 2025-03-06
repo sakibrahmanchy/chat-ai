@@ -51,66 +51,6 @@ export function DashboardPreview() {
     }
   };
 
-  const candidates = [
-    // List 3-4 candidates with similar but diffferent details as expandedCandidate
-    {
-      name: "Sarah Anderson",
-      role: "Marketing Manager",
-      score: 95,
-      email: "s.anderson@example.com",
-      phone: "+1 (555) 123-4567",
-      location: "New York, NY",
-      experience: "6 years",
-      education: "MBA Marketing",
-      company: "Global Brands Inc.",
-      availability: "1 month notice",
-      skills: ["Brand Strategy", "Team Leadership", "Digital Marketing", "Project Management", "Content Strategy"],
-      scores: {
-        skillsScore: 95,
-        experienceScore: 92,
-        educationScore: 88,
-        overallScore: 92,
-        
-      },
-      analysis: {
-        strengths: ["Strategic Planning", "Team Management", "Campaign Development"],
-        experience: {
-          relevantYears: 6,
-          teamSize: "10+ members",
-          leadership: "Department Head"
-        }
-      },
-      
-    },
-    {
-      name: "David Brown",
-      role: "Marketing Manager",
-      score: 95,
-      email: "d.brown@example.com",
-      phone: "+1 (555) 123-4567",
-      location: "New York, NY",
-      experience: "6 years",
-      education: "MBA Marketing",
-      company: "Global Brands Inc.",
-      availability: "1 month notice",
-      skills: ["Brand Strategy", "Team Leadership", "Digital Marketing", "Project Management", "Content Strategy"],
-      scores: {
-        skillsScore: 95,
-        experienceScore: 92,
-        educationScore: 88,
-        overallScore: 92,
-        
-      },
-      analysis: {
-        strengths: ["Strategic Planning", "Team Management", "Campaign Development"],
-      }
-    },
-    {
-      
-    }
-
-  ]
-
   return (
     <div className="rounded-xl border bg-white overflow-hidden max-w-[1400px] mx-auto backdrop-blur-sm backdrop-saturate-150">
       {/* Enhanced Header */}

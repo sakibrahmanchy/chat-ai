@@ -7,7 +7,18 @@ export interface CreditPackage {
   is_active: boolean;
   created_at: Date;
   updated_at: Date;
+  features: string[];
 } 
+
+export interface CreditTransaction {
+  id: string;
+  company_id: string;
+  action_type: string;
+  credits_added: number;
+  credits_used: number;
+  created_at: string;
+  description?: string;
+}
 
 export interface CreditPurchases {
   amount_paid: number;

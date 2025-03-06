@@ -10,8 +10,12 @@ import { Loader2 } from 'lucide-react';
 export default async function BillingPage({
   searchParams,
 }: {
-  searchParams: { [key: string]: string | string[] | undefined };
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
+  const {
+    success,
+    packageId,
+  } = await searchParams;
   const { userId } = await auth();
   
   if (!userId) {
@@ -37,9 +41,6 @@ export default async function BillingPage({
     .single();
 
   const packages = await pricingService.getAvailablePackages();
-
-  // Access query parameters directly from searchParams
-  const { success, canceled, priceId, packageId } = searchParams;
 
   // If there are success or canceled query parameters, handle accordingly
   if (success && packageId) {

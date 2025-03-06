@@ -2,13 +2,13 @@ import { getJob } from "@/lib/jobs";
 import { notFound } from "next/navigation";
 import { PublicJobView } from "@/components/jobs/public-job-view";
 import { supabase } from "@/lib/supabase/client";
-import { Card, CardContent } from "@/components/ui/card";
 
 export default async function PublicJobPage({
-  params: { jobId },
+  params,
 }: {
-  params: { jobId: string };
+  params: Promise<{ jobId: string }>;
 }) {
+  const { jobId } = await params;
   const job = await getJob(jobId);
   
   if (!job || job.status !== 'active') {

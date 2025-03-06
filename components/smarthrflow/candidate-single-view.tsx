@@ -1,21 +1,17 @@
 import { Button } from "../ui/button";
-import { Mail, Phone, MapPin, Briefcase, Building2, GraduationCap, Star, ChevronUp, ChevronDown, CheckCircle2, Calendar, CheckCircle, Download } from "lucide-react";
+import { Mail, Phone, MapPin, Briefcase, Building2, GraduationCap, Star, ChevronUp, ChevronDown, CheckCircle2, Calendar, CheckCircle, Download, ListCheck, X } from "lucide-react";
 import { Progress } from "../ui/progress";
 import { Badge } from "../ui/badge";
 import { Candidate } from "./candidates-expandable-list-view";
-import { AddToListDialog } from "./add-to-list-dialog";
 
 const CandidateSingleView = ({
     candidate,
     expandedCandidateId,
     handleExpandCandidate,
-    lists = [],
-    jobId,
-    companyId
 }: {
     candidate: Candidate;
-    expandedCandidateId: string;
-    handleExpandCandidate: (id: string) => void;
+    expandedCandidateId: number | null;
+    handleExpandCandidate: (id: number) => void;
     lists: string[];
     jobId: string;
     companyId: string;
@@ -134,7 +130,7 @@ const CandidateSingleView = ({
                                 </div>
                             </div>
 
-                            <div className="space-y-2">
+                            {candidate.score > 4 && <div className="space-y-2">
                                 <h4 className="font-medium text-sm text-slate-600">Key Strengths</h4>
                                 <div className="space-y-1">
                                     {candidate.scores.analysis.strengths.map((strength: string, i: number) => (
@@ -144,20 +140,33 @@ const CandidateSingleView = ({
                                         </div>
                                     ))}
                                 </div>
-                            </div>
+                            </div>}
 
-                            <div className="flex justify-start items-center gap-4">
+                            {candidate.score < 4 && <div className="space-y-2">
+                                <h4 className="font-medium text-sm text-slate-600">Overall Feedback</h4>
+                                <div className="space-y-1">
+                                   {candidate.scores.analysis.overall_feedback}
+                                </div>
+                            </div>}
+
+
+                            <div className="flex justify-start items-center gap-1">
                                 <div >
                                     {candidate.status === 'pending' ? (
                                             <Button variant="outline">
                                                 <CheckCircle className="h-4 w-4 text-emerald-500 shrink-0" /> 
                                                 Shortlist
                                             </Button>
+                                    ) : candidate.status === 'accepted' ? (
+                                        <div className="flex items-center gap-2 bg-green-50 rounded-md p-2 font-bold">
+                                            <ListCheck className="h-4 w-4 text-green-500 shrink-0" />
+                                            <span className="text-slate-600 text-xs sm:text-sm ">Shortlisted</span>
+                                        </div>
                                     ) : (
-                                        <Button className="flex items-center gap-2 text-emerald-500 border border-indigo-600 rounded-md px-2 py-1">
-                                            <Star className="h-4 w-4 text-yellow-500 shrink-0" />
-                                            Shortlisted
-                                        </Button>
+                                        <div className="flex items-center gap-2 bg-red-50 rounded-md p-2 font-bold">
+                                            <X className="h-4 w-4 text-red-500 shrink-0" />
+                                            <span className="text-slate-600 text-xs sm:text-sm ">Rejected</span>
+                                        </div>
                                     )}
                                 </div>
                                 <Button 

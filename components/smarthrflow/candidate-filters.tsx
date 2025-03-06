@@ -9,16 +9,15 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 interface CandidateFiltersProps {
   filters: {
     showFilters: boolean;
-    skills: string[];
+    skills: string[] | undefined;
     scoreRange: [number, number];
-    status: string;
     experienceMonths: [number, number];
     matchType: 'AND' | 'OR';
     sortBy: 'score' | 'date';
     location: string;
-    availability: [number, number];
+    availability: number;
   };
-  onFilterChange: (filters: FilterCriteria) => void;
+  onFilterChange: (filters: Partial<FilterCriteria>) => void;
   availableLocations: string[];
 }
 
@@ -36,17 +35,20 @@ const EXPERIENCE_RANGES = {
   lead: [96, 999] as [number, number]  // 8+ years
 } as const;
 
-interface FilterCriteria {
-  status?: string;
-  skills?: string[];
+export interface FilterCriteria {
+  showFilters: boolean;
+  matchType: 'AND' | 'OR';
+  searchTerm: string;
+  sortBy: 'score' | 'date';
+  skills: string[] | undefined;
   experience?: number;
-  location?: string;
-  scoreRange?: number[];
-  experienceMonths?: [number, number] | undefined;
-  availability?: [number, number];
+  location: string;
+  scoreRange: [number, number];
+  experienceMonths: [number, number];
+  availability: number;
 }
 
-const AVAILABILITY_WEEKS = [1, 2, 4, 8, 12, 24] as const;
+// const AVAILABILITY_WEEKS = [1, 2, 4, 8, 12, 24] as const;
 
 export function CandidateFilters({ 
   filters, 
@@ -68,11 +70,11 @@ export function CandidateFilters({
     return 'custom';
   };
 
-  const formatAvailability = (weeks: number) => {
-    if (weeks === 1) return '1 week';
-    if (weeks === 24) return 'More than 3 months';
-    return `${weeks} weeks`;
-  };
+  // const formatAvailability = (weeks: number) => {
+  //   if (weeks === 1) return '1 week';
+  //   if (weeks === 24) return 'More than 3 months';
+  //   return `${weeks}`;
+  // };
 
   return (
     <div className="flex-1 overflow-auto">
@@ -90,7 +92,7 @@ export function CandidateFilters({
             max={10} 
             step={1}
             value={filters.scoreRange}
-            onValueChange={(value) => onFilterChange({ ...filters, scoreRange: value })}
+            onValueChange={(value) => onFilterChange({ ...filters, scoreRange: value as [number, number] })}
           />
         </div>        
 
@@ -159,26 +161,26 @@ export function CandidateFilters({
         </div>
 
         {/* Availability Filter */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <Label className="font-medium text-sm">Notice Period</Label>
-            <span className="text-sm text-muted-foreground">
-              {formatAvailability(filters.availability[0])} - {formatAvailability(filters.availability[1])}
-            </span>
-          </div>
-          <Slider 
-            min={1}
-            max={24}
-            step={1}
-            value={filters.availability}
-            onValueChange={(value: number[]) => onFilterChange({ ...filters, availability: value as [number, number] })}
-            className="py-4"
-          />
-          <div className="flex justify-between text-xs text-muted-foreground">
-            {AVAILABILITY_WEEKS.map(week => (
-              <span key={week}>{formatAvailability(week)}</span>
-            ))}
-          </div>
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">Notice Period</Label>
+          <Select
+            value={filters.availability?.toString() || ""}
+            onValueChange={(value) => 
+              onFilterChange({ ...filters, availability: parseInt(value) })
+            }
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select notice period" />
+            </SelectTrigger>
+            <SelectContent className="bg-white">
+              <SelectItem value="1">Immediate</SelectItem>
+              <SelectItem value="2">2 weeks</SelectItem>
+              <SelectItem value="4">1 month</SelectItem>
+              <SelectItem value="8">2 months</SelectItem>
+              <SelectItem value="12">3 months</SelectItem>
+              <SelectItem value="24">6 months</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Required Skills */}
@@ -186,7 +188,7 @@ export function CandidateFilters({
           <Label className="font-medium text-sm">Required Skills</Label>
           <MultiSelect
             options={SKILL_OPTIONS}
-            selected={filters.skills}
+            selected={filters.skills || []}
             onChange={(selected) => onFilterChange({ ...filters, skills: selected })}
             placeholder="Select required skills..."
             className="w-full"

@@ -1,3 +1,4 @@
+import { Company } from '@/app/types/company';
 import { supabase } from '@/lib/supabase/client';
 
 export class AdminCompanyService {
@@ -86,27 +87,27 @@ export class AdminCompanyService {
     return company;
   }
 
-  async getCompanyStats(id: string) {
-    const { data: stats } = await supabase
-      .from('companies')
-      .select(`
-        jobs: jobs(count),
-        active_jobs: jobs(count).eq('status', 'active'),
-        users: users(count),
-        credits: credits(sum),
-        transactions: credit_transactions(count)
-      `)
-      .eq('id', id)
-      .single();
+  // async getCompanyStats(id: string) {
+  //   const { data: stats } = await supabase
+  //     .from('companies')
+  //     .select(`
+  //       jobs: jobs(count),
+  //       active_jobs: jobs(count).eq('status', 'active'),
+  //       users: users(count),
+  //       credits: credits(sum),
+  //       transactions: credit_transactions(count)
+  //     `)
+  //     .eq('id', id)
+  //     .single();
 
-    return {
-      totalJobs: stats?.jobs[0]?.count || 0,
-      activeJobs: stats?.active_jobs[0]?.count || 0,
-      totalUsers: stats?.users[0]?.count || 0,
-      creditBalance: stats?.credits[0]?.sum || 0,
-      totalTransactions: stats?.transactions[0]?.count || 0
-    };
-  }
+  //   return {
+  //     totalJobs: stats?.jobs[0]?.count || 0,
+  //     activeJobs: stats?.active_jobs[0]?.count || 0,
+  //     totalUsers: stats?.users[0]?.count || 0,
+  //     creditBalance: stats?.credits[0]?.sum || 0,
+  //     totalTransactions: stats?.transactions[0]?.count || 0
+  //   };
+  // }
 
   async getCompanyActivity(id: string, days: number = 30) {
     const startDate = new Date();

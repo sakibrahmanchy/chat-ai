@@ -13,7 +13,13 @@ import {
 } from '@/components/ui/select';
 
 interface LogFiltersProps {
-  onFilterChange?: (filters: any) => void;
+  onFilterChange?: (filters: {
+    search: string;
+    level: string;
+    service: string;
+    dateRange: string;
+    type: string;
+  }) => void;
 }
 
 export function LogFilters({ onFilterChange }: LogFiltersProps) {
