@@ -67,7 +67,7 @@ export function JobList({ jobs: initialJobs }: JobListProps) {
                     {job.title}
                     <Badge className={cn(
                       "hidden sm:inline-flex",
-                      job.status === 'active' ? "bg-blue-500 text-white" :
+                      job.status === 'active' ? "bg-indigo-600 text-white" :
                       job.status === 'draft' ? "bg-yellow-500" :
                       "color-white"
                     )}>
@@ -132,7 +132,7 @@ export function JobList({ jobs: initialJobs }: JobListProps) {
 
               <div className="flex flex-col sm:flex-row justify-between gap-4 pt-4 border-t">
                 <p className="text-xs text-muted-foreground">
-                  Posted {getRelativeTimeString(job.created_at.toISOString())}
+                  Posted {getRelativeTimeString(job.created_at)}
                     {job.experience && ` • ${job.experience}+ years experience`} required
                 </p>
                 <div className="flex flex-wrap gap-2">

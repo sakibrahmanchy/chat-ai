@@ -204,6 +204,18 @@ export class CreditService {
 
     return balance?.credits_balance || 0;
   }
+
+  async getCreditsBalance(companyId: string): Promise<number> {
+    const { data: balance, error } = await supabase
+      .from('company_credits')
+      .select('credits_balance')
+      .eq('company_id', companyId)
+      .single();
+
+    if (error) throw error;
+
+    return balance?.credits_balance || 0;
+  }
   
 }
 

@@ -19,12 +19,12 @@ export interface Job {
   company_id: string;
   required_skills: string[];
   status: string;
-  created_at: Date;
-  updated_at: Date;
+  created_at: string;
+  updated_at: string;
   scoring_instructions?: string;
   total_applications?: number;
   total_views?: number;
-  application_deadline?: Date | string | null;
+  application_deadline?: string | null;
   department?: string;
   company?: Company;
 } 

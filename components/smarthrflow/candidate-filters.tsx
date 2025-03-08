@@ -46,6 +46,7 @@ export interface FilterCriteria {
   scoreRange: [number, number];
   experienceMonths: [number, number];
   availability: number;
+  fetchStatusCount: boolean;
 }
 
 // const AVAILABILITY_WEEKS = [1, 2, 4, 8, 12, 24] as const;

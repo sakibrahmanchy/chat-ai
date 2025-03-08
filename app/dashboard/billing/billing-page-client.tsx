@@ -11,7 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { PricingSlider } from '@/components/pricing/pricing-slider';
-import { CreditCard, Loader2 } from 'lucide-react';
+import { CreditCard, Loader2, Info, Check } from 'lucide-react';
 
 // Initialize Stripe
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
@@ -23,7 +23,8 @@ interface Package {
   credits: number;
   description: string;
   stripe_price_id?: string; // Add this field for Stripe integration
-  stripe_price_id_test?: string; 
+  stripe_price_id_test?: string;
+  features: string[];
 }
 
 interface BillingPageClientProps {
@@ -103,24 +104,6 @@ export function BillingPageClient({ packages, currentCredits = 0, currentPlan }:
         </p>
       </div>
 
-      {/* Current Credits Display */}
-      {currentCredits !== undefined && (
-        <div className="max-w-2xl mx-auto mb-8 p-6 bg-gradient-to-br from-indigo-50 to-white rounded-lg border border-indigo-100">
-          <div className="text-center">
-            <h2 className="text-xl font-semibold mb-2">Current Balance</h2>
-            <div className="flex items-baseline justify-center gap-2">
-              <span className="text-3xl font-bold text-indigo-600">{currentCredits}</span>
-              <span className="text-lg text-indigo-600/80">credits</span>
-            </div>
-            {currentPlan && (
-              <p className="mt-2 text-sm text-muted-foreground">
-                Current Plan: {currentPlan}
-              </p>
-            )}
-          </div>
-        </div>
-      )}
-
       <PricingSlider
         packages={packages}
         selectedPackage={selectedPackage}
@@ -135,19 +118,47 @@ export function BillingPageClient({ packages, currentCredits = 0, currentPlan }:
           <div className="py-4">
             {selectedPackage && (
               <div className="mb-6">
-                <h3 className="font-medium mb-2">
-                  {packages.find(pkg => pkg.id === selectedPackage)?.name}
-                </h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  {packages.find(pkg => pkg.id === selectedPackage)?.description}
-                </p>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-bold">
-                    ${packages.find(pkg => pkg.id === selectedPackage)?.price}
-                  </span>
-                  <span className="text-muted-foreground">
-                    for {packages.find(pkg => pkg.id === selectedPackage)?.credits} credits
-                  </span>
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      {packages.find(pkg => pkg.id === selectedPackage)?.name}
+                    </h3>
+                    <p className="text-sm text-gray-500">One-time purchase</p>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-gray-900">
+                      ${packages.find(pkg => pkg.id === selectedPackage)?.price}
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      {packages.find(pkg => pkg.id === selectedPackage)?.credits} credits
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                  <div className="text-sm font-medium text-gray-900 mb-3">What's included:</div>
+                  <div className="space-y-2">
+                    {packages.find(pkg => pkg.id === selectedPackage)?.features.map((line, index) => (
+                      <div key={index} className="flex items-center text-sm text-gray-600">
+                        <Check className="h-4 w-4 text-green-500 mr-2" />
+                        {line}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 rounded-lg p-4">
+                  <div className="flex items-start">
+                    <Info className="h-5 w-5 text-blue-600 mr-3 mt-0.5" />
+                    <div className="text-sm text-blue-900">
+                      <p className="font-medium mb-1">Important Information</p>
+                      <ul className="space-y-2">
+                        <li>• All purchases are non-refundable</li>
+                        <li>• Credits never expire</li>
+                        <li>• Purchase additional packages anytime</li>
+                      </ul>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
@@ -155,7 +166,7 @@ export function BillingPageClient({ packages, currentCredits = 0, currentPlan }:
               <Button variant="outline" onClick={() => setShowDialog(false)}>
                 Cancel
               </Button>
-              <Button 
+              <Button
                 onClick={() => handlePurchase(selectedPackage!)}
                 disabled={isProcessing}
               >

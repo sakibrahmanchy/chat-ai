@@ -3,12 +3,13 @@
 import { SignedIn, UserButton } from "@clerk/nextjs"
 import Link from "next/link"
 import { Button } from "./ui/button"
-import { 
-  Briefcase, 
-  LayoutDashboard, 
-  Settings, 
+import {
+  Briefcase,
+  LayoutDashboard,
+  Settings,
   Menu,
-  PlusIcon
+  PlusIcon,
+  CreditCard
 } from "lucide-react"
 import {
   Sheet,
@@ -17,8 +18,11 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Logo } from "./smarthrflow/logo";
+import { creditService } from "@/lib/services/credits.service";
+import { useCompany } from "@/hooks/use-company";
+import { Badge } from "./ui/badge";
 
 const navigationItems = [
   {
@@ -55,14 +59,32 @@ const actionItems = [
 
 function Header() {
   const [open, setOpen] = useState(false);
+  const { companyId } = useCompany();
+  const [credits, setCredits] = useState(0);
+  console.log('companyId', companyId);
 
+
+  useEffect(() => {
+    const fetchCredits = async () => {
+      if (!companyId) return;
+      const credits = await creditService.getCreditsBalance(companyId);
+      setCredits(credits);
+    };
+    fetchCredits();
+  }, [companyId]);
+
+  if (!companyId) {
+    return null;
+  }
+
+  console.log('credits', credits);
   return (
     <div className="sticky top-0 z-50 w-full bg-white shadow-sm border-b">
       <div className="flex h-16 items-center px-4 justify-between">
         {/* Enhanced Logo */}
         <div className="flex items-center">
           <Link href="/dashboard" className="flex items-center space-x-3 hover:opacity-90 transition-opacity">
-              <Logo size={40} animated />
+            <Logo size={40} animated />
           </Link>
         </div>
 
@@ -80,11 +102,13 @@ function Header() {
                   <SheetTitle>Menu</SheetTitle>
                 </SheetHeader>
                 <div className="flex flex-col gap-4 mt-4">
+
+
                   {/* Navigation Items */}
                   <div className="flex flex-col gap-2">
                     {navigationItems.map((item) => (
-                      <Link 
-                        key={item.name} 
+                      <Link
+                        key={item.name}
                         href={item.href}
                         onClick={() => setOpen(false)}
                       >
@@ -98,8 +122,8 @@ function Header() {
 
                   <div className="border-t pt-4">
                     {actionItems.map((item) => (
-                      <Link 
-                        key={item.name} 
+                      <Link
+                        key={item.name}
                         href={item.href}
                         onClick={() => setOpen(false)}
                         className="block mb-2"
@@ -112,7 +136,19 @@ function Header() {
                     ))}
                   </div>
 
+                  {/* Credits */}
                   <div className="border-t pt-4">
+                    <Link
+                      href="/dashboard/credits"
+                    >
+                      <Button variant="ghost" className="w-full justify-start">
+                        <CreditCard className="h-4 w-4 mr-2" />
+                        {credits} Credits
+                      </Button>
+                    </Link>
+                  </div>
+
+                  {/* <div className="border-t pt-4">
                     <Link 
                       href="/dashboard/settings"
                       onClick={() => setOpen(false)}
@@ -122,7 +158,7 @@ function Header() {
                         Settings
                       </Button>
                     </Link>
-                  </div>
+                  </div> */}
                 </div>
               </SheetContent>
             </Sheet>
@@ -130,6 +166,18 @@ function Header() {
 
           {/* Desktop Menu */}
           <div className="hidden lg:flex items-center space-x-2">
+
+            <div className="flex items-center space-x-2">
+              <div className="flex items-center justify-between">
+                <Badge variant={credits > 5 ? "success" : "destructive"}>
+                  <Link href="/dashboard/settings" className="flex text-xs p-1 gap-2">
+                    <CreditCard className="h-4 w-4" />
+                    {credits} Credits
+                  </Link>
+                </Badge>
+              </div>
+            </div>
+
             {/* Main Navigation */}
             <nav className="flex items-center space-x-2">
               {navigationItems.map((item) => (
@@ -155,12 +203,7 @@ function Header() {
             </div>
 
             {/* Settings & Profile */}
-            <div className="flex items-center space-x-2 border-l pl-2 ml-2">
-              <Button asChild variant="ghost" size="icon">
-                <Link href="/dashboard/settings">
-                  <Settings className="h-4 w-4" />
-                </Link>
-              </Button>
+            <div className="flex items-center justify-between space-x-2 border-l pl-4 ml-4 gap-2">
               <UserButton afterSignOutUrl="/" />
             </div>
           </div>

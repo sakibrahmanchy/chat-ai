@@ -26,25 +26,33 @@ export function PricingSlider({ packages, selectedPackage, onSelect }: PricingSl
   const [currentIndex, setCurrentIndex] = useState(0);
 
   const showPrevious = currentIndex > 0;
-  const showNext = currentIndex < packages.length - 3;
+  const showNext = currentIndex < packages.length - 1;
 
   const handlePrevious = () => {
     setCurrentIndex(prev => Math.max(0, prev - 1));
   };
 
   const handleNext = () => {
-    setCurrentIndex(prev => Math.min(packages.length - 3, prev + 1));
+    setCurrentIndex(prev => Math.min(packages.length - 1, prev + 1));
   };
 
   return (
-    <div className="relative max-w-5xl mx-auto">
-      <div className="overflow-hidden">
+    <div className="relative max-w-5xl mx-auto flex justify-around px-4 sm:px-6 lg:px-8">
+      <div className="overflow-hidden max-w-4xl w-full">
         <div 
           className="flex transition-transform duration-300 ease-in-out"
-          style={{ transform: `translateX(-${currentIndex * 33.333}%)` }}
+          style={{ 
+            transform: `translateX(-${currentIndex * 100}%)` 
+          }}
         >
-          {packages.map((pkg, index) => (
-            <div key={pkg.id} className="w-1/3 flex-shrink-0 px-3">
+          {(packages || []).filter((pkg) => pkg.price > 0).map((pkg, index) => (
+            <div 
+              key={pkg.id} 
+              className={cn(
+                "flex-shrink-0 px-3",
+                "w-full md:w-1/3"
+              )}
+            >
               <PricingCard
                 pkg={{
                   ...pkg,

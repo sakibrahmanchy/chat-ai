@@ -10,7 +10,7 @@ interface PricingCardProps {
     name: string;
     price: number;
     credits: number;
-    description: string;
+    features: string[];
     is_popular?: boolean;
   };
   onSelect: () => void;
@@ -22,25 +22,20 @@ export function PricingCard({ pkg, onSelect, isSelected, index }: PricingCardPro
   return (
     <div
       className={cn(
-        "relative rounded-xl border p-4 shadow-sm transition-all hover:shadow-md h-[32rem] flex flex-col",
+        "cursor-pointer hover:bg-indigo-50 hover:border-indigo-600 relative rounded-xl border p-4 shadow-sm transition-all hover:shadow-md h-[32rem] flex flex-col",
         isSelected ? "border-indigo-600 bg-indigo-50" : "border-gray-200",
-        pkg.is_popular ? "border-indigo-600" : ""
+        // pkg.is_popular ? "border-indigo-600" : ""
       )}
     >
-      {pkg.is_popular && (
+      {/* {pkg.is_popular && (
         <div className="absolute -top-2.5 left-0 right-0 mx-auto w-fit rounded-full bg-indigo-600 px-2.5 py-0.5 text-xs font-medium text-white">
           Popular
         </div>
-      )}
+      )} */}
 
       <div className="mt-2">
         <h3 className="text-lg font-semibold text-gray-900">{pkg.name}</h3>
-        {/* <div className="mt-1.5 text-xs text-gray-600 overflow-y-auto max-h-64"
-          dangerouslySetInnerHTML={{ __html: pkg.description }}>
-        </div> */}
-      </div>
 
-      <div className="mt-auto">
         <div className="mt-3 mb-4">
           <p className="flex items-baseline">
             {index < 5 && <span className="text-2xl font-bold tracking-tight text-gray-900">${pkg.price}</span>}  
@@ -50,8 +45,20 @@ export function PricingCard({ pkg, onSelect, isSelected, index }: PricingCardPro
           {index < 5 && <p className="mt-1 text-xs text-gray-500">{pkg.credits} credits included</p>}
           {index > 4 && <p className="mt-1 text-xs text-gray-500">Contact us for custom packages</p>}
         </div>
+        {/* <div className="mt-1.5 text-xs text-gray-600 overflow-y-auto max-h-64"
+          dangerouslySetInnerHTML={{ __html: pkg.description }}>
+        </div> */}
+      </div>
+
+      <div className="mt-auto">
         <ul className="space-y-2 mb-4">
-          <li className="flex text-xs">
+          {(pkg?.features || []).map((feature) => (
+            <li className="flex text-xs">
+              <Check className="h-4 w-4 text-indigo-600 mr-1.5 flex-shrink-0" />
+              <span>{feature}</span>
+            </li>
+          ))}
+          {/* <li className="flex text-xs">
             <Check className="h-4 w-4 text-indigo-600 mr-1.5 flex-shrink-0" />
             <span>Process resumes automatically</span>
           </li>
@@ -62,7 +69,7 @@ export function PricingCard({ pkg, onSelect, isSelected, index }: PricingCardPro
           <li className="flex text-xs">
             <Check className="h-4 w-4 text-indigo-600 mr-1.5 flex-shrink-0" />
             <span>Smart candidate ranking</span>
-          </li>
+          </li> */}
         </ul>
         <Button
           className={cn(

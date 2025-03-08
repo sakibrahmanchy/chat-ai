@@ -1,25 +1,31 @@
 import { useAuth } from "@clerk/nextjs";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
+import { PostgrestSingleResponse } from "@supabase/supabase-js";
 
 export function useCompany() {
   const { userId } = useAuth();
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [companyName, setCompanyName] = useState<string | null>(null);
-
+  console.log('userId', userId);
   useEffect(() => {
     async function getCompanyId() {
       if (!userId) return;
       
-      const { data: user } = await supabase
+      const { data: user, error } = await supabase
         .from('users')
-        .select('company_id, company_name')
+        .select('id, companies!inner(id, name)')
         .eq('id', userId)
-        .single();
+        .single() as PostgrestSingleResponse<{ id: string, companies: { id: string, name: string } }>;
+
+      if (error) {
+        console.error('Error fetching company id', error);
+        return;
+      }
         
       if (user) {
-        setCompanyId(user.company_id);
-        setCompanyName(user.company_name);
+        setCompanyId(user.companies.id);
+        setCompanyName(user.companies.name);
       }
     }
 

@@ -16,6 +16,8 @@ interface SearchFilters {
   location?: string;
   status?: string;
   availability?: number;
+  limit?: number;
+  fetchStatusCount?: boolean;
 }
 
 export class ResumeSearchService {
@@ -74,10 +76,12 @@ export class ResumeSearchService {
       // Step 1: Fetch resumes based on filters
       let query = supabase
         .from('resumes')
-        .select('id, searchable_skills, overall_score, experience_months, location, parsed_content, job_resume_matches(status)')
+        .select(`id, searchable_skills, overall_score, job_id, experience_months, location, parsed_content, 
+          job_resume_matches(job_id, status)`)
+        .eq('job_id', jobId)
         .eq('job_resume_matches.job_id', jobId);
 
-      query = this.getBaseFilterQuery(query, jobId, filters);
+      query = this.getBaseFilterQuery(query, jobId, filters);;
   
       // Execute the query to fetch resumes
       const { data, error } = await query;
@@ -111,30 +115,12 @@ export class ResumeSearchService {
   async searchResumes(
     jobId: string,
     filters: SearchFilters,
-    page = 1
+    page = 1,
   ) {
     try {
-      const statusCounts = await this.getFilteredResumeCountsByStatus(jobId, filters); 
-
-      let matchingResumeItems: { resume_id: string }[] = [];
-      if (filters.status) {
-        const { data: matchingResumes, error: matchError } = await supabase
-          .from('job_resume_matches')
-          .select('resume_id')
-          .eq('job_id', jobId)
-          .eq('status', filters.status);
-
-        if (matchError) throw matchError;
-
-        if (!matchingResumes.length) {
-          return {
-            resumes: [],
-            hasMore: false,
-            total: 0,
-            statusCounts
-          };
-        }
-        matchingResumeItems = matchingResumes.map(match => match.resume_id);
+      let statusCounts: Record<string, number> = {};
+      if (filters.fetchStatusCount) {
+        statusCounts = await this.getFilteredResumeCountsByStatus(jobId, filters); 
       }
 
       let query = supabase
@@ -163,27 +149,25 @@ export class ResumeSearchService {
           availability_weeks
         `, { count: 'exact' })
         .eq('job_id', jobId)
-
-      if (matchingResumeItems.length) {
-        query = query.in('id', matchingResumeItems);
-      }
+        .eq('job_resume_matches.job_id', jobId);
 
       query = this.getBaseFilterQuery(query, jobId, filters);
 
       // Always sort by score first, then by date
       query = query.order('overall_score', { ascending: false });
+          
+      const limit = filters.limit || this.ITEMS_PER_PAGE;
 
       // Apply pagination
-      const start = (page - 1) * this.ITEMS_PER_PAGE;
-      query = query.range(start, start + this.ITEMS_PER_PAGE - 1);
+      const start = (page - 1) * limit;
+      query = query.range(start, start + limit - 1);
 
       const { data, error, count } = await query;
-
       if (error) throw error; 
 
       return {
         resumes: data as Resume[],
-        hasMore: count ? (start + this.ITEMS_PER_PAGE) < count : false,
+        hasMore: count ? (start + limit) < count : false,
         total: count || 0,
         statusCounts
       };

@@ -28,7 +28,7 @@ import {
   TooltipTrigger,
   TooltipProvider 
 } from "@/components/ui/tooltip";
-import { format } from "date-fns";
+import { differenceInDays, format } from "date-fns";
 import CandidatesExpandableListView from "../smarthrflow/candidates-expandable-list-view";
 import { Job } from "@/app/types/job";
 
@@ -137,10 +137,21 @@ export function JobDetailsPreview({
   };
 
   // Format deadline date
-  const formatDeadlineDate = (date: string | Date | null) => {
-    if (!date) return 'No deadline';
-    return format(new Date(date), 'MMM dd, yyyy');
-  };
+  
+const formatDeadlineDate = (date: string | Date | null) => {
+  if (!date) return 'No deadline';
+  console.log({ date, today: new Date() })
+  const parsedDate = new Date(date);
+  if (isNaN(parsedDate.getTime())) return 'Invalid date';
+
+  const dateDifference = differenceInDays(parsedDate, new Date());
+
+  if (dateDifference > 0) {
+    return `${dateDifference} ${dateDifference === 1 ? 'day' : 'days'} left`;
+  } else {
+    return 'Deadline passed';
+  }
+};
 
   return (
     <div className="rounded-xl border bg-white shadow-2xl overflow-hidden max-w-[1400px] mx-auto">
@@ -279,10 +290,10 @@ export function JobDetailsPreview({
                     <div className="flex items-center gap-2 mt-4">
                       <Tooltip delayDuration={0}>
                         <TooltipTrigger>
-                          {v}
+                          <p>{formatDeadlineDate(job?.application_deadline || null)}</p>
                         </TooltipTrigger>
                         <TooltipContent side="top" className="bg-white p-2 text-sm shadow-lg">
-                          <p>Deadline: {formatDeadlineDate(job?.application_deadline || null)}</p>
+                          {format(v || new Date(), 'MMM dd, yyyy')}
                         </TooltipContent>
                       </Tooltip>
                     </div>

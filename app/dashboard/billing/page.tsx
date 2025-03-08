@@ -41,7 +41,7 @@ export default async function BillingPage({
     .single();
 
   const packages = await pricingService.getAvailablePackages();
-
+  const credits = await creditService.getCreditsBalance(user.company_id);
   // If there are success or canceled query parameters, handle accordingly
   if (success && packageId) {
     // Update credits asynchronously
@@ -66,7 +66,7 @@ export default async function BillingPage({
   return (
     <BillingPageClient
       packages={packages}
-      currentCredits={company?.credits_balance || 0}
+      currentCredits={credits || 0}
       currentPlan={company?.current_plan}
     />
   );

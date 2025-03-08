@@ -26,14 +26,14 @@ interface SettingsFormProps {
   initialData: {
     company: {
       credits: {
-        credit_balance: number;
+        credits_balance: number;
         last_topped_up: Date;
         credits_used: number;
-      };
+      }[];
       purchases: {
         credit_packages: CreditPackage;
         credits_purchased: number;
-        created_at: Date;
+        created_at: string;
       }[];
       transactions: Transaction[];
     };
@@ -42,19 +42,59 @@ interface SettingsFormProps {
 
 export function SettingsForm({ initialData }: SettingsFormProps) {
   const { credits, purchases, transactions } = initialData.company;
-  const { credit_balance: credits_balance, credits_used } = credits || { credit_balance: 0, credits_used: 0 };
-
+  const { credits_balance = 0, credits_used = 0 } = credits[0] || [{ credit_balance: 0, credits_used: 0 }];
+  console.log({ credits_balance, credits_used })
   const creditBalance = Number(credits_balance);
   const creditsUsed = Number(credits_used);
-  const creditsUsedPercentage = (creditsUsed / (creditBalance + creditsUsed)) * 100;
-  console.log({ purchases })
-  const lastPurchase = purchases[purchases.length - 1];
-  const creditPackage = lastPurchase.credit_packages;
-  console.log({ creditPackage })
-  if (!creditPackage) {
-    return null;
-  }
+  const creditsUsedPercentage = (creditsUsed / (creditBalance + creditsUsed)) * 100 || 0;
 
+  const lastPurchase = purchases[purchases.length - 1];
+  const creditPackage = lastPurchase?.credit_packages;
+
+  if (!creditPackage) {
+    return (
+      <div className="w-full max-w-2xl mx-auto text-center space-y-8 py-12">
+        <div className="space-y-4">
+          <h1 className="text-3xl font-bold">Get Started with Credits</h1>
+          <p className="text-muted-foreground text-lg">
+            Unlock full access to our AI-powered recruitment tools with credits
+          </p>
+        </div>
+
+        <div className="flex justify-center">
+          <Package className="h-32 w-32 text-indigo-500 animate-bounce-slow" />
+        </div>
+
+        <div className="space-y-4 max-w-md mx-auto">
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <Zap className="h-4 w-4 text-green-500" />
+              <span>AI Resume Matching</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Zap className="h-4 w-4 text-green-500" />
+              <span>Bulk Resume Processing</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Zap className="h-4 w-4 text-green-500" />
+              <span>Advanced Analytics</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Zap className="h-4 w-4 text-green-500" />
+              <span>Email Campaigns</span>
+            </div>
+          </div>
+        </div>
+
+        <Link href="/dashboard/billing" className="inline-block">
+          <Button size="lg" className="font-semibold">
+            <Package className="mr-2 h-5 w-5" />
+            Upgrade Package
+          </Button>
+        </Link>
+      </div>
+    )
+  }
   return (
     <div className="w-full">
       <div className="flex justify-between items-center w-full">

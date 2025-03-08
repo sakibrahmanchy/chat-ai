@@ -103,7 +103,8 @@ export function CandidateListView({
     sortBy: 'score' as 'score' | 'date',
     location: "all",
     searchTerm: initialFilters?.search || '',
-    availability: 1
+    availability: 1,
+    fetchStatusCount: true
   });
 
   const { inView } = useInView({
@@ -140,7 +141,8 @@ export function CandidateListView({
         scoreRange: filters.scoreRange ? [filters.scoreRange[0], filters.scoreRange[1]] as [number, number] : [0, 10] as [number, number],
         showFilters: filters.showFilters,
         matchType: filters.matchType,
-        sortBy: filters.sortBy
+        sortBy: filters.sortBy,
+        fetchStatusCount: filters.fetchStatusCount
       };
 
       const result = await resumeSearch.searchResumes(jobId, searchFilters);
@@ -231,6 +233,7 @@ export function CandidateListView({
   // Update initial data loading
   useEffect(() => {
     if (!skipDataFetch) {
+      console.log('loading initial data')
       loadInitialData();
     }
   }, [skipDataFetch, loadInitialData]);

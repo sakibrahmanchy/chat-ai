@@ -2,6 +2,7 @@ import { JobDetailsPreview } from "@/components/jobs/details-preview";
 import { notFound } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { createClient } from '@supabase/supabase-js';
+import { resumeSearch } from "@/lib/services/resume-search.service";
 // Create a server-side Supabase client
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -44,24 +45,32 @@ export default async function JobPage({
       notFound();
     }
 
+    const candidates = await resumeSearch.searchResumes(jobId, {
+      status: '',
+      sortBy: 'score',
+      limit: 3
+    });
+
+    const { resumes: topCandidates } = candidates;
+    console.log('topCandidates', topCandidates);
     // Get top candidates with their scores
-    const { data: topCandidates } = await supabase
-      .from('resumes')
-      .select(`
-        id,
-        parsed_content,
-        scores,
-        availability_weeks,
-        searchable_skills,
-        experience_months,
-        current_position,
-        overall_score,
-        location,
-        job_resume_matches(status)
-      `)
-      .eq('job_id', jobId)
-      .order('overall_score', { ascending: false })
-      .limit(3);
+    // const { data: topCandidates } = await supabase
+    //   .from('resumes')
+    //   .select(`
+    //     id,
+    //     parsed_content,
+    //     scores,
+    //     availability_weeks,
+    //     searchable_skills,
+    //     experience_months,
+    //     current_position,
+    //     overall_score,
+    //     location,
+    //     job_resume_matches(status)
+    //   `)
+    //   .eq('job_id', jobId)
+    //   .order('overall_score', { ascending: false })
+    //   .limit(3);
 
     // Get candidates for skills analysis
     const { data: candidatesWithScores } = await supabase

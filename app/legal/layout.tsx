@@ -1,3 +1,5 @@
+import { Footer } from "@/components/layout/footer";
+import { Navbar } from "@/components/layout/navbar";
 import Link from "next/link";
 
 const legalNavItems = [
@@ -21,21 +23,10 @@ export default function LegalLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen">
-      <div className="hidden lg:block w-64 p-8 border-r">
-        <nav className="space-y-2">
-          {legalNavItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="block px-3 py-2 text-sm rounded-lg hover:bg-slate-100"
-            >
-              {item.title}
-            </Link>
-          ))}
-        </nav>
-      </div>
-      <main className="flex-1">{children}</main>
+    <div className="flex flex-col min-h-screen">
+      <Navbar />
+      <main className="flex-1 flex p-10 items-center justify-center">{children}</main>
+      <Footer />
     </div>
   );
 } 
