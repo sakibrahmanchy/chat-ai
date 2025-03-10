@@ -1,21 +1,5 @@
 import { Footer } from "@/components/layout/footer";
 import { Navbar } from "@/components/layout/navbar";
-import Link from "next/link";
-
-const legalNavItems = [
-  {
-    title: "Terms of Service",
-    href: "/legal/terms",
-  },
-  {
-    title: "Privacy Policy",
-    href: "/legal/privacy",
-  },
-  {
-    title: "Cookie Policy",
-    href: "/legal/cookies",
-  },
-];
 
 export default function LegalLayout({
   children,

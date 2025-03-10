@@ -3,7 +3,7 @@ import { OpenAI } from 'openai';
 import { adminStorage } from '@/firebase-admin';
 import { createClient } from '@supabase/supabase-js';
 import { Resume } from '@/app/types/resume';
-import { CreditAction, creditService } from '../services/credits.service';
+import { CreditAction, CreditEntity, creditService } from '../services/credits.service';
 import crypto from 'crypto';
 const openai = new OpenAI();
 
@@ -204,14 +204,12 @@ export async function processResume(resumeFile: File, jobId: string, userId: str
     // Check cache in resumes collection
     const { data: cachedResume } = await supabase
       .from('resumes')
-      .select('id, parsed_content')
+      .select('id, parsed_content, email')
       .eq('hash', hash)
       .single();
 
-    
-    await creditService.useCredits(companyId, CreditAction.SUBMIT_RESUME);
-
     if (cachedResume) {
+      await creditService.useCredits(companyId, CreditAction.SUBMIT_RESUME, CreditEntity.RESUME, cachedResume.email);
       return {
         parsedData: cachedResume.parsed_content as Resume['parsed_content'],
         hash,
@@ -246,10 +244,6 @@ export async function processResume(resumeFile: File, jobId: string, userId: str
     const parsedData = JSON.parse(parsedContent) as Resume['parsed_content'];
     parsedData.rawText = resumeText;
   
-    // Validate required fields
-    // if (!parsedData.full_name || !parsedData.experiences || !parsedData.education || !parsedData.skills) {
-    //   throw new Error('Missing required fields in parsed data');
-    // }
 
     // Structure data for storage
     const resumeDoc = {
@@ -281,6 +275,8 @@ export async function processResume(resumeFile: File, jobId: string, userId: str
       updated_at: new Date().toISOString()
     };
 
+    await creditService.useCredits(companyId, CreditAction.SUBMIT_RESUME, CreditEntity.RESUME, resumeDoc.email);
+    // Check if resume already exists
     if (resumeDoc.email) {
       const { data: existingResume } = await supabase
         .from('resumes')
@@ -295,7 +291,8 @@ export async function processResume(resumeFile: File, jobId: string, userId: str
             ...resumeDoc
           })
           .eq('id', existingResume.id);
-
+        
+        
         return {
           parsedData,
           hash,
@@ -314,8 +311,6 @@ export async function processResume(resumeFile: File, jobId: string, userId: str
       console.error('Error saving to Supabase:', error);
       throw error;
     }
-
-   
 
     return {
       parsedData,

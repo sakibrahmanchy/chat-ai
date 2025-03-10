@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { creditService } from "@/lib/services/credits.service";
+import { Select,  SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const signupFormSchema = z.object({
   // User Details
@@ -213,7 +214,18 @@ export function SignupForm({ userId, userEmail }: { userId: string; userEmail: s
                   <FormItem>
                     <FormLabel>Company Size</FormLabel>
                     <FormControl>
-                      <Input placeholder="1-10" {...field} />
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select company size" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white">
+                          <SelectItem value="1-10">1-10 employees</SelectItem>
+                          <SelectItem value="11-100">11-100 employees</SelectItem>
+                          <SelectItem value="101-1000">101-1000 employees</SelectItem>
+                          <SelectItem value="1000+">1000+ employees</SelectItem>
+                          <SelectItem value="10000+">10000+ employees</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </FormControl>
                     <FormMessage />
                   </FormItem>

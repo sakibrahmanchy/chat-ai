@@ -14,6 +14,7 @@ interface Package {
   description: string;
   stripePriceId?: string;
   is_popular?: boolean;
+  features?: string[] | undefined;
 }
 
 interface PricingSliderProps {
@@ -56,7 +57,6 @@ export function PricingSlider({ packages, selectedPackage, onSelect }: PricingSl
               <PricingCard
                 pkg={{
                   ...pkg,
-                  is_popular: index === 1
                 }}
                 onSelect={() => onSelect(pkg.id)}
                 isSelected={selectedPackage === pkg.id}

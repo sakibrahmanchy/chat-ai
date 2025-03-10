@@ -4,7 +4,7 @@ import { Resume } from '@/app/types/resume';
 import { Job } from '@/app/types/job';
 import { createClient } from '@supabase/supabase-js';
 import { ResumeScore } from '@/app/types/resume-score';
-import { CreditAction, creditService } from '../services/credits.service';
+import { CreditAction, CreditEntity, creditService } from '../services/credits.service';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -236,7 +236,7 @@ export async function scoreResume(resumeId: number, jobId: string, companyId: st
     
 
     if (error ) throw error;
-    await creditService.useCredits(companyId, CreditAction.MATCH_RESUME);
+    await creditService.useCredits(companyId, CreditAction.MATCH_RESUME, CreditEntity.RESUME, resume.email);
     
     // first get the average match score for the job from resumes table
     const { data: resumes } = await supabase
@@ -366,8 +366,6 @@ async function analyzeResume(resume: Resume, job: Job) {
     }
 
     const result = JSON.parse(response.choices[0].message.content);
-
-    console.log({ result })
 
     // Provide default values if any scores are missing
     return {

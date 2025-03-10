@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { CreditAction, CreditEntity, creditService } from './credits.service';
 // import { EmailTemplate, EmailVariables } from '@/app/types/email';
 
 const supabase = createClient(
@@ -29,6 +30,13 @@ export class EmailService {
   }) {
     try {
       // First log the email to our database
+
+      const hasEnoughCredits = await creditService.hasEnoughCredits(data.companyId, CreditAction.SEND_EMAIL)
+
+      if (!hasEnoughCredits) {
+        throw new Error('Insufficient credits');
+      }
+      
       const { data: emailLog, error: logError } = await supabase
         .from('email_logs')
         .insert({
@@ -60,6 +68,8 @@ export class EmailService {
         }),
       });
 
+      await creditService.useCredits(data.companyId, CreditAction.SEND_EMAIL, CreditEntity.RESUME, data.to);
+
       if (!response.ok) {
         // Update email log with error status
         await supabase
@@ -70,6 +80,7 @@ export class EmailService {
           })
           .eq('id', emailLog.id);
 
+        console.log(await response.text())
         throw new Error('Failed to send email');
       }
 

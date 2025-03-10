@@ -120,7 +120,7 @@ async function getJobStats(userId: string) {
     //   .eq('company_id', user.company_id)
     //   .order('created_at', { ascending: false })
     //   .limit(5);
-    
+    console.log({ jobs })
     const { data: jobMatches } = await supabase
       .from('job_resume_matches')
       .select('status, job_id, job:job_id(title)')
@@ -134,6 +134,7 @@ async function getJobStats(userId: string) {
         }> | null;
       }
 
+    console.log({ jobMatches })
     const jobStatusCounts = jobMatches?.reduce((acc, job) => {
       if (!acc[job.job_id]) {
         acc[job.job_id] = {
@@ -453,61 +454,8 @@ export default async function Dashboard() {
             <TransactionHistory 
               title="Credit History" 
               description="Track your credit usage and purchases" 
+              detailsButton
             />
-
-            {/* <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Recruitment Pipeline</CardTitle>
-                  <Target className="h-4 w-4 text-muted-foreground" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="flex flex-col items-center p-3 bg-yellow-50 rounded-lg">
-                      <Clock className="h-4 w-4 text-yellow-500 mb-2" />
-                      <span className="text-lg font-semibold">{getJobStatusCountsForAll('pending')}</span>
-                      <span className="text-xs text-muted-foreground">In Review</span>
-                    </div>
-                    <div className="flex flex-col items-center p-3 bg-green-50 rounded-lg">
-                      <CheckCircle className="h-4 w-4 text-green-500 mb-2" />
-                      <span className="text-lg font-semibold">{getJobStatusCountsForAll('accepted')}</span>
-                      <span className="text-xs text-muted-foreground">Shortlisted</span>
-                    </div>
-                    <div className="flex flex-col items-center p-3 bg-blue-50 rounded-lg">
-                      <Zap className="h-4 w-4 text-blue-500 mb-2" />
-                      <span className="text-lg font-semibold">{stats.metrics.activeJobs}</span>
-                      <span className="text-xs text-muted-foreground">Active Jobs</span>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Performance Insights</CardTitle>
-                  <LineChart className="h-4 w-4 text-muted-foreground" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium">Average Time to Shortlist</p>
-                      <p className="text-2xl font-bold">2.5 days</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">Response Rate</p>
-                      <p className="text-2xl font-bold">85%</p>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card> */}
           </div>
         </div>
 

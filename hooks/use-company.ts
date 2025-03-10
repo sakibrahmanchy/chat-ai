@@ -7,7 +7,7 @@ export function useCompany() {
   const { userId } = useAuth();
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [companyName, setCompanyName] = useState<string | null>(null);
-  console.log('userId', userId);
+
   useEffect(() => {
     async function getCompanyId() {
       if (!userId) return;

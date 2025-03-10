@@ -114,8 +114,8 @@ import { EmailCandidatesDialog } from "./smarthrflow/email-candidates-dialog";
     const selectedCandidates = demoData.filter(candidate => candidate.selected === true);
     const bulkActionsHeader = (
       <div className="bg-white pt-4 pb-0">
-        <div className="flex items-center justify-between bg-white p-4 border rounded-lg pl-4">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center justify-between bg-white p-4 border rounded-lg pl-4">
+          <div className="flex flex-wrap items-center gap-4">
             <Checkbox
               checked
             />
@@ -125,7 +125,7 @@ import { EmailCandidatesDialog } from "./smarthrflow/email-candidates-dialog";
           </div>
   
           {selectedCandidates.length > 0 && (
-            <div className="flex gap-2">
+            <div className="flex flex-col md:flex-row flex-wrap gap-2">
               <EmailCandidatesDialog
                 candidates={demoData.filter(r => selectedCandidates.map(c => c.id).includes(r.id))}
                 jobTitle="Senior Software Engineer"
@@ -167,13 +167,8 @@ import { EmailCandidatesDialog } from "./smarthrflow/email-candidates-dialog";
         <div className="bg-white p-4">
           <div className="flex flex-col sm:flex-row items-start justify-between sm:items-center gap-4">
             <div className="flex flex-2">
-              {/* <Link href="#">
-                <Button variant="ghost" size="sm" className="hidden sm:flex h-9 w-9">
-                  <ArrowLeft className="h-4 w-4" />
-                </Button>
-              </Link> */}
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center justify-center md:justify-start gap-2">
                   <h2 className="font-semibold truncate text-wrap">Senior Software Engineer</h2>
                   <Button variant="ghost" size="sm" className="h-6 w-6">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
@@ -205,7 +200,7 @@ import { EmailCandidatesDialog } from "./smarthrflow/email-candidates-dialog";
 
         {/* Tabs */}
         <div className="bg-white pb-8 sm:!pb-0 sm:px-4">
-          <div className="h-9 items-center rounded-lg bg-muted p-1 text-muted-foreground w-full flex flex-wrap gap-2 sm:flex-nowrap justify-start">
+          <div className="sm:h-9 items-center rounded-lg bg-muted p-1 text-muted-foreground w-full flex flex-col md:flex-row flex-wrap gap-2 justify-start">
             {[
               {
                 label: "All Candidates",    
@@ -227,7 +222,7 @@ import { EmailCandidatesDialog } from "./smarthrflow/email-candidates-dialog";
               <Button
                 key={tab.label}
                 variant={i === 0 ? "default" : "ghost"}
-                className={`flex-1 min-w-[120px] whitespace-nowrap ${i === 0 ? 'bg-indigo-600 text-white border-indigo-600 border' : 'hover:bg-indigo-50 border'
+                className={`flex-1 min-w-[120px] w-full whitespace-nowrap ${i === 0 ? 'bg-indigo-600 text-white border-indigo-600 border' : 'hover:bg-indigo-50 border'
                   }`}
               >
                 <span className="truncate">{tab.label}</span>

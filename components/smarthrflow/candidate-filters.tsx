@@ -47,6 +47,7 @@ export interface FilterCriteria {
   experienceMonths: [number, number];
   availability: number;
   fetchStatusCount: boolean;
+  limit?: number;
 }
 
 // const AVAILABILITY_WEEKS = [1, 2, 4, 8, 12, 24] as const;

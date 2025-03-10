@@ -104,10 +104,11 @@ export function CandidateListView({
     location: "all",
     searchTerm: initialFilters?.search || '',
     availability: 1,
-    fetchStatusCount: true
+    fetchStatusCount: true,
+    limit: 5
   });
 
-  const { inView } = useInView({
+  const { inView, ref: loadMoreRef } = useInView({
     threshold: 0,
   });
 
@@ -142,7 +143,8 @@ export function CandidateListView({
         showFilters: filters.showFilters,
         matchType: filters.matchType,
         sortBy: filters.sortBy,
-        fetchStatusCount: filters.fetchStatusCount
+        fetchStatusCount: filters.fetchStatusCount,
+        limit: filters.limit
       };
 
       const result = await resumeSearch.searchResumes(jobId, searchFilters);
@@ -213,11 +215,11 @@ export function CandidateListView({
       const result = await resumeSearch.searchResumes(
         jobId,
         searchFilters as unknown as FilterCriteria,
-        Math.ceil(resumes.length / 20) + 1
+        Math.ceil(resumes.length / filters.limit) + 1
       );
 
       setResumes(prev => [...prev, ...result.resumes]);
-      setHasMore(result.hasMore);
+      setHasMore(result.hasMore && result.resumes.length > 0);
     } catch (error) {
       console.error('Error loading more resumes:', error);
       toast({
@@ -243,7 +245,7 @@ export function CandidateListView({
     if (inView && hasMore && !loading) {
       loadMore();
     }
-  }, [inView, hasMore, loading, loadMore]);
+  }, [inView, hasMore, loading]);
 
   // Client-side search filter
   const filteredResumes = useMemo(() => {
@@ -511,7 +513,7 @@ export function CandidateListView({
   );
 
   return (
-    <div className="h-[calc(100vh-4rem)] flex flex-col lg:flex-row rounded-xl border bg-white shadow-2xl overflow-hidden max-w-[1400px] mx-auto">
+    <div className="h-[calc(100vh-150px)] flex flex-col lg:flex-row rounded-xl border bg-white shadow-2xl overflow-hidden max-w-[1400px] mx-auto">
       {/* Filters sidebar */}
       {filters.showFilters && (
         <div className="w-full lg:w-[300px] border-r bg-white p-4 overflow-y-auto">
@@ -618,7 +620,7 @@ export function CandidateListView({
             <TabsContent
               key={tab}
               value={tab}
-              className="flex-1 overflow-y-auto m-0" // Remove padding here
+              className="flex-1 overflow-y-auto m-0"
             >
               <CandidateListTabContent
                 resumes={resumes}
@@ -630,6 +632,9 @@ export function CandidateListView({
                 handleReject={handleReject}
                 handleCalculateScore={handleCalculateScore}
                 loadingScores={loadingScores}
+                loadMoreRef={loadMoreRef}
+                hasMore={hasMore}
+                loading={loading}
               />
             </TabsContent>
           ))}

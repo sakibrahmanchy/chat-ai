@@ -18,6 +18,8 @@ export interface CreditTransaction {
   credits_used: number;
   created_at: string;
   description?: string;
+  entity_id?: string;
+  entity_type?: string;
 }
 
 export interface CreditPurchases {

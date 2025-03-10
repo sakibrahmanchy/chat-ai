@@ -6,7 +6,6 @@ import { Button } from "./ui/button"
 import {
   Briefcase,
   LayoutDashboard,
-  Settings,
   Menu,
   PlusIcon,
   CreditCard
@@ -20,9 +19,8 @@ import {
 } from "@/components/ui/sheet"
 import { useEffect, useState } from "react"
 import { Logo } from "./smarthrflow/logo";
-import { creditService } from "@/lib/services/credits.service";
+import { CreditsData, creditService } from "@/lib/services/credits.service";
 import { useCompany } from "@/hooks/use-company";
-import { Badge } from "./ui/badge";
 
 const navigationItems = [
   {
@@ -57,27 +55,50 @@ const actionItems = [
   // }
 ];
 
-function Header() {
-  const [open, setOpen] = useState(false);
+const CreditView = () => {
   const { companyId } = useCompany();
-  const [credits, setCredits] = useState(0);
-  console.log('companyId', companyId);
-
-
+  const [creditsData, setCreditsData] = useState<CreditsData | null>({
+    credits_balance: 0,
+    credits_used: 0,
+    credits_remaining: 0,
+    credits_used_percentage: 0
+  });
   useEffect(() => {
     const fetchCredits = async () => {
       if (!companyId) return;
-      const credits = await creditService.getCreditsBalance(companyId);
-      setCredits(credits);
+      const credits = await creditService.getCreditsData(companyId);
+      setCreditsData(credits);
     };
     fetchCredits();
   }, [companyId]);
 
-  if (!companyId) {
+  if (!companyId || !creditsData) {
     return null;
   }
 
-  console.log('credits', credits);
+  const creditsColor = () => {
+    if (creditsData.credits_used_percentage <= 50) return "success";
+    if (creditsData.credits_used_percentage > 50 && creditsData.credits_used_percentage <= 70) return "warning";
+    return "destructive";
+  }
+
+  return (
+    <div>
+      <Link
+        href="/dashboard/settings"
+      >
+        <Button variant={creditsColor()} className="w-full justify-start">
+          <CreditCard className="h-4 w-4 mr-2" />
+          {creditsData.credits_remaining} Credits
+        </Button>
+      </Link>
+    </div>
+  )
+}
+
+
+function Header() {
+  const [open, setOpen] = useState(false);
   return (
     <div className="sticky top-0 z-50 w-full bg-white shadow-sm border-b">
       <div className="flex h-16 items-center px-4 justify-between">
@@ -137,16 +158,7 @@ function Header() {
                   </div>
 
                   {/* Credits */}
-                  <div className="border-t pt-4">
-                    <Link
-                      href="/dashboard/credits"
-                    >
-                      <Button variant="ghost" className="w-full justify-start">
-                        <CreditCard className="h-4 w-4 mr-2" />
-                        {credits} Credits
-                      </Button>
-                    </Link>
-                  </div>
+                  <CreditView />
 
                   {/* <div className="border-t pt-4">
                     <Link 
@@ -167,17 +179,7 @@ function Header() {
           {/* Desktop Menu */}
           <div className="hidden lg:flex items-center space-x-2">
 
-            <div className="flex items-center space-x-2">
-              <div className="flex items-center justify-between">
-                <Badge variant={credits > 5 ? "success" : "destructive"}>
-                  <Link href="/dashboard/settings" className="flex text-xs p-1 gap-2">
-                    <CreditCard className="h-4 w-4" />
-                    {credits} Credits
-                  </Link>
-                </Badge>
-              </div>
-            </div>
-
+            <CreditView />
             {/* Main Navigation */}
             <nav className="flex items-center space-x-2">
               {navigationItems.map((item) => (

@@ -33,7 +33,7 @@ interface BillingPageClientProps {
   currentPlan?: string;
 }
 
-export function BillingPageClient({ packages, currentCredits = 0, currentPlan }: BillingPageClientProps) {
+export function BillingPageClient({ packages }: BillingPageClientProps) {
   const [selectedPackage, setSelectedPackage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
@@ -136,7 +136,7 @@ export function BillingPageClient({ packages, currentCredits = 0, currentPlan }:
                 </div>
 
                 <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                  <div className="text-sm font-medium text-gray-900 mb-3">What's included:</div>
+                  <div className="text-sm font-medium text-gray-900 mb-3">What is included:</div>
                   <div className="space-y-2">
                     {packages.find(pkg => pkg.id === selectedPackage)?.features.map((line, index) => (
                       <div key={index} className="flex items-center text-sm text-gray-600">

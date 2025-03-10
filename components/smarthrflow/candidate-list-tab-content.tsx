@@ -19,6 +19,9 @@ interface CandidateListTabContentProps {
     handleReject: (id: number, e: React.MouseEvent) => void;
     handleCalculateScore: (resume: Resume) => void;
     loadingScores: Record<number, boolean>;
+    hasMore: boolean;
+    loading: boolean;
+    loadMoreRef: React.RefObject<HTMLDivElement>;
 }
 
 const handleDownload = (downloadUrl: string) => {
@@ -38,7 +41,11 @@ const getMatchScore = (resume: Resume) => {
 };
 
 const getJobMatchStatus = (resume: Resume) => {
-    const [{ status = 'pending' }] = resume.job_resume_matches || [];
+    const { job_resume_matches } = resume;
+
+    const [{
+        status = 'pending'
+    } = {}] = job_resume_matches || [{ status: 'pending' }];
     if (status === 'accepted') {
         return 'Shortlisted';
     } else if (status === 'rejected') {
@@ -57,6 +64,9 @@ export const CandidateListTabContent = ({
     handleReject,
     handleCalculateScore,
     loadingScores,
+    hasMore,
+    loading,
+    loadMoreRef,
 }: CandidateListTabContentProps) => {
 
     if (resumes.length === 0) {
@@ -64,8 +74,7 @@ export const CandidateListTabContent = ({
     }
 
     return (
-        <div className="p-4 space-y-4"> {/* Add padding to inner container */}
-
+        <div className="p-4 space-y-4 max-h-[calc(100vh-300px)] overflow-y-auto"> {/* Add padding to inner container */}
             <div className="space-y-2">
                 {resumes.map((resume) => (
                     <div key={resume.id}>
@@ -247,6 +256,26 @@ export const CandidateListTabContent = ({
 
                     </div>
                 ))}
+
+                {hasMore && (
+                    <div
+                        ref={loadMoreRef}
+                        className="h-10 flex items-center justify-center"
+                    >
+                        {loading ? (
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900" />
+                        ) : (
+                            <span className="text-sm text-muted-foreground">Loading more...</span>
+                        )}
+                    </div>
+                )}
+
+                {/* End of list message */}
+                {/* {!hasMore && resumes.length > 0 && (
+                    <div className="p-4 text-center text-sm text-muted-foreground">
+                        No more candidates to load
+                    </div>
+                )} */}
             </div>
         </div>
     );

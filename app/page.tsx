@@ -112,7 +112,7 @@ export default function Home() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="inline-flex items-center gap-2 bg-white/90 backdrop-blur-sm border border-indigo-100 text-indigo-600 px-4 py-1.5 rounded-full text-sm font-medium mb-6 shadow-sm"
+              className="inline-flex items-center gap-2 backdrop-blur-sm border border-indigo-100 bg-indigo-600 text-white px-4 py-1.5 rounded-full text-sm font-medium mb-6 shadow-sm"
             >
               <Sparkles className="h-4 w-4 animate-pulse" />
               <span>AI-powered recruitment platform for modern hiring teams.</span>
@@ -256,15 +256,10 @@ export default function Home() {
             Process candidates efficiently with bulk actions, and direct communication. All in one place.
           </p>
         </div>
-        <div className="flex justify-center px-16 py-4">
+        <div className="md:flex md:justify-center px-4 md:px-16 md:py-4 max-w-screen">
           <DemoCandidateListView />
-        </div>
-      </section>
-
-      {/* <TargetBenefits /> */}
-
-
-      
+              </div>
+      </section>      
 
       {/* Enhanced About Section */}
       <section className="py-24 bg-slate-50/50 relative">

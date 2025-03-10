@@ -42,8 +42,8 @@ Best regards,
     variables: ["CANDIDATE_NAME", "JOB_TITLE", "COMPANY_NAME", "INTERVIEW_DATE", "INTERVIEW_TIME", "INTERVIEW_LOCATION"]
   },
   {
-    id: "rejected",
-    name: "Rejection Notice",
+    id: "ec2b9879-2e92-4678-86c2-32cca4f005ed",
+    name: "Sorry to let you down!",
     subject: "Update regarding your application for {{JOB_TITLE}}",
     body: `Dear {{CANDIDATE_NAME}},
 

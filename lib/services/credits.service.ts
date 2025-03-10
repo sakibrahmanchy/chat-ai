@@ -1,10 +1,33 @@
-import { CompanyCredits, CreditPackage, CreditTransaction } from '@/app/types/credits';
+import { CompanyCredits, CreditPackage, CreditPurchases, CreditTransaction } from '@/app/types/credits';
 import { supabase } from '@/lib/supabase/client';
-import { PostgrestSingleResponse } from '@supabase/supabase-js';
+import { PostgrestResponse, PostgrestSingleResponse } from '@supabase/supabase-js';
 
 export enum CreditAction {
   SUBMIT_RESUME = 'submit_resume',
   MATCH_RESUME = 'match_resume',
+  SEND_EMAIL = 'email_candidate',
+}
+
+export enum CreditEntity {
+  RESUME = 'resume',
+  PACKAGE = 'credit_package',
+}
+
+export interface CreditsData {
+  credits_balance: number;
+  credits_used: number;
+  credits_remaining: number;
+  credits_used_percentage: number;
+}
+
+interface CursorPaginationParams {
+  cursor?: string | null;
+  pageSize: number;
+}
+
+interface TransactionsResponse {
+  data: CreditTransaction[];
+  next_cursor: string | null;
 }
 
 export class CreditService {
@@ -44,25 +67,19 @@ export class CreditService {
 
   async hasEnoughCredits(companyId: string, actionType: CreditAction): Promise<boolean> {
     const creditsRequired = await this.getCreditsRequired(actionType);
-    const { data: balance } = await supabase
-      .from('company_credits')
-      .select('credits_balance')
-      .eq('company_id', companyId)
-      .single();
+    
+    const creditsData = await this.getCreditsData(companyId);
 
-    console.log({ balance, creditsRequired, companyId })
-
-    return (balance?.credits_balance || 0) >= creditsRequired;
+    return creditsData.credits_remaining >= creditsRequired;
   }
 
   async useCredits(
     companyId: string, 
     actionType: CreditAction, 
-    entityType?: string,
+    entityType?: CreditEntity,
     entityId?: string
   ): Promise<boolean> {
     const creditsRequired = await this.getCreditsRequired(actionType);
-    console.log({ creditsRequired, companyId, actionType })
     // Start transaction
     const { data: company, error: balanceError } = await supabase
       .from('company_credits')
@@ -70,7 +87,9 @@ export class CreditService {
       .eq('company_id', companyId)
       .single();
 
-    if (balanceError || (company?.credits_balance || 0) < creditsRequired) {
+    const creditsData = await this.getCreditsData(companyId);
+
+    if (creditsData.credits_remaining < creditsRequired || !company) {
       return false;
     }
 
@@ -78,8 +97,8 @@ export class CreditService {
     const { error: updateError } = await supabase
       .from('company_credits')
       .update({ 
-        credits_balance: company.credits_balance - creditsRequired,
-        credits_used: company.credits_used + creditsRequired,
+        credits_balance: creditsData.credits_balance - creditsRequired,
+        credits_used: creditsData.credits_used + creditsRequired,
         updated_at: new Date().toISOString()
       })
       .eq('company_id', companyId);
@@ -96,8 +115,12 @@ export class CreditService {
         entity_type: entityType,
         entity_id: entityId
       });
+    
+    if (transactionError) {
+      throw transactionError;
+    }
 
-    return !transactionError;
+    return true;
   }
 
   // async addCredits(companyId: string, credits: number): Promise<boolean> {
@@ -118,8 +141,8 @@ export class CreditService {
     .eq('company_id', companyId)
     .single();
 
-    console.log({ companyCredits })
-    
+    const creditsData = await this.getCreditsData(companyId);
+
     const { error, data: creditPackage } = await supabase
       .from('credit_packages')
       .select('*')
@@ -148,32 +171,36 @@ export class CreditService {
       
 
     if (insertError) throw insertError;
-   
+    
     if (companyCredits) {
       await supabase.from('company_credits').update({
-        credits_balance: companyCredits.credits_balance + creditPackage.credits,
+        credits_balance: creditsData.credits_remaining + creditPackage.credits,
         last_topped_up: new Date().toISOString(),
         credits_used: 0,
       }).eq('company_id', companyId);
     } else {
       await supabase.from('company_credits').insert({
         company_id: companyId,
-        credits_balance: creditPackage.credits,
+        credits_balance: creditsData.credits_remaining + creditPackage.credits,
         last_topped_up: new Date().toISOString(),
         credits_used: 0,
       });
     }
 
 
-    await supabase.from('companies').update({
-      trial_given: freeTier ? true : false
-    }).eq('id', companyId);
+    if (freeTier) {
+      await supabase.from('companies').update({
+        trial_given: true
+      }).eq('id', companyId);
+    }
 
     // Update credit_transactions table
     const { error: transactionError } = await supabase.from('credit_transactions').insert({
       company_id: companyId,
       action_type: 'package_purchase',
       credits_added: creditPackage.credits,
+      entity_type: CreditEntity.PACKAGE,
+      entity_id: creditPackage.name,
     });
 
     if (transactionError) throw transactionError;
@@ -181,28 +208,47 @@ export class CreditService {
     return creditPackage;
   }
 
-  async getTransactions(companyId: string): Promise<CreditTransaction[]> {
-    const { data: transactions, error } = await supabase
+  async getTransactions(
+    companyId: string, 
+    pagination: CursorPaginationParams
+  ): Promise<TransactionsResponse> {
+    let query = supabase
       .from('credit_transactions')
       .select('*')
       .eq('company_id', companyId)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(pagination.pageSize + 1); // fetch one extra to determine if there's more
 
-    if (error) throw error;
+    // Add cursor condition if provided
+    if (pagination.cursor) {
+      query = query.lt('created_at', pagination.cursor);
+    }
 
-    return transactions;
+    const { data, error } = await query;
+
+    if (error) {
+      throw error;
+    }
+
+    // If we got more items than pageSize, there are more items to load
+    const hasMore = data && data.length > pagination.pageSize;
+    // Remove the extra item we fetched
+    const items = data ? data.slice(0, pagination.pageSize) : [];
+    
+    // Get the cursor for the next page
+    const nextCursor = hasMore && items.length > 0 
+      ? items[items.length - 1].created_at 
+      : null;
+
+    return {
+      data: items,
+      next_cursor: nextCursor
+    };
   }
 
   async getCurrentBalance(companyId: string): Promise<number> {
-    const { data: balance, error } = await supabase
-      .from('company_credits')
-      .select('credits_balance')
-      .eq('company_id', companyId)
-      .single();
-
-    if (error) throw error;
-
-    return balance?.credits_balance || 0;
+    const creditsData = await this.getCreditsData(companyId);
+    return creditsData.credits_remaining;
   }
 
   async getCreditsBalance(companyId: string): Promise<number> {
@@ -215,6 +261,19 @@ export class CreditService {
     if (error) throw error;
 
     return balance?.credits_balance || 0;
+  }
+
+  async getCreditsData(companyId: string): Promise<CreditsData> {
+    const { data, error } = await supabase
+      .rpc('get_company_credits_data', {
+        company_id_param: companyId
+      });
+
+    if (error) {  
+      throw error;
+    }
+
+    return data as CreditsData;
   }
   
 }

@@ -39,4 +39,4 @@ export async function POST(req: Request) {
     console.error('Error creating checkout session:', error);
     return new NextResponse('Error processing purchase', { status: 500 });
   }
-} 
+}

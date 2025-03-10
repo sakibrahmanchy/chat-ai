@@ -21,7 +21,7 @@ interface SearchFilters {
 }
 
 export class ResumeSearchService {
-  private ITEMS_PER_PAGE = 20;
+  private ITEMS_PER_PAGE = 5;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private getBaseFilterQuery(query: any, jobId: string, filters: SearchFilters) {
@@ -107,10 +107,14 @@ export class ResumeSearchService {
       return statusCounts;
     } catch (error) {
       console.error('Error fetching filtered resume counts by status:', error);
-      throw error;
+      throw {
+        all: 0,
+        pending: 0,
+        accepted: 0,
+        rejected: 0
+      };
     }
   }
-
 
   async searchResumes(
     jobId: string,
@@ -143,8 +147,8 @@ export class ResumeSearchService {
           location,
           created_at,
           updated_at,
-          job_resume_matches (
-            status
+          job_resume_matches!inner (
+            status  
           ),
           availability_weeks
         `, { count: 'exact' })
@@ -152,6 +156,11 @@ export class ResumeSearchService {
         .eq('job_resume_matches.job_id', jobId);
 
       query = this.getBaseFilterQuery(query, jobId, filters);
+
+      if (filters.status) {
+        console.log({ status: filters.status })
+        query = query.eq('job_resume_matches.status', filters.status);
+      }
 
       // Always sort by score first, then by date
       query = query.order('overall_score', { ascending: false });

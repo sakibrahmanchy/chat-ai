@@ -2,16 +2,15 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
-import { Package, Zap, ArrowDownIcon, ArrowUpIcon } from "lucide-react";
+import { Package, Zap } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { CreditPackage } from "@/app/types/credits";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { formatDate } from "date-fns";
 import { cn } from "@/lib/utils";
+import TransactionHistory from "./transaction-history";
+import { AvailableCredits } from "./available-credits";
 
 interface Transaction {
   id: string;
@@ -41,9 +40,8 @@ interface SettingsFormProps {
 }
 
 export function SettingsForm({ initialData }: SettingsFormProps) {
-  const { credits, purchases, transactions } = initialData.company;
+  const { credits, purchases } = initialData.company;
   const { credits_balance = 0, credits_used = 0 } = credits[0] || [{ credit_balance: 0, credits_used: 0 }];
-  console.log({ credits_balance, credits_used })
   const creditBalance = Number(credits_balance);
   const creditsUsed = Number(credits_used);
   const creditsUsedPercentage = (creditsUsed / (creditBalance + creditsUsed)) * 100 || 0;
@@ -115,8 +113,9 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
+          <AvailableCredits />
           {/* Credits Card */}
-          <Card>
+          {/* <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Zap className="h-5 w-5 text-yellow-500" />
@@ -144,14 +143,14 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
                 </p>
               </div>
             </CardContent>
-          </Card>
+          </Card> */}
 
           {/* Package Details Card */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Package className="h-5 w-5 text-blue-500" />
-                Current Package
+                Last Package Bought
               </CardTitle>
               <CardDescription>
                 Your subscription package details
@@ -194,102 +193,9 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
         </motion.div>
 
         {/* Right Column - Transaction History */}
-        <motion.div
-          className="lg:col-span-8"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-        >
-          <Card className="h-full">
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Credit History</span>
-                <Badge variant="outline" className="ml-2">
-                  {transactions.length} transactions
-                </Badge>
-              </CardTitle>
-              <CardDescription>
-                Track your credit usage and purchases
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded-md border">
-                <div className="max-h-[400px] overflow-auto">
-                  <Table>
-                    <TableHeader className="sticky top-0 bg-background z-10">
-                      <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead className="text-right">Credits</TableHead>
-                        <TableHead className="text-right">Balance Change</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {transactions.map((transaction) => {
-                        const isCredit = transaction.credits_added > 0;
-                        const changeAmount = isCredit 
-                          ? transaction.credits_added 
-                          : -transaction.credits_used;
-                        
-                        return (
-                          <TableRow 
-                            key={transaction.id}
-                            className="group hover:bg-muted/50 transition-colors"
-                          >
-                            <TableCell className="font-medium">
-                              <div className="flex flex-col">
-                                <span>{formatDate(new Date(transaction.created_at), 'MMM dd, yyyy')}</span>
-                                <span className="text-xs text-muted-foreground">
-                                  {formatDate(new Date(transaction.created_at), 'HH:mm')}
-                                </span>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <Badge 
-                                  variant={isCredit ? "default" : "destructive"}
-                                  className="w-20 justify-center"
-                                >
-                                  {transaction.action_type}
-                                </Badge>
-                                {transaction.description && (
-                                  <span className="text-sm text-muted-foreground">
-                                    {transaction.description}
-                                  </span>
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <span className={cn(
-                                "font-medium",
-                                isCredit ? "text-green-600" : "text-red-600"
-                              )}>
-                                {isCredit ? '+' : '-'}{Math.abs(changeAmount)}
-                              </span>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <div
-                                className={cn(
-                                  "inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium",
-                                  isCredit 
-                                    ? "bg-green-50 text-green-700" 
-                                    : "bg-red-50 text-red-700"
-                                )}
-                              >
-                                {isCredit ? <ArrowUpIcon className="w-3 h-3" /> : <ArrowDownIcon className="w-3 h-3" />}
-                                {Math.abs(changeAmount)}
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+        <div className="lg:col-span-8">
+          <TransactionHistory />
+        </div>
       </div>
     </div>
   );

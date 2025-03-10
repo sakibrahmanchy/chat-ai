@@ -639,7 +639,7 @@ export function ResumeUploader({ jobId }: { jobId: string }) {
                     <span className="w-2 h-2 bg-gray-400 rounded-full" />
                     <span className="w-2 h-2 bg-gray-400 rounded-full" />
                   </motion.div>
-                </div>
+        </div>
               </motion.div>
             </motion.div>
           )}

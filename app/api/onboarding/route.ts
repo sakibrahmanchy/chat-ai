@@ -11,17 +11,24 @@ export async function POST(req: Request) {
 
     const data = await req.json();
     const userDetails = await currentUser();
+
+    console.log(data)
     // First create the company
     const { data: company, error: companyError } = await supabase
       .from('companies')
       .upsert({
         name: data.companyName,
-        website: data.website,
+        website: data.website || null,
         industry: data.industry,
         size: data.size,
+        location: data.address.city + ', ' + data.address.state + ', ' + data.address.country,
       })
       .select()
       .single();
+
+      console.log({
+        companyError
+      })
 
     if (companyError) throw companyError;
 
