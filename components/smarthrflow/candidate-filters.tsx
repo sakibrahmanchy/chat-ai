@@ -64,19 +64,12 @@ export function CandidateFilters({
     if (remainingMonths === 0) return `${years} years`;
     return `${years} years ${remainingMonths} months`;
   };
-
   const getCurrentExperienceRange = (months: [number, number]) => {
     for (const [key, [min, max]] of Object.entries(EXPERIENCE_RANGES)) {
       if (months[0] === min && months[1] === max) return key;
     }
     return 'custom';
   };
-
-  // const formatAvailability = (weeks: number) => {
-  //   if (weeks === 1) return '1 week';
-  //   if (weeks === 24) return 'More than 3 months';
-  //   return `${weeks}`;
-  // };
 
   return (
     <div className="flex-1 overflow-auto">

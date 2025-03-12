@@ -5,6 +5,23 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-02-24.acacia'
 });
 
+export interface CreditAction {
+  id: string;
+  name: string;
+  description: string;
+  credits_required: number;
+}
+
+export interface Package {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  credits: number;
+  features: string[];
+  is_popular: boolean;
+}
+
 export class PricingService {
   private static instance: PricingService;
   
@@ -183,6 +200,29 @@ export class PricingService {
       .eq('id', id);
 
     if (error) throw error;
+  }
+
+  async getCreditActions(): Promise<CreditAction[]> {
+    const { data, error } = await supabase
+      .from('credit_actions')
+      .select('*')
+      .order('credits_required', { ascending: true });
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  calculateCreditsNeeded(actions: { actionId: string; quantity: number }[], creditCosts: CreditAction[]): number {
+    return actions.reduce((total, action) => {
+      const cost = creditCosts.find(c => c.id === action.actionId);
+      return total + (cost?.credits_required || 0) * action.quantity;
+    }, 0);
+  }
+
+  findBestPackage(creditsNeeded: number, packages: Package[]): Package | null {
+    return packages
+      .filter(p => p.credits >= creditsNeeded)
+      .sort((a, b) => a.credits - b.credits)[0] || null;
   }
 }
 

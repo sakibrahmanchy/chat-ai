@@ -97,6 +97,9 @@ export interface Resume {
   experience_months: number;
   current_position: string;
   created_at: string;
+  city?: string;
+  state?: string;
+  country?: string;
   metadata: {
     file_name: string;
     file_size: number;

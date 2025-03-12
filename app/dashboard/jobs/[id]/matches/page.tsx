@@ -36,11 +36,6 @@ export default async function JobPage({
       redirect("/dashboard");
     }
 
-    const { shortlistedCandidates, rejectedCandidates } = await listService.getShortlistedAndRejectedLists(jobId);
-
-    console.log(shortlistedCandidates);
-    console.log(rejectedCandidates);
-
     // Get job details
     const { data: job, error: jobError } = await supabase
       .from('jobs')
@@ -61,37 +56,6 @@ export default async function JobPage({
 
     if (jobError || !job) {
       redirect("/dashboard/jobs");
-    }
-
-    // Get resumes for this job
-    // join with job_resume_matches to get the status, we will always have one row per resume
-    const { data: resumes = [], error: resumesError } = await supabase
-      .from('resumes')
-      .select(`
-        id,
-        hash,
-        parsed_content,
-        scores,
-        searchable_skills,
-        experience_months,
-        current_position,
-        overall_score,
-        metadata,
-        location,
-        created_at,
-        updated_at,
-        job_resume_matches (
-          status
-        )
-      `)
-      .eq('job_id', jobId)
-      .order('overall_score', { ascending: false })
-      .order('created_at', { ascending: false })
-      .limit(CANDIDATES_PER_PAGE);
-    console.log({ resumes });
-    if (resumesError) {
-      console.error('Error fetching resumes:', resumesError);
-      return null;
     }
 
     return (

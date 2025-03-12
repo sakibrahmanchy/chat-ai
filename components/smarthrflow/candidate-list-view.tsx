@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import type { Resume } from "@/app/types/resume";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -75,6 +75,7 @@ export function CandidateListView({
   });
   const [loadingScores, setLoadingScores] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
 
   const { companyId, companyName } = useCompany();
 
@@ -91,7 +92,7 @@ export function CandidateListView({
         setAvailableLocations(locations);
       });
     }
-  }, [userId, jobId]);
+  }, [userId, jobId, resumes]);
 
 
   const [filters, setFilters] = useState<FilterCriteria>({
@@ -103,13 +104,14 @@ export function CandidateListView({
     sortBy: 'score' as 'score' | 'date',
     location: "all",
     searchTerm: initialFilters?.search || '',
-    availability: 1,
+    availability: 0,
     fetchStatusCount: true,
-    limit: 5
+    limit: 20
   });
 
   const { inView, ref: loadMoreRef } = useInView({
-    threshold: 0,
+    threshold: 1,
+    rootMargin: '200px',
   });
 
   // Add this after the existing state declarations
@@ -144,7 +146,8 @@ export function CandidateListView({
         matchType: filters.matchType,
         sortBy: filters.sortBy,
         fetchStatusCount: filters.fetchStatusCount,
-        limit: filters.limit
+        limit: filters.limit,
+        availability: filters.availability
       };
 
       const result = await resumeSearch.searchResumes(jobId, searchFilters);
@@ -157,6 +160,8 @@ export function CandidateListView({
         rejected: 0
       });
       setSelectedCandidates([])
+      setNextCursor(result.next_cursor);
+      setHasMore(!!result.next_cursor);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -214,12 +219,17 @@ export function CandidateListView({
 
       const result = await resumeSearch.searchResumes(
         jobId,
-        searchFilters as unknown as FilterCriteria,
-        Math.ceil(resumes.length / filters.limit) + 1
+        {
+          ...searchFilters as unknown as FilterCriteria,
+          cursor: nextCursor || undefined,
+        },
+        Math.ceil(resumes.length / (filters.limit || 20)) + 1,
       );
 
       setResumes(prev => [...prev, ...result.resumes]);
-      setHasMore(result.hasMore && result.resumes.length > 0);
+      setHasMore(!!result.next_cursor);
+      setNextCursor(result.next_cursor);
+      // setHasMore(result.hasMore && result.resumes.length > 0);
     } catch (error) {
       console.error('Error loading more resumes:', error);
       toast({
@@ -235,17 +245,10 @@ export function CandidateListView({
   // Update initial data loading
   useEffect(() => {
     if (!skipDataFetch) {
-      console.log('loading initial data')
       loadInitialData();
     }
   }, [skipDataFetch, loadInitialData]);
 
-  // Handle infinite scroll
-  useEffect(() => {
-    if (inView && hasMore && !loading) {
-      loadMore();
-    }
-  }, [inView, hasMore, loading]);
 
   // Client-side search filter
   const filteredResumes = useMemo(() => {
@@ -360,7 +363,6 @@ export function CandidateListView({
   const [selectedCandidates, setSelectedCandidates] = useState<number[]>([]);
 
   const handleSelectCandidate = (candidateId: number, checked: boolean) => {
-    console.log({ candidateId, checked })
     setSelectedCandidates(prev =>
       checked
         ? [...prev, candidateId]
@@ -512,8 +514,14 @@ export function CandidateListView({
     </div>
   );
 
+  useEffect(() => {
+    if (inView && hasMore && !loading) {
+      loadMore();
+    }
+  }, [inView, hasMore, loading, loadMore]); 
+
   return (
-    <div className="h-[calc(100vh-150px)] flex flex-col lg:flex-row rounded-xl border bg-white shadow-2xl overflow-hidden max-w-[1400px] mx-auto">
+    <div className="h-[calc(100vh-150px)] flex flex-col lg:flex-row rounded-xl border bg-white shadow-2xl overflow-hidden max-w-[1400px] mx-auto overflow-y-auto">
       {/* Filters sidebar */}
       {filters.showFilters && (
         <div className="w-full lg:w-[300px] border-r bg-white p-4 overflow-y-auto">

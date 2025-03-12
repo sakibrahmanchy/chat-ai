@@ -123,7 +123,7 @@ export default function FeaturesPage() {
         </section>
 
         {/* Additional Features Grid */}
-        <section className="py-24 md:py-32 bg-slate-50">
+        <section className="p-12 md:py-32 bg-slate-50">
           <div className="container">
             <h2 className="text-3xl font-bold text-center mb-4">
               Everything You Need to Succeed

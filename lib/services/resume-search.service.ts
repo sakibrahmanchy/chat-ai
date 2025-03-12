@@ -1,5 +1,5 @@
 import { Resume } from '@/app/types/resume';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, PostgrestResponse } from '@supabase/supabase-js';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -18,6 +18,7 @@ interface SearchFilters {
   availability?: number;
   limit?: number;
   fetchStatusCount?: boolean;
+  cursor?: string;
 }
 
 export class ResumeSearchService {
@@ -50,9 +51,12 @@ export class ResumeSearchService {
 
     if (filters.location && filters.location !== 'all') {
       query = query.or(
-        `location->>city.ilike.%${filters.location}%,` +
-        `location->>state.ilike.%${filters.location}%,` +
-        `location->>country.ilike.%${filters.location}%`
+        `location->>city.ilike.*${filters.location}*,` +
+        `location->>state.ilike.*${filters.location}*,` +
+        `location->>country.ilike.*${filters.location}*,` +
+        `parsed_content->>city.ilike.*${filters.location}*,` +
+        `parsed_content->>state.ilike.*${filters.location}*,` +
+        `parsed_content->>country.ilike.*${filters.location}*`
       );
     }
 
@@ -64,8 +68,9 @@ export class ResumeSearchService {
       );
     }
 
-    if (filters.availability) {
-      query = query.eq('availability_weeks', filters.availability);
+    if (filters.availability) { 
+      console.log({ availability: filters.availability })
+      query = query.lte('availability_weeks', filters.availability);
     }
 
     return query;
@@ -158,27 +163,48 @@ export class ResumeSearchService {
       query = this.getBaseFilterQuery(query, jobId, filters);
 
       if (filters.status) {
-        console.log({ status: filters.status })
         query = query.eq('job_resume_matches.status', filters.status);
       }
 
       // Always sort by score first, then by date
-      query = query.order('overall_score', { ascending: false });
+      query = query.order('overall_score', { ascending: false })
+                  .order('created_at', { ascending: false });
           
       const limit = filters.limit || this.ITEMS_PER_PAGE;
 
-      // Apply pagination
-      const start = (page - 1) * limit;
-      query = query.range(start, start + limit - 1);
+      if (filters.cursor) {
+        const [score, timestamp] = filters.cursor.split('_');
+      
+        query = query
+        .lt("overall_score", score)
+        // .or(`overall_score.eq.${score},created_at.lt.${timestamp}`);
+      }
+
+      // Get one extra item to determine if there are more results
+      query = query.limit(limit + 1);
 
       const { data, error, count } = await query;
-      if (error) throw error; 
+      if (error) throw error;
+
+      // If we got more items than the limit, there are more pages
+      const hasMore = data && data.length > limit;
+      
+      // Remove the extra item we fetched
+      const items = data ? data.slice(0, limit) : [];
+
+      // Create cursor from last item's score and timestamp
+      let nextCursor = null;
+      if (hasMore && items.length > 0) {
+        const lastItem = items[items.length - 1];
+        nextCursor = `${lastItem.overall_score}`;
+      }
 
       return {
-        resumes: data as Resume[],
-        hasMore: count ? (start + limit) < count : false,
+        resumes: items as Resume[],
+        hasMore: hasMore,
         total: count || 0,
-        statusCounts
+        statusCounts,
+        next_cursor: nextCursor
       };
     } catch (error) {
       console.error('Error searching resumes:', error);
@@ -190,20 +216,20 @@ export class ResumeSearchService {
     try {
       const { data, error } = await supabase
         .from('resumes')
-        .select('location')
-        .eq('job_id', jobId)
-        .not('location', 'is', null);
+        .select('parsed_content->city, parsed_content->state, parsed_content->country')
+        .eq('job_id', jobId) as PostgrestResponse<Partial<Resume>>;
 
       if (error) throw error;
 
       const locations = new Set<string>();
-      data?.forEach(item => {
-        if (item.location) {
-          const { city, state, country } = item.location;
+      data?.map((item: Partial<Resume>) => {
+        if (item) {
+          const { city, state, country } = item;
           if (city) locations.add(city);
           if (state) locations.add(state);
           if (country) locations.add(country);
         }
+        return item;
       });
 
       return Array.from(locations).sort();
