@@ -6,7 +6,7 @@ import { useState } from "react";
 import { useEffect } from "react";
 
 
-// Update the loadingStates array with more engaging messages and colors
+// Update the loadingStates array with more minimal styling
 const loadingStates: Array<{
     icon: React.ComponentType<{ className?: string }>;
     message: string;
@@ -16,20 +16,20 @@ const loadingStates: Array<{
       {
         icon: FileText,
         message: 'Preparing your resume...',
-        color: 'text-indigo-600',
-        bgColor: 'bg-indigo-50'
+        color: 'text-primary',
+        bgColor: 'bg-primary/10'
       },
       {
         icon: Brain,
         message: 'AI is analyzing your experience...',
-        color: 'text-indigo-600',
-        bgColor: 'bg-indigo-50'
+        color: 'text-primary',
+        bgColor: 'bg-primary/10'
       },
       {
         icon: Sparkles,
         message: 'Extracting your unique skills...',
-        color: 'text-indigo-600',
-        bgColor: 'bg-indigo-50'
+        color: 'text-primary',
+        bgColor: 'bg-primary/10'
       },
     ];
   
@@ -76,57 +76,55 @@ export const ResumeProcessingAnimation = () => {
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className=""
+            className="max-w-2xl mx-auto"
         >
             <motion.div
-                className={`p-8 shadow-lg transition-colors duration-500 ${loadingStates[loadingStateIndex].bgColor}`}
+                className={`p-8 rounded-xl shadow-lg bg-gradient-to-br from-background to-primary/5 backdrop-blur-sm transition-colors duration-500`}
                 animate={{
                     scale: [1, 1.02, 1],
-                    transition: { duration: 2, repeat: Infinity }
+                    transition: { duration: 3, repeat: Infinity }
                 }}
             >
-                <div className="flex items-center justify-center space-x-4">
+                <div className="flex items-center justify-center space-x-5">
                     <motion.div
                         animate={{
                             rotate: 360,
                             scale: [1, 1.1, 1]
                         }}
                         transition={{
-                            rotate: { duration: 2, repeat: Infinity, ease: "linear" },
-                            scale: { duration: 1, repeat: Infinity }
+                            rotate: { duration: 3, repeat: Infinity, ease: "linear" },
+                            scale: { duration: 2, repeat: Infinity }
                         }}
-                        className={`rounded-full p-3 ${loadingStates[loadingStateIndex].bgColor}`}
+                        className={`rounded-full p-4 bg-primary/10 shadow-xl ring-1 ring-primary/20`}
                     >
                         {(() => {
                             const IconComponent = loadingStates[loadingStateIndex].icon;
                             return (
                                 <IconComponent
-                                    className={`h-12 w-12 ${loadingStates[loadingStateIndex].color}`}
+                                    className={`h-10 w-10 ${loadingStates[loadingStateIndex].color}`}
                                 />
                             );
                         })()}
                     </motion.div>
                     <motion.span
-                        className={`text-2xl font-medium ${loadingStates[loadingStateIndex].color}`}
-                        animate={{ opacity: [0.7, 1, 0.7] }}
+                        className={`text-xl font-medium ${loadingStates[loadingStateIndex].color}`}
+                        animate={{ opacity: [0.8, 1, 0.8] }}
                         transition={{ duration: 2, repeat: Infinity }}
                     >
                         {loadingStates[loadingStateIndex].message}
                     </motion.span>
                 </div>
 
-                <div className="mt-6 space-y-3">
-                    <div className="relative pt-1">
-                        <div className="overflow-hidden h-2 text-xs flex rounded-full bg-gray-200">
+                <div className="mt-8 space-y-6">
+                    <div className="relative">
+                        <div className="overflow-hidden h-2 rounded-full bg-muted/50">
                             <motion.div
-                                className="transition-all duration-300 shadow-lg rounded-full bg-indigo-600"
+                                className="h-full rounded-full bg-gradient-to-r from-primary/80 to-primary"
                                 style={{ width: `${progress}%` }}
                                 animate={{
-                                    background: [
-                                        'bg-indigo-600'
-                                    ]
+                                    opacity: [0.8, 1, 0.8]
                                 }}
-                                transition={{ duration: 3, repeat: Infinity }}
+                                transition={{ duration: 2, repeat: Infinity }}
                             />
                         </div>
                     </div>
@@ -140,7 +138,7 @@ export const ResumeProcessingAnimation = () => {
                             className="text-center"
                         >
                             <motion.div
-                                className="text-md text-indigo-600 font-medium"
+                                className="text-base text-muted-foreground/80"
                                 animate={{ opacity: [0.7, 1, 0.7] }}
                                 transition={{ duration: 2, repeat: Infinity }}
                             >
@@ -150,13 +148,25 @@ export const ResumeProcessingAnimation = () => {
                     </AnimatePresence>
 
                     <motion.div
-                        className="flex justify-center space-x-1 pt-2"
+                        className="flex justify-center space-x-2"
                         animate={{ opacity: [0.5, 1, 0.5] }}
                         transition={{ duration: 1.5, repeat: Infinity }}
                     >
-                        <span className="w-2 h-2 bg-gray-400 rounded-full" />
-                        <span className="w-2 h-2 bg-gray-400 rounded-full" />
-                        <span className="w-2 h-2 bg-gray-400 rounded-full" />
+                        <motion.span 
+                            className="w-2 h-2 bg-primary/40 rounded-full"
+                            animate={{ scale: [1, 1.2, 1] }}
+                            transition={{ duration: 1, repeat: Infinity, delay: 0 }}
+                        />
+                        <motion.span 
+                            className="w-2 h-2 bg-primary/40 rounded-full"
+                            animate={{ scale: [1, 1.2, 1] }}
+                            transition={{ duration: 1, repeat: Infinity, delay: 0.2 }}
+                        />
+                        <motion.span 
+                            className="w-2 h-2 bg-primary/40 rounded-full"
+                            animate={{ scale: [1, 1.2, 1] }}
+                            transition={{ duration: 1, repeat: Infinity, delay: 0.4 }}
+                        />
                     </motion.div>
                 </div>
             </motion.div>

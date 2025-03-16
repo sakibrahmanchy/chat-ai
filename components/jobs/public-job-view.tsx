@@ -65,38 +65,64 @@ export function PublicJobView({ job, disabledApplication }: PublicJobViewProps) 
             <div className="bg-white rounded-lg shadow-sm border p-6 space-y-6">
               <h2 className="text-lg font-semibold text-gray-900">{job.title}</h2>
               <div className="space-y-4">
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500">Location</h3>
-                  <p className="mt-1 text-sm text-gray-900">
-                    {job.location.city}, {job.location.state}, {job.location.country}
-                  </p>
-                </div>
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500">Employment Type</h3>
-                  <p className="mt-1 text-sm text-gray-900">{getEmploymentType(job.type)}</p>
-                </div>
-                {job.should_ask_expected_salary && (
+                {/* Only show location if all location fields are present */}
+                {job.location && (job.location.city || job.location.state || job.location.country) && (
                   <div>
-                    <h3 className="text-sm font-medium text-gray-500">Salary Range</h3>
+                    <h3 className="text-sm font-medium text-gray-500">Location</h3>
                     <p className="mt-1 text-sm text-gray-900">
-                      {job?.salary_currency || 'USD'} {job?.salary_min?.toLocaleString()} - {job?.salary_max?.toLocaleString()} / year
+                      {[
+                        job.location.city,
+                        job.location.state,
+                        job.location.country
+                      ].filter(Boolean).join(', ')}
                     </p>
                   </div>
                 )}
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500">Department</h3>
-                  <p className="mt-1 text-sm text-gray-900">{job.department}</p>
-                </div>
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500">Required Skills</h3>
-                  <p className="mt-1 text-sm text-gray-900 flex gap-1">
-                  {job.required_skills.map((skill) => (
-                    <Badge key={skill} variant="secondary" className="bg-gray-100 text-gray-700 text-center">
-                      {skill}
-                    </Badge>
-                  ))}
-                  </p>
-                </div>
+
+                {/* Only show employment type if present */}
+                {job.type && (
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500">Employment Type</h3>
+                    <p className="mt-1 text-sm text-gray-900">{getEmploymentType(job.type)}</p>
+                  </div>
+                )}
+
+                {/* Only show salary range if should_ask_expected_salary is true and salary values exist */}
+                {job.should_ask_expected_salary && job.salary_min && job.salary_max && (
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500">Salary Range</h3>
+                    <p className="mt-1 text-sm text-gray-900">
+                      {job.salary_currency || 'USD'} {job.salary_min.toLocaleString()} - {job.salary_max.toLocaleString()} / year
+                    </p>
+                  </div>
+                )}
+
+                {/* Only show department if present */}
+                {job.department && (
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500">Department</h3>
+                    <p className="mt-1 text-sm text-gray-900">{job.department}</p>
+                  </div>
+                )}
+
+                {/* Only show required skills if array is not empty */}
+                {job.required_skills && job.required_skills.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500">Required Skills</h3>
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {job.required_skills.map((skill) => (
+                        <Badge 
+                          key={skill} 
+                          variant="secondary" 
+                          className="bg-gray-100 text-gray-700 text-center"
+                        >
+                          {skill}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {!disabledApplication && (
                   <Button
                     className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"

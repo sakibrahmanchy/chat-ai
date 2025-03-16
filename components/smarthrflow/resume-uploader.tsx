@@ -208,9 +208,28 @@ export function ResumeUploader({ jobId }: { jobId: string }) {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    console.log('handleSubmit');
     e.preventDefault();
-    if (!file || !resumeData) return;
+    console.log('handleSubmit');
+
+    // Check for required file
+    if (!file) {
+      toast({
+        title: "Error",
+        description: "Please select a resume file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check for parsed data
+    if (!resumeData) {
+      toast({
+        title: "Error",
+        description: "Please wait for resume processing to complete",
+        variant: "destructive",
+      });
+      return;
+    }
 
     // Validate availability
     if (!availability) {
@@ -277,11 +296,11 @@ export function ResumeUploader({ jobId }: { jobId: string }) {
     <Card className="border-0 shadow-none">
       <CardHeader className="p-0 pb-6">
         <CardTitle className="flex items-center gap-2 text-xl">
-          <Sparkles className="h-5 w-5 text-indigo-500" />
-          <h1 className="text-xl font-semibold text-indigo-500">Smart Apply</h1>
+          <Sparkles className="h-5 w-5 text-indigo-600" />
+          <h1 className="text-xl font-semibold text-indigo-600">Smart Apply</h1>
         </CardTitle>
         <CardDescription className="text-base">
-        Easily upload your resume, and we’ll extract key details to speed up your job application. Just drag, drop, and apply in seconds!
+        Easily upload your resume, and we'll extract key details to speed up your job application. Just drag, drop, and apply in seconds!
         </CardDescription>
       </CardHeader>
       <CardContent className="p-0">
@@ -290,7 +309,7 @@ export function ResumeUploader({ jobId }: { jobId: string }) {
         )}
         {!parsing && (
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="rounded-lg p-6 border-2 border-dashed border-indigo-500 bg-indigo-50 text-indigo-900">
+            <div className="rounded-lg p-6 border-2 border-dashed border-indigo-500 text-indigo-600">
               <div className="space-y-4">
                 <div className="flex justify-center">
                   <FileText className="h-12 w-12" />
@@ -312,16 +331,25 @@ export function ResumeUploader({ jobId }: { jobId: string }) {
                     accept=".pdf,.doc,.docx"
                     onChange={handleFileChange}
                     disabled={parsing || submitting}
-                    required
-                    className="hidden"
+                    className="opacity-0 absolute h-0 w-0"
+                    aria-hidden="true"
                   />
-                  <Button
-                    variant="outline"
-                    onClick={() => document.getElementById('resume')?.click()}
-                    className="bg-white hover:bg-indigo-200"
+                  <label
+                    htmlFor="resume"
+                    className="cursor-pointer inline-flex items-center"
                   >
-                    {file ? 'Change File' : 'Select File'}
-                  </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="bg-white hover:bg-indigo-200"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        document.getElementById('resume')?.click();
+                      }}
+                    >
+                      {file ? 'Change File' : 'Select File'}
+                    </Button>
+                  </label>
                 </div>
                 <p className="text-sm text-gray-500 text-center">Accepted formats: PDF, DOC, DOCX</p>
               </div>
