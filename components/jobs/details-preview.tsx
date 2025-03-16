@@ -165,6 +165,12 @@ const formatDeadlineDate = (date: string | Date | null) => {
             </Badge>
           </div>
           <div className="flex gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link href={`/dashboard/jobs/${job.id}/edit`}>
+                <Pencil className="h-4 w-4 mr-2" />
+                Edit Job
+              </Link>
+            </Button>
             <Button
               variant="outline"
               className="gap-2"
@@ -198,10 +204,14 @@ const formatDeadlineDate = (date: string | Date | null) => {
         </div>
       </div>
 
-      <div className="border-t p-4 sm:p-6">
+      {/* <div className="border-t p-4 sm:p-6">
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h4 className="font-medium">Scoring Instructions</h4>
+            <h4 className="font-medium">Edit Job</h4>
+            <Link href={`/dashboard/jobs/${job.id}/edit`}>
+              <Pencil className="h-4 w-4 mr-2" />
+              Edit Job
+            </Link>
             {!isEditingInstructions && (
               <Button 
                 variant="ghost" 
@@ -263,7 +273,7 @@ const formatDeadlineDate = (date: string | Date | null) => {
             </div>
           )}
         </div>
-      </div>
+      </div> */}
 
       <div className="sm:flex lg:grid sm:-p-4 sm:grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-slate-200">
         {/* Main Content */}

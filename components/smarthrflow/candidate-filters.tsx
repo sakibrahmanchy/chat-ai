@@ -16,9 +16,11 @@ interface CandidateFiltersProps {
     sortBy: 'score' | 'date';
     location: string;
     availability: number;
+    searchTerm?: string;
   };
   onFilterChange: (filters: Partial<FilterCriteria>) => void;
   availableLocations: string[];
+  availableSkills: string[];
 }
 
 const SKILL_OPTIONS = [
@@ -55,7 +57,8 @@ export interface FilterCriteria {
 export function CandidateFilters({ 
   filters, 
   onFilterChange,
-  availableLocations 
+  availableLocations,
+  availableSkills
 }: CandidateFiltersProps) {
   const formatExperience = (months: number) => {
     const years = Math.floor(months / 12);
@@ -182,7 +185,7 @@ export function CandidateFilters({
         <div className="space-y-3">
           <Label className="font-medium text-sm">Required Skills</Label>
           <MultiSelect
-            options={SKILL_OPTIONS}
+            options={availableSkills.map(skill => ({ label: skill, value: skill }))}
             selected={filters.skills || []}
             onChange={(selected) => onFilterChange({ ...filters, skills: selected })}
             placeholder="Select required skills..."

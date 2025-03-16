@@ -43,11 +43,11 @@ interface CandidateListViewProps {
   responsibilities: string;
   showFiltersDefault?: boolean;
   initialFilters?: {
-    search?: string;
     skills?: string[];
     experienceLevel?: string;
     matchScore?: [number, number];
     matchType?: 'AND' | 'OR';
+    searchTerm?: string;
   };
   skipDataFetch?: boolean;
 }
@@ -80,16 +80,20 @@ export function CandidateListView({
   const { companyId, companyName } = useCompany();
 
   // Filter states
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(initialFilters?.searchTerm || '');
 
   // Update the filters state with more sensible defaults
   const [availableLocations, setAvailableLocations] = useState<string[]>([]);
+  const [availableSkills, setAvailableSkills] = useState<string[]>([]);
 
   // Load available locations when component mounts
   useEffect(() => {
     if (userId && jobId) {
       resumeSearch.getUniqueLocations(jobId).then(locations => {
         setAvailableLocations(locations);
+      });
+      resumeSearch.getUniqueResumeSkills(jobId).then(skills => {
+        setAvailableSkills(skills);
       });
     }
   }, [userId, jobId, resumes]);
@@ -103,7 +107,7 @@ export function CandidateListView({
     matchType: initialFilters?.matchType || 'OR' as 'AND' | 'OR',
     sortBy: 'score' as 'score' | 'date',
     location: "all",
-    searchTerm: initialFilters?.search || '',
+    searchTerm: initialFilters?.searchTerm || '',
     availability: 0,
     fetchStatusCount: true,
     limit: 20
@@ -136,7 +140,7 @@ export function CandidateListView({
     setLoading(true);
     try {
       const searchFilters = {
-        searchTerm: filters.searchTerm || '',
+        searchTerm: searchTerm,
         skills: filters.skills,
         status: getStatusNameFromSelectedTab(selectedTab),
         location: filters.location === 'all' ? undefined : filters.location,
@@ -249,25 +253,6 @@ export function CandidateListView({
     }
   }, [skipDataFetch, loadInitialData]);
 
-
-  // Client-side search filter
-  const filteredResumes = useMemo(() => {
-    if (!searchTerm) return resumes;
-
-    const searchLower = searchTerm.toLowerCase();
-    return resumes.filter(resume => {
-      const name = resume.parsed_content?.full_name?.toLowerCase() || '';
-      const skills = resume.searchable_skills?.map(s => s?.toLowerCase() || null).filter(Boolean) || [];
-      const content = resume.parsed_content?.experiences?.map(e =>
-        `${e.title} ${e.company}`.toLowerCase()
-      ).join(' ') || '';
-
-      return name.includes(searchLower) ||
-        skills.some(skill => (skill || '').includes(searchLower)) ||
-        content.includes(searchLower);
-    });
-  }, [resumes, searchTerm]);
-
   // UI state
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [showJobDescription, setShowJobDescription] = useState(false);
@@ -301,7 +286,7 @@ export function CandidateListView({
       { header: 'Resume', key: 'resume_url' }
     ];
 
-    const dataToExport = filteredResumes.map(candidate => ({
+    const dataToExport = resumes.map(candidate => ({
       id: candidate.id,
       full_name: candidate.full_name,
       email: candidate.email,
@@ -313,7 +298,8 @@ export function CandidateListView({
       resume_url: candidate.metadata.file_url,
       status: candidate?.job_resume_matches?.[0]?.status || 'pending',
       role: jobTitle,
-      current_position: `${candidate.parsed_content.experiences[0].title} at ${candidate.parsed_content.experiences[0].company}`,
+      current_position: candidate.parsed_content.experiences[0] ?
+       `${candidate.parsed_content.experiences[0].title} at ${candidate.parsed_content.experiences[0].company}` : '',
     }));
 
     await exportData(dataToExport, {
@@ -540,6 +526,7 @@ export function CandidateListView({
             filters={filters}
             onFilterChange={(newFilters) => setFilters({...filters, ...newFilters})}
             availableLocations={availableLocations}
+            availableSkills={availableSkills}
           />
         </div>
       )}
@@ -578,7 +565,11 @@ export function CandidateListView({
                 placeholder="Search candidates..."
                 className="pl-9"
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => {
+                  console.log({ e: e.target.value })
+                  setSearchTerm(e.target.value)
+                  setFilters(prev => ({ ...prev, searchTerm: e.target.value }))
+                }}
               />
             </div>
             <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -640,7 +631,7 @@ export function CandidateListView({
                 handleReject={handleReject}
                 handleCalculateScore={handleCalculateScore}
                 loadingScores={loadingScores}
-                loadMoreRef={loadMoreRef}
+                loadMoreRef={loadMoreRef as unknown as React.RefObject<HTMLDivElement>}
                 hasMore={hasMore}
                 loading={loading}
               />

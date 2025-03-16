@@ -30,10 +30,10 @@ export class ResumeSearchService {
      if (filters.skills?.length) {
       if (filters.matchType === 'AND') {
         filters.skills.forEach(skill => {
-          query = query.contains('searchable_skills', [skill.toLowerCase()]);
+          query = query.contains('searchable_skills', [skill]);
         });
       } else {
-        query = query.overlaps('searchable_skills', filters.skills.map(s => s.toLowerCase()));
+        query = query.overlaps('searchable_skills', filters.skills.map(s => s));
       }
     }
 
@@ -62,14 +62,16 @@ export class ResumeSearchService {
 
     if (filters.searchTerm) {
       query = query.or(
-        `parsed_content->>full_name.ilike.%${filters.searchTerm}%,` +
-        `current_position.ilike.%${filters.searchTerm}%,` +
-        `searchable_skills.cs.{${filters.searchTerm.toLowerCase()}}`
+        `full_name.ilike.*${filters.searchTerm}*,` +
+        `current_position.ilike.*${filters.searchTerm}*`
+      );
+
+      query = query.or(
+        `searchable_skills ILIKE '%${filters.searchTerm}%'`
       );
     }
 
-    if (filters.availability) { 
-      console.log({ availability: filters.availability })
+    if (filters.availability) {
       query = query.lte('availability_weeks', filters.availability);
     }
 
@@ -235,6 +237,31 @@ export class ResumeSearchService {
       return Array.from(locations).sort();
     } catch (error) {
       console.log('Error getting unique locations:', error);
+      return [];
+    }
+  }
+
+  async getUniqueResumeSkills(jobId: string) {
+    try {
+      const { data, error } = await supabase
+        .from('resumes')
+        .select('searchable_skills')
+        .eq('job_id', jobId) as PostgrestResponse<Partial<Resume>>;
+
+      if (error) throw error; 
+
+      const skills = new Set<string>();
+      data?.map((item: Partial<Resume>) => {
+        if (item) {
+          item.searchable_skills?.forEach(skill => {
+            skills.add(skill);
+          });
+        }
+      });
+
+      return Array.from(skills).sort();
+    } catch (error) {
+      console.log('Error getting unique resume skills:', error);
       return [];
     }
   }

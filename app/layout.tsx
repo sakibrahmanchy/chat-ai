@@ -19,8 +19,8 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   metadataBase: new URL('https://smarthrflow.com'),
   title: {
-    default: 'SmartHRFlow - AI-Powered Recruitment Platform',
-    template: '%s | SmartHRFlow'
+    default: 'SmartHR · Flow - AI-Powered Recruitment Platform',
+    template: '%s | SmartHR · Flow'
   },
   description: 'Transform your hiring process with AI-powered candidate screening, automated resume parsing, and intelligent matching technology. Save time and hire smarter.',
   keywords: [
@@ -36,9 +36,9 @@ export const metadata: Metadata = {
     'AI hiring',
     'recruitment automation'
   ],
-  authors: [{ name: 'SmartHRFlow Team' }],
-  creator: 'SmartHRFlow',
-  publisher: 'SmartHRFlow',
+  authors: [{ name: 'SmartHR · Flow Team' }],
+  creator: 'SmartHR · Flow',
+  publisher: 'SmartHR · Flow',
   formatDetection: {
     email: false,
     address: false,
@@ -48,19 +48,19 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'en_US',
     url: 'https://smarthrflow.com',
-    title: 'SmartHRFlow - AI-Powered Recruitment Platform',
+    title: 'SmartHR · Flow - AI-Powered Recruitment Platform',
     description: 'Transform your hiring process with AI-powered candidate screening, automated resume parsing, and intelligent matching technology.',
-    siteName: 'SmartHRFlow',
+    siteName: 'SmartHR · Flow',
     images: [{
       url: '/og-image.png',
       width: 1200,
       height: 630,
-      alt: 'SmartHRFlow Platform Preview',
+      alt: 'SmartHR · Flow Platform Preview',
     }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'SmartHRFlow - AI-Powered Recruitment Platform',
+    title: 'SmartHR · Flow - AI-Powered Recruitment Platform',
     description: 'Transform your hiring process with AI-powered candidate screening and intelligent matching technology.',
     images: ['/twitter-image.png'],
     creator: '@smarthrflow',

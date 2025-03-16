@@ -27,4 +27,6 @@ export interface Job {
   application_deadline?: string | null;
   department?: string;
   company?: Company;
+  should_ask_expected_salary?: boolean;
+  salary_currency?: string;
 } 

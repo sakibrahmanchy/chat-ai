@@ -419,7 +419,7 @@ export default function Home() {
             Ready to Transform Your Hiring Process?
           </h2>
           <p className="mt-4 text-xl text-muted-foreground max-w-2xl mx-auto">
-            Get started with SmartHRFlow today and see the difference for yourself.
+            Get started with SmartHR · Flow today and see the difference for yourself.
           </p>
           <div className="mt-10">
             <AuthButton
@@ -440,7 +440,7 @@ export default function Home() {
           <div className="max-w-3xl mx-auto">
             <h2 className="text-3xl font-bold text-center mb-2">Frequently Asked Questions</h2>
             <p className="text-muted-foreground text-center mb-8">
-              Everything you need to know about SmartHRFlow
+              Everything you need to know about SmartHR · Flow
             </p>
 
             <Accordion type="single" collapsible className="w-full">
@@ -671,7 +671,7 @@ function PricingComparison() {
         <div className="overflow-hidden bg-white border rounded-xl shadow-sm">
           <div className="grid grid-cols-3 p-4 border-b bg-slate-50">
             <div className="font-semibold">Feature</div>
-            <div className="font-semibold text-center text-indigo-600">SmartHRFlow</div>
+            <div className="font-semibold text-center text-indigo-600">SmartHR · Flow</div>
             <div className="font-semibold text-center text-slate-600">Other Platforms</div>
           </div>
           {comparisonFeatures.map((feature, index) => (
@@ -707,7 +707,7 @@ function PricingComparison() {
             Start Hiring Smarter Today
           </h3>
           <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Join companies that trust SmartHRFlow for their recruitment needs. 
+            Join companies that trust SmartHR · Flow for their recruitment needs. 
             No credit card required to get started.
           </p>
           <AuthButton

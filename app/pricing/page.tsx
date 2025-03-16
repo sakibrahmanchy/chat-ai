@@ -12,7 +12,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 // Add package descriptions and features
 const packageDetails = {
   'free_tier': {
-    description: "Perfect for trying out SmartHRFlow",
+    description: "Perfect for trying out SmartHR · Flow",
     features: [
       "10 AI-powered candidate matches",
       "Basic candidate management",

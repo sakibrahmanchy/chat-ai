@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getRelativeTimeString } from "@/lib/utils";
 import Link from "next/link";
-import { Eye, MapPin, Upload, Pause, Play, Copy } from "lucide-react";
+import { Eye, MapPin, Upload, Pause, Play, Copy, Pencil } from "lucide-react";
 import { Job } from "@/app/types/job";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -99,15 +99,24 @@ export function JobList({ jobs: initialJobs }: JobListProps) {
                 {job.status}
               </Badge>
               {/** Job link copy button */}
-              <Button variant="outline" size="sm" onClick={() => {
-                navigator.clipboard.writeText(`${window.location.origin}/jobs/apply/${job.id}`);
-                toast({
-                  title: " 📢 Link copied to clipboard, share it with candidates to let them apply.",
-                });
-              }}>
-                <Copy className="h-4 w-4 mr-2" />
-                Share Job
-              </Button>
+              {/** add edit button */}
+              <div className="flex flex-wrap gap-2">
+                <Link href={`/dashboard/jobs/${job.id}/edit`}>
+                  <Button variant="outline" size="sm">
+                    <Pencil className="h-4 w-4 mr-2" />
+                    Edit Job
+                  </Button>
+                </Link>
+                <Button size="sm" onClick={() => {
+                  navigator.clipboard.writeText(`${window.location.origin}/jobs/apply/${job.id}`);
+                  toast({
+                    title: " 📢 Link copied to clipboard, share it with candidates to let them apply.",
+                  });
+                }}>
+                  <Copy className="h-4 w-4 mr-2" />
+                  Share Job
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
@@ -163,7 +172,7 @@ export function JobList({ jobs: initialJobs }: JobListProps) {
                     </Button>
                   </Link>
                   <Link href={`/dashboard/jobs/${job.id}/upload`}>
-                    <Button size="sm">
+                    <Button variant="outline" size="sm">
                       <Upload className="h-4 w-4 mr-2" />
                       Upload Resume
                     </Button>
